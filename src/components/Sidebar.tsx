@@ -101,7 +101,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
               fontSize: "0.85rem",
               color: "white"
             }}>
-              {currentUser?.email.charAt(0).toUpperCase()}
+              {currentUser?.email ? currentUser.email.charAt(0).toUpperCase() : "C"}
             </div>
             <div style={{ overflow: "hidden" }}>
               <p style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
