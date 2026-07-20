@@ -13,6 +13,7 @@ import { AdminView } from "../components/AdminView";
 import { CreatorChatView } from "../components/CreatorChatView";
 import { AdminChatView } from "../components/AdminChatView";
 import { CampaignsView } from "../components/CampaignsView";
+import { InsightsView } from "../components/InsightsView";
 
 export default function Home() {
   const currentUser = useApp().currentUser; // Keep sync react updates
@@ -43,6 +44,8 @@ export default function Home() {
     switch (activeTab) {
       case "overview":
         return <DashboardView setActiveTab={setActiveTab} />;
+      case "insights":
+        return <InsightsView />;
       case "calendar":
         return <CalendarView />;
       case "crm":
