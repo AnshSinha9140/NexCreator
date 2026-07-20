@@ -24,7 +24,11 @@ export async function POST(request: Request) {
     let ytStats = null;
     if (youtubeLink) {
       try {
-        ytStats = await getYoutubeChannelStats(youtubeLink);
+        const stats = await getYoutubeChannelStats(youtubeLink);
+        ytStats = {
+          ...stats,
+          lastUpdated: new Date(),
+        };
       } catch (err: any) {
         console.warn("YouTube crawler failed. Using mock stats:", err.message);
         // Clean fallback so signup doesn't block
@@ -35,6 +39,7 @@ export async function POST(request: Request) {
           views: 458000,
           videos: 94,
           avatarUrl: "",
+          lastUpdated: new Date(),
         };
       }
     }
@@ -43,7 +48,11 @@ export async function POST(request: Request) {
     let kickStats = null;
     if (kickLink) {
       try {
-        kickStats = await getKickChannelStats(kickLink);
+        const stats = await getKickChannelStats(kickLink);
+        kickStats = {
+          ...stats,
+          lastUpdated: new Date(),
+        };
       } catch (err: any) {
         console.warn("Kick crawler failed:", err.message);
         kickStats = {
@@ -51,6 +60,7 @@ export async function POST(request: Request) {
           followers: 4500,
           avatarUrl: "",
           isLive: false,
+          lastUpdated: new Date(),
         };
       }
     }

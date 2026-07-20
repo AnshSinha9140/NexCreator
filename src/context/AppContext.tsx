@@ -76,6 +76,7 @@ interface AppContextType {
   fetchMessagesForCreator: (creatorEmail: string) => Promise<void>;
   sendChatMessage: (receiverEmail: string, content: string, role: "admin" | "creator") => Promise<void>;
   addGlobalCampaign: (campaign: Omit<GlobalCampaign, "id" | "spotsLeft">) => Promise<void>;
+  refreshChannelStats: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -395,6 +396,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const refreshChannelStats = async () => {
+    if (!currentUser) return;
+    try {
+      const res = await fetch("/api/creators/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: currentUser.email }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to refresh metrics");
+      }
+
+      setCurrentUser(data.user);
+      localStorage.setItem("cm_current_user", JSON.stringify(data.user));
+      await fetchData(currentUser.email);
+      alert("Metrics refreshed successfully!");
+    } catch (error: any) {
+      alert(error.message);
+    }
+  };
+
   if (!isLoaded) {
     return <div style={{ minHeight: "100vh", backgroundColor: "#0c0e17", display: "flex", alignItems: "center", justifyContent: "center", color: "#f8fafc", fontFamily: "sans-serif" }}>Synchronizing NexCreator Database...</div>;
   }
@@ -422,6 +446,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         fetchMessagesForCreator,
         sendChatMessage,
         addGlobalCampaign,
+        refreshChannelStats,
       }}
     >
       {children}

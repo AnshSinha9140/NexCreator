@@ -1,10 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
 
 export const InsightsView: React.FC = () => {
-  const { currentUser } = useApp();
+  const { currentUser, refreshChannelStats } = useApp();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   if (!currentUser) return null;
 
@@ -12,12 +13,40 @@ export const InsightsView: React.FC = () => {
 
   const hasStats = ytStats || kickStats;
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshChannelStats();
+    setIsRefreshing(false);
+  };
+
+  const formatLastUpdated = (dateString?: string) => {
+    if (!dateString) return "";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + " (" + date.toLocaleDateString() + ")";
+    } catch (e) {
+      return "";
+    }
+  };
+
   return (
     <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
       {/* Header */}
-      <div>
-        <h1 style={{ fontSize: "2rem", fontWeight: 800, color: "var(--text-primary)" }}>Channel Insights Hub</h1>
-        <p style={{ color: "var(--text-secondary)" }}>Real-time statistics and customized growth recommendations for your channels.</p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
+        <div>
+          <h1 style={{ fontSize: "2rem", fontWeight: 800, color: "var(--text-primary)" }}>Channel Insights Hub</h1>
+          <p style={{ color: "var(--text-secondary)" }}>Real-time statistics and customized growth recommendations for your channels.</p>
+        </div>
+        {hasStats && (
+          <button 
+            className="btn btn-primary" 
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            style={{ minWidth: "180px" }}
+          >
+            {isRefreshing ? "🔄 Syncing API..." : "🔄 Refresh Metrics"}
+          </button>
+        )}
       </div>
 
       {!hasStats ? (
@@ -37,19 +66,21 @@ export const InsightsView: React.FC = () => {
             {/* YouTube Stats Card */}
             {ytStats && (
               <div className="glass-premium" style={{ padding: "28px", borderLeft: "4px solid #ff0000", position: "relative" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "20px" }}>
-                  {ytStats.avatarUrl ? (
-                    <img src={ytStats.avatarUrl} alt="YouTube Avatar" style={{ width: "56px", height: "56px", borderRadius: "50%", border: "2px solid #ff0000" }} />
-                  ) : (
-                    <div style={{ width: "56px", height: "56px", borderRadius: "50%", background: "#ff0000", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "white" }}>YT</div>
-                  )}
-                  <div>
-                    <h3 style={{ fontSize: "1.2rem", fontWeight: 800, color: "var(--text-primary)" }}>{ytStats.title}</h3>
-                    <span style={{ fontSize: "0.85rem", color: "var(--accent-blue)" }}>{ytStats.handle}</span>
+                <div style={{ display: "flex", alignItems: "center", justifyItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                    {ytStats.avatarUrl ? (
+                      <img src={ytStats.avatarUrl} alt="YouTube Avatar" style={{ width: "56px", height: "56px", borderRadius: "50%", border: "2px solid #ff0000" }} />
+                    ) : (
+                      <div style={{ width: "56px", height: "56px", borderRadius: "50%", background: "#ff0000", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "white" }}>YT</div>
+                    )}
+                    <div>
+                      <h3 style={{ fontSize: "1.2rem", fontWeight: 800, color: "var(--text-primary)" }}>{ytStats.title}</h3>
+                      <span style={{ fontSize: "0.85rem", color: "var(--accent-blue)" }}>{ytStats.handle}</span>
+                    </div>
                   </div>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", background: "var(--bg-input)", padding: "16px", borderRadius: "var(--radius-md)" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", background: "var(--bg-input)", padding: "16px", borderRadius: "var(--radius-md)", marginBottom: "14px" }}>
                   <div style={{ textAlign: "center" }}>
                     <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block" }}>Subscribers</span>
                     <strong style={{ fontSize: "1.1rem", color: "var(--text-primary)" }}>{Number(ytStats.subscribers).toLocaleString()}</strong>
@@ -63,28 +94,34 @@ export const InsightsView: React.FC = () => {
                     <strong style={{ fontSize: "1.1rem", color: "var(--text-primary)" }}>{Number(ytStats.videos).toLocaleString()}</strong>
                   </div>
                 </div>
+
+                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", textAlign: "right" }}>
+                  Last updated: {formatLastUpdated(ytStats.lastUpdated)}
+                </span>
               </div>
             )}
 
             {/* Kick Stats Card */}
             {kickStats && (
               <div className="glass-premium" style={{ padding: "28px", borderLeft: "4px solid #53fc18" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "20px" }}>
-                  {kickStats.avatarUrl ? (
-                    <img src={kickStats.avatarUrl} alt="Kick Avatar" style={{ width: "56px", height: "56px", borderRadius: "50%", border: "2px solid #53fc18" }} />
-                  ) : (
-                    <div style={{ width: "56px", height: "56px", borderRadius: "50%", background: "#53fc18", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "black" }}>K</div>
-                  )}
-                  <div>
-                    <h3 style={{ fontSize: "1.2rem", fontWeight: 800, color: "var(--text-primary)" }}>{kickStats.username}</h3>
-                    <span style={{ fontSize: "0.85rem", color: kickStats.isLive ? "var(--accent-green)" : "var(--text-muted)", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                      <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", backgroundColor: kickStats.isLive ? "var(--accent-green)" : "var(--text-muted)" }}></span>
-                      {kickStats.isLive ? "LIVE NOW" : "Offline"}
-                    </span>
+                <div style={{ display: "flex", alignItems: "center", justifyItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                    {kickStats.avatarUrl ? (
+                      <img src={kickStats.avatarUrl} alt="Kick Avatar" style={{ width: "56px", height: "56px", borderRadius: "50%", border: "2px solid #53fc18" }} />
+                    ) : (
+                      <div style={{ width: "56px", height: "56px", borderRadius: "50%", background: "#53fc18", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "black" }}>K</div>
+                    )}
+                    <div>
+                      <h3 style={{ fontSize: "1.2rem", fontWeight: 800, color: "var(--text-primary)" }}>{kickStats.username}</h3>
+                      <span style={{ fontSize: "0.85rem", color: kickStats.isLive ? "var(--accent-green)" : "var(--text-muted)", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                        <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", backgroundColor: kickStats.isLive ? "var(--accent-green)" : "var(--text-muted)" }}></span>
+                        {kickStats.isLive ? "LIVE NOW" : "Offline"}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", background: "var(--bg-input)", padding: "16px", borderRadius: "var(--radius-md)" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", background: "var(--bg-input)", padding: "16px", borderRadius: "var(--radius-md)", marginBottom: "14px" }}>
                   <div style={{ textAlign: "center" }}>
                     <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block" }}>Followers</span>
                     <strong style={{ fontSize: "1.1rem", color: "var(--text-primary)" }}>{Number(kickStats.followers).toLocaleString()}</strong>
@@ -94,6 +131,10 @@ export const InsightsView: React.FC = () => {
                     <strong style={{ fontSize: "1.1rem", color: "var(--accent-green)" }}>Kick.com</strong>
                   </div>
                 </div>
+
+                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", textAlign: "right" }}>
+                  Last updated: {formatLastUpdated(kickStats.lastUpdated)}
+                </span>
               </div>
             )}
 
