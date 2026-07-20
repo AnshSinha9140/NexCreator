@@ -10,12 +10,16 @@ import { CalendarView } from "../components/CalendarView";
 import { CrmView } from "../components/CrmView";
 import { TasksView } from "../components/TasksView";
 import { AdminView } from "../components/AdminView";
+import { CreatorChatView } from "../components/CreatorChatView";
+import { AdminChatView } from "../components/AdminChatView";
+import { CampaignsView } from "../components/CampaignsView";
 
 export default function Home() {
-  const { currentUser } = useApp();
+  const currentUser = useApp().currentUser; // Keep sync react updates
+  const { } = useApp();
   const [activeTab, setActiveTab] = useState("overview");
 
-  // Reset tab to overview if user logs out or logs in
+  // Reset tab to overview or admin if user logs out or logs in
   useEffect(() => {
     if (currentUser?.isAdmin) {
       setActiveTab("admin");
@@ -47,6 +51,10 @@ export default function Home() {
         return <TasksView />;
       case "admin":
         return currentUser.isAdmin ? <AdminView /> : <DashboardView setActiveTab={setActiveTab} />;
+      case "chat":
+        return currentUser.isAdmin ? <AdminChatView /> : <CreatorChatView />;
+      case "campaigns":
+        return <CampaignsView />;
       default:
         return <DashboardView setActiveTab={setActiveTab} />;
     }

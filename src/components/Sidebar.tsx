@@ -11,27 +11,38 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const { currentUser, logout } = useApp();
 
-  const menuItems = [
-    { id: "overview", label: "Dashboard", icon: "📊" },
-    { id: "calendar", label: "Content Calendar", icon: "📅" },
-    { id: "crm", label: "Brand Deals CRM", icon: "💼" },
-    { id: "tasks", label: "Collaborator Tasks", icon: "👥" },
-  ];
+  let menuItems = [];
 
   if (currentUser?.isAdmin) {
-    menuItems.push({ id: "admin", label: "Admin Approval", icon: "🛡️" });
+    menuItems = [
+      { id: "admin", label: "Admin Approval", icon: "🛡️" },
+      { id: "chat", label: "Creator Chat Hub", icon: "📬" },
+      { id: "campaigns", label: "Post Campaigns", icon: "💼" },
+    ];
+  } else {
+    menuItems = [
+      { id: "overview", label: "Dashboard", icon: "📊" },
+      { id: "campaigns", label: "Sponsor Board", icon: "🚀" },
+      { id: "calendar", label: "Content Calendar", icon: "📅" },
+      { id: "crm", label: "Brand Deals CRM", icon: "💼" },
+      { id: "tasks", label: "Collaborator Tasks", icon: "👥" },
+      { id: "chat", label: "Support Desk", icon: "💬" },
+    ];
   }
 
   return (
     <aside className="sidebar">
       {/* Brand logo */}
-      <div style={{ marginBottom: "40px", padding: "0 8px" }}>
-        <h2 style={{ fontSize: "1.3rem", fontWeight: 800, background: "linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-pink) 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-          🚀 CREATOR HUB
-        </h2>
-        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-          Manager Suite
-        </span>
+      <div style={{ marginBottom: "40px", padding: "0 8px", display: "flex", alignItems: "center", gap: "12px" }}>
+        <img src="/logo.png" alt="NexCreator" style={{ width: "36px", height: "36px", borderRadius: "10px", objectFit: "cover", boxShadow: "0 4px 10px rgba(0,0,0,0.3)" }} />
+        <div>
+          <h2 style={{ fontSize: "1.3rem", fontWeight: 800, background: "linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-pink) 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: "1.1" }}>
+            NexCreator
+          </h2>
+          <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block" }}>
+            Manager Suite
+          </span>
+        </div>
       </div>
 
       {/* Navigation menu */}

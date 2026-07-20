@@ -3,7 +3,7 @@ import { AppProvider } from "../context/AppContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Creator Hub Manager",
+  title: "NexCreator Manager",
   description: "High-fidelity Online Creator Manager for YouTubers & Streamers",
 };
 
