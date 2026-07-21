@@ -18,7 +18,7 @@ export async function getKickChannelStats(url: string) {
 
   try {
     // Attempt to fetch from Kick public API
-    // Note: Kick public endpoints are protected by Cloudflare. If blocked, we catch and fall back to simulated stats.
+    // Note: Kick public endpoints are protected by Cloudflare. If blocked, we catch and fall back to 0.
     const res = await fetch(`https://kick.com/api/v1/channels/${encodeURIComponent(username.toLowerCase())}`, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)",
@@ -39,11 +39,11 @@ export async function getKickChannelStats(url: string) {
     console.warn("Kick API request failed (Cloudflare block). Using fallback parser.");
   }
 
-  // Fallback / Simulation if blocked
+  // Fallback to 0 followers instead of a random number if API is blocked by Cloudflare
   return {
     username: "@" + username,
     avatarUrl: "",
-    followers: Math.floor(Math.random() * 8500) + 1500, // random between 1.5k and 10k
-    isLive: Math.random() > 0.5,
+    followers: 0,
+    isLive: false,
   };
 }

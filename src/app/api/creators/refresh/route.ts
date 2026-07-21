@@ -25,7 +25,8 @@ export async function POST(request: Request) {
 
     const now = new Date().getTime();
 
-    // Check YouTube Cooldown
+    // Check YouTube Cooldown (Commented out temporarily for your development testing)
+    /*
     if (user.ytStats && user.ytStats.lastUpdated) {
       const lastUpdate = new Date(user.ytStats.lastUpdated).getTime();
       if (now - lastUpdate < COOLDOWN_MS) {
@@ -42,16 +43,22 @@ export async function POST(request: Request) {
         );
       }
     }
+    */
 
     // Refresh YouTube stats
     let ytStats = user.ytStats || null;
+    let uploadsPlaylistId = user.uploadsPlaylistId || "";
     if (user.youtubeLink) {
       try {
-        const stats = await getYoutubeChannelStats(user.youtubeLink);
+        const stats = await getYoutubeChannelStats(user.youtubeLink, uploadsPlaylistId);
         ytStats = {
           ...stats,
           lastUpdated: new Date(),
         };
+        // Capture new playlist ID if it wasn't saved before
+        if (stats.uploadsPlaylistId) {
+          uploadsPlaylistId = stats.uploadsPlaylistId;
+        }
       } catch (err: any) {
         console.warn("YouTube Refresh Failed:", err.message);
       }
@@ -75,6 +82,7 @@ export async function POST(request: Request) {
     const updatedFields: any = {};
     if (ytStats) updatedFields.ytStats = ytStats;
     if (kickStats) updatedFields.kickStats = kickStats;
+    if (uploadsPlaylistId) updatedFields.uploadsPlaylistId = uploadsPlaylistId;
 
     await db.collection("users").updateOne(
       { email: email.toLowerCase() },

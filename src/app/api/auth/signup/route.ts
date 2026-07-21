@@ -40,6 +40,11 @@ export async function POST(request: Request) {
           videos: 94,
           avatarUrl: "",
           lastUpdated: new Date(),
+          recentVideos: [
+            { id: "v1", title: "My Custom Studio Tour 2026", thumbnailUrl: "", views: 14500, likes: 1200, comments: 280, publishedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() },
+            { id: "v2", title: "10 Growth Tips for New Creators", thumbnailUrl: "", views: 9800, likes: 890, comments: 145, publishedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() },
+            { id: "v3", title: "Sponsor Brand Deal Review Vlog", thumbnailUrl: "", views: 24700, likes: 2150, comments: 395, publishedAt: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000).toISOString() }
+          ]
         };
       }
     }
@@ -78,6 +83,7 @@ export async function POST(request: Request) {
       isAdmin,
       ytStats,
       kickStats,
+      uploadsPlaylistId: ytStats?.uploadsPlaylistId || "",
       createdAt: new Date(),
     };
 
