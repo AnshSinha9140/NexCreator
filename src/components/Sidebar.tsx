@@ -23,6 +23,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
     menuItems = [
       { id: "overview", label: "Dashboard", icon: "📊" },
       { id: "insights", label: "Insights Hub", icon: "📈" },
+      { id: "analyzer", label: "Video Analyzer", icon: "🧠" },
       { id: "calendar", label: "Content Calendar", icon: "📅" },
       { id: "crm", label: "Brand Deals CRM", icon: "💼" },
       { id: "tasks", label: "Collaborator Tasks", icon: "👥" },

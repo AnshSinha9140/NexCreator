@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 
 export interface User {
   email: string;
@@ -55,6 +55,18 @@ export interface GlobalCampaign {
   spotsLeft: number;
 }
 
+export interface ActiveLiveJob {
+  id: string;
+  creatorEmail: string;
+  platform: "kick_live";
+  videoId: string;
+  videoUrl: string;
+  title: string;
+  status: "SCRAPING" | "ANALYZING" | "COMPLETED" | "FAILED";
+  progressMessage: string;
+  messagesCount: number;
+}
+
 interface AppContextType {
   currentUser: User | null;
   usersList: User[];
@@ -77,6 +89,12 @@ interface AppContextType {
   sendChatMessage: (receiverEmail: string, content: string, role: "admin" | "creator") => Promise<void>;
   addGlobalCampaign: (campaign: Omit<GlobalCampaign, "id" | "spotsLeft">) => Promise<void>;
   refreshChannelStats: () => Promise<void>;
+  
+  // Global Live Stream Monitoring State
+  activeLiveJob: ActiveLiveJob | null;
+  latestCompletedJobId: string | null;
+  startLiveKickMonitoring: (username: string, directChatroomId?: string) => Promise<void>;
+  stopLiveKickMonitoring: () => Promise<any>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -87,9 +105,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [brandDeals, setBrandDeals] = useState<BrandDeal[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [tasks, setTasks] = useState<CollaboratorTask[]>([]);
+  const liveChatMessagesRef = useRef<string[]>([]);
+  const chatPollTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const liveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastChatTimestampRef = useRef<string>(new Date().toISOString());
+  const activeChatroomIdRef = useRef<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [globalCampaigns, setGlobalCampaigns] = useState<GlobalCampaign[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  // Global Live Stream Monitoring State
+  const [activeLiveJob, setActiveLiveJob] = useState<ActiveLiveJob | null>(null);
+  const [latestCompletedJobId, setLatestCompletedJobId] = useState<string | null>(null);
 
   // Helper to fetch all data from backend
   const fetchData = async (userEmail?: string) => {
@@ -132,6 +159,216 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     } catch (error) {
       console.error("Failed to fetch initial database data:", error);
+    }
+  };
+
+  // Resilient CORS proxy fetch helper
+  const fetchWithCorsProxy = async (targetUrl: string) => {
+    try {
+      const res = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`);
+      if (res.ok) return await res.json();
+    } catch (e) {}
+
+    try {
+      const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`);
+      if (res.ok) {
+        const wrapper = await res.json();
+        return JSON.parse(wrapper.contents);
+      }
+    } catch (e) {}
+
+    try {
+      const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`);
+      if (res.ok) return await res.json();
+    } catch (e) {}
+
+    return null;
+  };
+
+  const startLiveKickMonitoring = async (username: string, directChatroomId?: string) => {
+    const email = currentUser?.email || "guest@creator.com";
+    let chatroomId: string | null = directChatroomId ? String(directChatroomId) : null;
+
+    if (!chatroomId) {
+      try {
+        const resChannel = await fetch(`/api/analysis?kickChannel=${encodeURIComponent(username.toLowerCase())}`);
+        if (resChannel.ok) {
+          const channelData = await resChannel.json();
+          if (channelData.chatroomId) chatroomId = String(channelData.chatroomId);
+        }
+      } catch (e) {}
+    }
+
+    if (!chatroomId) {
+      throw new Error(`🛡️ Could not resolve Kick chatroom for '${username}'. Please try again.`);
+    }
+
+    activeChatroomIdRef.current = chatroomId;
+
+    setActiveLiveJob({
+      id: `job_live_${Date.now()}`,
+      creatorEmail: email,
+      platform: "kick_live",
+      videoId: username,
+      videoUrl: `https://kick.com/${username}`,
+      title: `🔴 Live Stream Monitor: Kick.com/${username}`,
+      status: "SCRAPING",
+      progressMessage: `🔲 Subscribing to Kick EventSub for ${username}...`,
+      messagesCount: 0
+    });
+
+    // Clean up any previous timers
+    if (chatPollTimerRef.current) { clearInterval(chatPollTimerRef.current); chatPollTimerRef.current = null; }
+    if (liveTimerRef.current) { clearInterval(liveTimerRef.current); liveTimerRef.current = null; }
+    liveChatMessagesRef.current = [];
+    lastChatTimestampRef.current = new Date().toISOString();
+
+    // Step 1: Register EventSub webhook with Kick
+    const appBaseUrl = window.location.origin;
+    const webhookUrl = `${appBaseUrl}/api/kick/webhook`;
+
+    try {
+      const subRes = await fetch("/api/kick/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ broadcasterUserId: chatroomId, webhookUrl })
+      });
+      const subData = await subRes.json();
+      if (!subRes.ok) {
+        console.warn("📡 EventSub subscribe warning:", subData);
+      } else {
+        console.log("✅ Kick EventSub subscribed:", subData.message);
+      }
+    } catch (e) {
+      console.warn("📡 EventSub subscribe failed, will still poll:", e);
+    }
+
+    setActiveLiveJob((prev) => prev ? ({
+      ...prev,
+      progressMessage: `🟢 Live Monitoring Active! Kick chat messages will appear here every 5 seconds.`,
+    }) : null);
+
+    // Step 2: Poll /api/kick/chat every 5 seconds for new messages
+    chatPollTimerRef.current = setInterval(async () => {
+      try {
+        const chatRes = await fetch(
+          `/api/kick/chat?broadcasterUserId=${chatroomId}&since=${encodeURIComponent(lastChatTimestampRef.current)}`
+        );
+        if (chatRes.ok) {
+          const chatData = await chatRes.json();
+          if (chatData.messages && chatData.messages.length > 0) {
+            liveChatMessagesRef.current.push(...chatData.messages);
+            lastChatTimestampRef.current = chatData.lastTimestamp;
+            console.log(`📨 Received ${chatData.messages.length} new Kick messages from EventSub buffer.`);
+            setActiveLiveJob((prev) => prev ? ({
+              ...prev,
+              messagesCount: liveChatMessagesRef.current.length,
+              progressMessage: `🟢 Live Monitoring Active (2-min cycle). Chat messages buffered: ${liveChatMessagesRef.current.length}`
+            }) : null);
+          }
+        }
+      } catch (err) {
+        console.warn("📡 Chat poll error:", err);
+      }
+    }, 5000);
+
+    // Step 3: Every 2 minutes, send batch to Gemini
+    liveTimerRef.current = setInterval(async () => {
+      const batch = [...liveChatMessagesRef.current];
+
+      if (batch.length === 0) {
+        setActiveLiveJob((prev) => prev ? ({
+          ...prev,
+          progressMessage: `ℹ️ 2-min check: 0 messages in buffer. Still monitoring...`
+        }) : null);
+        return;
+      }
+
+      setActiveLiveJob((prev) => prev ? ({
+        ...prev,
+        status: "ANALYZING",
+        progressMessage: `Passing ${batch.length} messages to Gemini 3.5 Flash...`
+      }) : null);
+
+      try {
+        const res = await fetch("/api/analysis", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            platform: "kick",
+            creatorEmail: email,
+            videoId: username,
+            videoUrl: `https://kick.com/${username}`,
+            title: `🔴 Live Stream Pulse: Kick.com/${username}`,
+            comments: batch
+          })
+        });
+
+        const data = await res.json();
+        if (data.jobId) setLatestCompletedJobId(data.jobId);
+
+        // Clear buffer and MongoDB after Gemini evaluation
+        liveChatMessagesRef.current = [];
+        await fetch(`/api/kick/chat?broadcasterUserId=${chatroomId}`, { method: "DELETE" });
+
+        setActiveLiveJob((prev) => prev ? ({
+          ...prev,
+          status: "SCRAPING",
+          progressMessage: `🟢 2-min report generated! Buffering next batch... (Messages: 0)`,
+          messagesCount: 0
+        }) : null);
+      } catch (err) {
+        console.warn("2-min Gemini trigger error:", err);
+      }
+    }, 120000);
+  };
+
+  const stopLiveKickMonitoring = async () => {
+    if (chatPollTimerRef.current) {
+      clearInterval(chatPollTimerRef.current);
+      chatPollTimerRef.current = null;
+    }
+    if (liveTimerRef.current) {
+      clearInterval(liveTimerRef.current);
+      liveTimerRef.current = null;
+    }
+
+    const chatroomId = activeChatroomIdRef.current;
+    const batch = [...liveChatMessagesRef.current];
+    const email = currentUser?.email || "guest@creator.com";
+    const username = activeLiveJob?.videoId || "Kick Stream";
+
+    setActiveLiveJob(null);
+    activeChatroomIdRef.current = null;
+
+    // Unsubscribe from EventSub
+    if (chatroomId) {
+      fetch(`/api/kick/subscribe?broadcasterUserId=${chatroomId}`, { method: "DELETE" }).catch(() => {});
+      fetch(`/api/kick/chat?broadcasterUserId=${chatroomId}`, { method: "DELETE" }).catch(() => {});
+    }
+
+    if (batch.length === 0) {
+      return { error: "No live chat messages collected yet." };
+    }
+
+    try {
+      const res = await fetch("/api/analysis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platform: "kick",
+          creatorEmail: email,
+          videoId: username,
+          videoUrl: `https://kick.com/${username}`,
+          title: `🔴 Live Stream Snapshot: Kick.com/${username}`,
+          comments: batch
+        })
+      });
+      const data = await res.json();
+      if (data.jobId) setLatestCompletedJobId(data.jobId);
+      return data;
+    } catch (err: any) {
+      return { error: err.message || "Failed to generate live report" };
     }
   };
 
@@ -447,6 +684,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         sendChatMessage,
         addGlobalCampaign,
         refreshChannelStats,
+        activeLiveJob,
+        latestCompletedJobId,
+        startLiveKickMonitoring,
+        stopLiveKickMonitoring
       }}
     >
       {children}

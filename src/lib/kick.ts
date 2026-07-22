@@ -1,49 +1,91 @@
-export async function getKickChannelStats(url: string) {
-  let username = "";
-  const trimmedUrl = url.trim();
-  
-  if (trimmedUrl.includes("kick.com/")) {
-    username = trimmedUrl.split("kick.com/")[1]?.split("/")[0]?.split("?")[0];
-  } else {
-    // If they just typed a username
-    const clean = trimmedUrl.replace("@", "");
-    if (clean && !clean.includes(".")) {
-      username = clean;
-    }
+// Official Kick Developer API Helper (OAuth 2.1 Client Credentials Flow)
+
+let cachedToken: string | null = null;
+let tokenExpiresAt: number = 0;
+
+export async function getOfficialKickToken(): Promise<string | null> {
+  const clientId = process.env.KICK_CLIENT_ID;
+  const clientSecret = process.env.KICK_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    return null;
   }
 
-  if (!username) {
-    throw new Error("Invalid Kick URL");
+  // Return cached token if still valid
+  if (cachedToken && Date.now() < tokenExpiresAt - 60000) {
+    return cachedToken;
   }
 
   try {
-    // Attempt to fetch from Kick public API
-    // Note: Kick public endpoints are protected by Cloudflare. If blocked, we catch and fall back to 0.
-    const res = await fetch(`https://kick.com/api/v1/channels/${encodeURIComponent(username.toLowerCase())}`, {
+    const res = await fetch("https://id.kick.com/oauth/token", {
+      method: "POST",
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)",
+        "Content-Type": "application/x-www-form-urlencoded"
       },
-      next: { revalidate: 3600 } // Cache for 1 hour
+      body: new URLSearchParams({
+        grant_type: "client_credentials",
+        client_id: clientId,
+        client_secret: clientSecret
+      }).toString()
     });
 
     if (res.ok) {
       const data = await res.json();
-      return {
-        username: data.user?.username || username,
-        avatarUrl: data.user?.profile_pic || "",
-        followers: Number(data.followers_count || 0),
-        isLive: !!data.livestream,
-      };
+      cachedToken = data.access_token;
+      tokenExpiresAt = Date.now() + (data.expires_in || 3600) * 1000;
+      return cachedToken;
+    } else {
+      console.warn("Official Kick OAuth Token Error:", res.status, await res.text());
     }
-  } catch (e) {
-    console.warn("Kick API request failed (Cloudflare block). Using fallback parser.");
+  } catch (err: any) {
+    console.error("Failed to fetch official Kick OAuth token:", err.message);
   }
 
-  // Fallback to 0 followers instead of a random number if API is blocked by Cloudflare
-  return {
-    username: "@" + username,
-    avatarUrl: "",
-    followers: 0,
-    isLive: false,
-  };
+  return null;
+}
+
+export async function getOfficialKickChannelInfo(username: string) {
+  const token = await getOfficialKickToken();
+  if (!token) return null;
+
+  try {
+    const res = await fetch(`https://api.kick.com/public/v1/channels?slug=${username.toLowerCase()}`, {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Accept": "application/json"
+      }
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const channelObj = data.data?.[0];
+      if (channelObj) {
+        return {
+          chatroomId: channelObj.broadcaster_user_id,
+          isLive: !!channelObj.stream?.is_live,
+          username: channelObj.slug || username,
+          followersCount: 0
+        };
+      }
+    } else {
+      console.warn("Official Kick API Channel Lookup failed:", res.status, await res.text());
+    }
+  } catch (err: any) {
+    console.error("Official Kick API Error:", err.message);
+  }
+
+  return null;
+}
+
+export async function getKickChannelStats(username: string) {
+  const info = await getOfficialKickChannelInfo(username);
+  if (info) {
+    return {
+      username: info.username,
+      followersCount: info.followersCount || 0,
+      isLive: info.isLive,
+      chatroomId: info.chatroomId
+    };
+  }
+  return { username, followersCount: 0, isLive: false, chatroomId: null };
 }
