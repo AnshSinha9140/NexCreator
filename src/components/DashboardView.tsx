@@ -2,131 +2,159 @@
 
 import React from "react";
 import { useApp } from "../context/AppContext";
+import { LivePulseScore } from "./LivePulseScore";
+import { MetricCard } from "./MetricCard";
+import { SignatureTimeline } from "./SignatureTimeline";
+import { AICreatorCoach } from "./AICreatorCoach";
 
 export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = ({ setActiveTab }) => {
-  const { brandDeals, calendarEvents, tasks, currentUser } = useApp();
+  const { brandDeals, calendarEvents, tasks, currentUser, activeLiveJob } = useApp();
 
-  // Compute stats
   const totalPayout = brandDeals
     .filter((d) => d.status !== "completed")
     .reduce((sum, d) => sum + d.payout, 0);
 
-  const upcomingReleasesCount = calendarEvents.filter(
-    (e) => new Date(e.date) >= new Date()
-  ).length;
-
   const activeTasksCount = tasks.filter((t) => t.status !== "done").length;
 
   return (
-    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
-      {/* Header */}
-      <div>
-        <h1 style={{ fontSize: "2rem", fontWeight: 800, color: "var(--text-primary)" }}>
-          Welcome back, Creator!
-        </h1>
-        <p style={{ color: "var(--text-secondary)" }}>
-          Here is a quick snapshot of your active production, brand deals, and team tasks.
-        </p>
+    <div className="animate-fade-in space-y-8">
+      {/* 1. Hero Live Pulse Score Section */}
+      <LivePulseScore
+        score={92}
+        isLive={!!activeLiveJob}
+        messagesCount={activeLiveJob?.messagesCount || 0}
+        statusText="Top 2% Creator Peak Engagement • Community Hype Active"
+      />
+
+      {/* 2. 4-Grid SaaS Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <MetricCard
+          title="Audience Sentiment"
+          value="88% Positive"
+          change="+14%"
+          isPositive={true}
+          accentColor="emerald"
+          subtitle="88% Positive, 8% Neutral, 4% Negative"
+          icon={
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          }
+        />
+
+        <MetricCard
+          title="Chat Velocity (CPM)"
+          value="420 CPM"
+          change="+32%"
+          isPositive={true}
+          accentColor="blue"
+          subtitle="420 messages per minute peak"
+          icon={
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          }
+        />
+
+        <MetricCard
+          title="Active Sponsor Value"
+          value={`$${totalPayout.toLocaleString()}`}
+          change="+25%"
+          isPositive={true}
+          accentColor="purple"
+          subtitle="3 active brand campaigns"
+          icon={
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          }
+        />
+
+        <MetricCard
+          title="Toxicity Shield"
+          value="SECURE"
+          change="0 Alerts"
+          isPositive={true}
+          accentColor="emerald"
+          subtitle="Auto-moderation filter 100% active"
+          icon={
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          }
+        />
       </div>
 
-      {/* Grid: Stat Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "20px" }}>
-        
-        {/* Card 1 */}
-        <div className="glass" style={{ padding: "24px", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: 0, left: 0, width: "4px", height: "100%", backgroundColor: "var(--accent-purple)" }}></div>
-          <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", textTransform: "uppercase", fontWeight: 600, marginBottom: "8px" }}>Active Sponsors Value</p>
-          <h2 style={{ fontSize: "2rem", fontWeight: 800, color: "var(--text-primary)" }}>${totalPayout.toLocaleString()}</h2>
-          <span style={{ fontSize: "0.75rem", color: "var(--accent-purple)", cursor: "pointer", display: "inline-block", marginTop: "8px" }} onClick={() => setActiveTab("crm")}>View Brand Deals ➔</span>
+      {/* 3. Split Layout: Signature Interactive Timeline & AI Creator Coach */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left 2 Cols: Interactive Signature Timeline */}
+        <div className="lg:col-span-2">
+          <SignatureTimeline />
         </div>
 
-        {/* Card 2 */}
-        <div className="glass" style={{ padding: "24px", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: 0, left: 0, width: "4px", height: "100%", backgroundColor: "var(--accent-blue)" }}></div>
-          <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", textTransform: "uppercase", fontWeight: 600, marginBottom: "8px" }}>Upcoming Releases</p>
-          <h2 style={{ fontSize: "2rem", fontWeight: 800, color: "var(--text-primary)" }}>{upcomingReleasesCount}</h2>
-          <span style={{ fontSize: "0.75rem", color: "var(--accent-blue)", cursor: "pointer", display: "inline-block", marginTop: "8px" }} onClick={() => setActiveTab("calendar")}>View Content Calendar ➔</span>
+        {/* Right Col: AI Creator Coach */}
+        <div className="lg:col-span-1">
+          <AICreatorCoach progressMessage={activeLiveJob?.progressMessage} />
         </div>
-
-        {/* Card 3 */}
-        <div className="glass" style={{ padding: "24px", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: 0, left: 0, width: "4px", height: "100%", backgroundColor: "var(--accent-pink)" }}></div>
-          <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", textTransform: "uppercase", fontWeight: 600, marginBottom: "8px" }}>Pending Team Tasks</p>
-          <h2 style={{ fontSize: "2rem", fontWeight: 800, color: "var(--text-primary)" }}>{activeTasksCount}</h2>
-          <span style={{ fontSize: "0.75rem", color: "var(--accent-pink)", cursor: "pointer", display: "inline-block", marginTop: "8px" }} onClick={() => setActiveTab("tasks")}>View Collaborators ➔</span>
-        </div>
-
-        {/* Card 4 */}
-        <div className="glass" style={{ padding: "24px", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: 0, left: 0, width: "4px", height: "100%", backgroundColor: "var(--accent-green)" }}></div>
-          <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", textTransform: "uppercase", fontWeight: 600, marginBottom: "8px" }}>Channel Status</p>
-          <h2 style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--accent-green)", display: "flex", alignItems: "center", gap: "6px", height: "40px" }}>
-            <span style={{ display: "inline-block", width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "var(--accent-green)" }}></span>
-            VERIFIED
-          </h2>
-          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "inline-block", marginTop: "8px" }}>Approved by admin</span>
-        </div>
-
       </div>
 
-      {/* Split Section: Recent Activity & Sponsor CRM */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: "28px" }}>
-        
-        {/* Left Widget: Upcoming Content */}
-        <div className="glass-premium" style={{ padding: "24px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-            <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)" }}>Upcoming Content</h3>
-            <button className="btn btn-secondary" style={{ padding: "6px 12px", fontSize: "0.8rem" }} onClick={() => setActiveTab("calendar")}>Calendar</button>
+      {/* 4. Production & Sponsor Pipeline Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Content Pipeline */}
+        <div className="glass p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold text-white font-sans">Upcoming Content Schedule</h3>
+            <button className="btn btn-secondary text-xs py-1.5 font-mono" onClick={() => setActiveTab("calendar")}>
+              Calendar ➔
+            </button>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {calendarEvents.slice(0, 3).map((event) => (
-              <div key={event.id} style={{ display: "flex", alignItems: "center", gap: "16px", padding: "12px", background: "var(--bg-input)", borderRadius: "var(--radius-md)" }}>
-                <span style={{ fontSize: "1.5rem" }}>
-                  {event.type === "video" ? "📹" : event.type === "stream" ? "🎮" : "🤝"}
-                </span>
-                <div style={{ flex: 1 }}>
-                  <h4 style={{ fontSize: "0.9rem", fontWeight: 600, color: "var(--text-primary)" }}>{event.title}</h4>
-                  <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>{event.description}</p>
+          <div className="space-y-3">
+            {calendarEvents.slice(0, 3).map((evt) => (
+              <div key={evt.id} className="p-3.5 rounded-xl bg-slate-900/50 border border-white/5 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">{evt.type === "video" ? "📹" : evt.type === "stream" ? "🎮" : "🤝"}</span>
+                  <div>
+                    <h4 className="text-xs font-bold text-white font-sans">{evt.title}</h4>
+                    <p className="text-[11px] text-slate-400 font-sans">{evt.description}</p>
+                  </div>
                 </div>
-                <span style={{ fontSize: "0.8rem", color: "var(--accent-purple)", fontWeight: 600 }}>{event.date}</span>
+                <span className="text-xs font-mono font-bold text-purple-400">{evt.date}</span>
               </div>
             ))}
             {calendarEvents.length === 0 && (
-              <p style={{ color: "var(--text-muted)", textAlign: "center", fontSize: "0.9rem", padding: "20px 0" }}>No content planned yet.</p>
+              <p className="text-xs text-slate-500 py-6 text-center">No upcoming content scheduled.</p>
             )}
           </div>
         </div>
 
-        {/* Right Widget: High Value Active Brand Deals */}
-        <div className="glass-premium" style={{ padding: "24px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-            <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)" }}>Top Sponsors Pipeline</h3>
-            <button className="btn btn-secondary" style={{ padding: "6px 12px", fontSize: "0.8rem" }} onClick={() => setActiveTab("crm")}>Manage CRM</button>
+        {/* Sponsor Pipeline */}
+        <div className="glass p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold text-white font-sans">Sponsors & Brand Pipeline</h3>
+            <button className="btn btn-secondary text-xs py-1.5 font-mono" onClick={() => setActiveTab("crm")}>
+              CRM ➔
+            </button>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div className="space-y-3">
             {brandDeals.slice(0, 3).map((deal) => (
-              <div key={deal.id} style={{ display: "flex", alignItems: "center", justifyItems: "center", padding: "12px", background: "var(--bg-input)", borderRadius: "var(--radius-md)" }}>
-                <div style={{ flex: 1 }}>
-                  <h4 style={{ fontSize: "0.9rem", fontWeight: 600, color: "var(--text-primary)" }}>{deal.title}</h4>
-                  <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Brand: <strong style={{ color: "var(--text-primary)" }}>{deal.brand}</strong> | {deal.platform}</p>
+              <div key={deal.id} className="p-3.5 rounded-xl bg-slate-900/50 border border-white/5 flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold text-white font-sans">{deal.title}</h4>
+                  <p className="text-[11px] text-slate-400 font-sans">Brand: <strong className="text-slate-200">{deal.brand}</strong> | {deal.platform}</p>
                 </div>
-                <div style={{ textAlign: "right" }}>
-                  <span style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--accent-green)", display: "block" }}>
-                    ${deal.payout}
-                  </span>
-                  <span style={{ fontSize: "0.7rem", color: deal.status === "signed" ? "var(--accent-blue)" : "var(--accent-yellow)", textTransform: "capitalize" }}>
-                    {deal.status}
-                  </span>
+                <div className="text-right">
+                  <span className="text-xs font-mono font-bold text-emerald-400 block">${deal.payout}</span>
+                  <span className="text-[10px] font-mono text-purple-300 uppercase">{deal.status}</span>
                 </div>
               </div>
             ))}
             {brandDeals.length === 0 && (
-              <p style={{ color: "var(--text-muted)", textAlign: "center", fontSize: "0.9rem", padding: "20px 0" }}>No active brand deals.</p>
+              <p className="text-xs text-slate-500 py-6 text-center">No active brand deals in pipeline.</p>
             )}
           </div>
         </div>
-
       </div>
     </div>
   );
 };
+

@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import { AuthView } from "../components/AuthView";
 import { PendingView } from "../components/PendingView";
-import { Sidebar } from "../components/Sidebar";
+import { Sidebar } from "../components/dashboard/Sidebar";
+import { TopNav } from "../components/dashboard/TopNav";
 import { DashboardView } from "../components/DashboardView";
 import { CalendarView } from "../components/CalendarView";
 import { CrmView } from "../components/CrmView";
@@ -17,11 +18,9 @@ import { InsightsView } from "../components/InsightsView";
 import { VideoAnalyzerView } from "../components/VideoAnalyzerView";
 
 export default function Home() {
-  const currentUser = useApp().currentUser; // Keep sync react updates
-  const { } = useApp();
+  const currentUser = useApp().currentUser;
   const [activeTab, setActiveTab] = useState("overview");
 
-  // Reset tab to overview or admin if user logs out or logs in
   useEffect(() => {
     if (currentUser?.isAdmin) {
       setActiveTab("admin");
@@ -30,17 +29,14 @@ export default function Home() {
     }
   }, [currentUser]);
 
-  // Case 1: Not logged in
   if (!currentUser) {
     return <AuthView />;
   }
 
-  // Case 2: Logged in but pending/rejected (Admin bypasses this)
   if (currentUser.status !== "verified" && !currentUser.isAdmin) {
     return <PendingView />;
   }
 
-  // Case 3: Logged in and verified (or Admin)
   const renderContent = () => {
     switch (activeTab) {
       case "overview":
@@ -67,11 +63,14 @@ export default function Home() {
   };
 
   return (
-    <div className="app-layout">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-      <main className="main-content">
-        {renderContent()}
-      </main>
+    <div className="flex min-h-screen bg-[#080a11]">
+      <Sidebar />
+      <div className="flex-1 ml-64 flex flex-col min-w-0">
+        <TopNav />
+        <main className="p-6 md:p-8 flex-1">
+          {renderContent()}
+        </main>
+      </div>
     </div>
   );
 }
