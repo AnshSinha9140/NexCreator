@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
+import Pusher from "pusher-js";
 
 export interface User {
   email: string;
@@ -108,6 +109,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [tasks, setTasks] = useState<CollaboratorTask[]>([]);
   const liveChatMessagesRef = useRef<string[]>([]);
   const socketRef = useRef<Socket | null>(null);
+  const pusherRef = useRef<Pusher | null>(null);
   const liveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const activeChatroomIdRef = useRef<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -230,9 +232,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     activeChatroomIdRef.current = chatroomId;
     liveChatMessagesRef.current = [];
 
-    // Clean up existing socket & timers
+    // Clean up existing socket, pusher & timers
+    if (pusherRef.current) {
+      try { pusherRef.current.disconnect(); } catch (e) {}
+      pusherRef.current = null;
+    }
     if (socketRef.current) {
-      socketRef.current.disconnect();
+      try { socketRef.current.disconnect(); } catch (e) {}
       socketRef.current = null;
     }
     if (liveTimerRef.current) {
@@ -248,37 +254,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       videoUrl: `https://kick.com/${username}`,
       title: `🔴 Live Stream Monitor: Kick.com/${username}`,
       status: "SCRAPING",
-      progressMessage: `🔲 Connecting backend bridge to Kick chatroom #${chatroomId}...`,
+      progressMessage: `🔲 Connecting to Kick chatroom #${chatroomId}...`,
       messagesCount: 0
     });
 
-    // Connect to our backend Socket.io bridge
-    const socketUrl = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
-    const socket = io(socketUrl, { path: "/api/socketio", transports: ["websocket"] });
-    socketRef.current = socket;
-
-    socket.on("connect", () => {
-      console.log("🔌 Socket.io connected to backend bridge:", socket.id);
-      // Tell backend to open Pusher connection for this chatroom
-      socket.emit("subscribe_kick", { chatroomId, username });
-    });
-
-    socket.on("kick_status", ({ status, error }: { status: string; error?: string }) => {
-      console.log("🔌 Bridge status:", status);
-      if (status === "subscribed") {
-        setActiveLiveJob((prev) => prev ? ({
-          ...prev,
-          progressMessage: `🟢 Live Monitoring Active (2-min cycle). Chat messages buffered: 0`
-        }) : null);
-      } else if (status === "error") {
-        setActiveLiveJob((prev) => prev ? ({
-          ...prev,
-          progressMessage: `❌ Bridge error: ${error}`
-        }) : null);
-      }
-    });
-
-    socket.on("kick_chat_message", (data: any) => {
+    // Helper to process incoming message
+    const handleIncomingChatMessage = (data: any) => {
       let msgText = "";
       if (typeof data === "string") {
         try {
@@ -307,19 +288,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           progressMessage: `🟢 Live Monitoring Active (2-min cycle). Chat messages buffered: ${liveChatMessagesRef.current.length}`
         }) : null);
       }
-    });
+    };
 
-    socket.on("disconnect", () => {
-      console.warn("🔌 Socket.io bridge disconnected");
-    });
+    // Direct Browser Pusher Connection (Vercel-native & Local dev compatible)
+    try {
+      const pusher = new Pusher("32cbd69e4b950bf97679", {
+        cluster: "us2",
+        forceTLS: true,
+      });
+      pusherRef.current = pusher;
 
-    socket.on("connect_error", (err) => {
-      console.error("🔌 Socket.io connect error:", err.message);
-      setActiveLiveJob((prev) => prev ? ({
-        ...prev,
-        progressMessage: `❌ Could not connect to backend bridge. Is 'npm run dev' running?`
-      }) : null);
-    });
+      const channelName = `chatrooms.${chatroomId}.v2`;
+      console.log(`[Pusher Client] Subscribing to ${channelName}...`);
+      const channel = pusher.subscribe(channelName);
+
+      channel.bind("pusher:subscription_succeeded", () => {
+        console.log(`[Pusher Client] Subscribed to ${channelName} ✅`);
+        setActiveLiveJob((prev) => prev ? ({
+          ...prev,
+          progressMessage: `🟢 Live Monitoring Active (2-min cycle). Chat messages buffered: 0`
+        }) : null);
+      });
+
+      channel.bind("App\\Events\\ChatMessageEvent", handleIncomingChatMessage);
+
+      pusher.bind_global((eventName: string, data: any) => {
+        if (eventName.includes("ChatMessage") && eventName !== "App\\Events\\ChatMessageEvent") {
+          handleIncomingChatMessage(data);
+        }
+      });
+    } catch (err: any) {
+      console.warn("Direct Pusher connection warning:", err.message);
+    }
+
+    // Also attempt Socket.io bridge connection as fallback for custom server setups
+    try {
+      const socketUrl = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+      const socket = io(socketUrl, { path: "/api/socketio", transports: ["websocket"] });
+      socketRef.current = socket;
+
+      socket.on("connect", () => {
+        socket.emit("subscribe_kick", { chatroomId, username });
+      });
+
+      socket.on("kick_chat_message", handleIncomingChatMessage);
+    } catch (e) {}
 
     // Every 2 minutes: send buffered messages to Gemini
     liveTimerRef.current = setInterval(async () => {
@@ -372,7 +385,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const stopLiveKickMonitoring = async () => {
     const chatroomId = activeChatroomIdRef.current;
 
-    // Disconnect Socket.io bridge
+    // Disconnect Pusher & Socket.io
+    if (pusherRef.current) {
+      try { pusherRef.current.disconnect(); } catch (e) {}
+      pusherRef.current = null;
+    }
     if (socketRef.current) {
       if (chatroomId) socketRef.current.emit("unsubscribe_kick", { chatroomId });
       socketRef.current.disconnect();
