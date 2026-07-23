@@ -3,7 +3,7 @@
 import React from "react";
 
 interface LivePulseScoreProps {
-  score?: number; // 0 to 100
+  score?: number;
   isLive?: boolean;
   statusText?: string;
   messagesCount?: number;
@@ -15,125 +15,220 @@ export const LivePulseScore: React.FC<LivePulseScoreProps> = ({
   statusText = "Top 2% Creator Peak Engagement",
   messagesCount = 0,
 }) => {
-  // SVG Radial Math
-  const radius = 78;
+  const radius = 52;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (score / 100) * circumference;
+  const dashOffset = circumference - (score / 100) * circumference;
 
-  // Rating label & color
-  let label = "EXCELLENT";
-  let gradientId = "pulseGradientEmerald";
-  let mainColor = "#10b981";
-
-  if (score < 40) {
-    label = "CRITICAL";
-    gradientId = "pulseGradientRose";
-    mainColor = "#ef4444";
-  } else if (score < 70) {
-    label = "STEADY";
-    gradientId = "pulseGradientAmber";
-    mainColor = "#f59e0b";
-  }
+  const color = score >= 70 ? "#10b981" : score >= 40 ? "#f59e0b" : "#f43f5e";
+  const label = score >= 70 ? "EXCELLENT" : score >= 40 ? "STEADY" : "CRITICAL";
 
   return (
-    <div className="glass-premium relative overflow-hidden p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 border border-white/10 shadow-2xl">
-      {/* Background Ambient Glow */}
-      <div 
-        className="absolute -right-16 -top-16 w-64 h-64 rounded-full blur-3xl opacity-20 pointer-events-none"
-        style={{ backgroundColor: mainColor }}
+    <div
+      style={{
+        background: "linear-gradient(135deg, rgba(18,22,40,0.9) 0%, rgba(10,13,24,0.97) 100%)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: "18px",
+        padding: "28px 32px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: "32px",
+        position: "relative",
+        overflow: "hidden",
+        boxShadow: "0 24px 60px rgba(0,0,0,0.6)",
+      }}
+    >
+      {/* Background glow */}
+      <div
+        style={{
+          position: "absolute",
+          right: "-40px",
+          top: "-40px",
+          width: "220px",
+          height: "220px",
+          borderRadius: "50%",
+          background: color,
+          opacity: 0.06,
+          filter: "blur(60px)",
+          pointerEvents: "none",
+        }}
       />
-      
-      {/* Left Details */}
-      <div className="flex-1 space-y-3 z-10 text-center md:text-left">
-        <div className="flex items-center justify-center md:justify-start gap-3">
+
+      {/* Left: Text Info */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Badges */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px", flexWrap: "wrap" }}>
           <span className="badge badge-ai">
-            <span className="w-2 h-2 rounded-full bg-purple-400 animate-ping" />
-            AI REALTIME ENGINE
+            <span
+              style={{
+                width: "6px",
+                height: "6px",
+                borderRadius: "50%",
+                background: "#c084fc",
+                display: "inline-block",
+                animation: "ping 1s cubic-bezier(0,0,0.2,1) infinite",
+              }}
+            />
+            AI Engine
           </span>
           {isLive && (
             <span className="badge badge-live">
               <span className="live-pulse-dot" />
-              LIVE PULSE ACTIVE
+              Live Active
             </span>
           )}
         </div>
 
-        <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white font-sans mt-1">
+        {/* Title */}
+        <h2
+          style={{
+            fontSize: "26px",
+            fontWeight: "800",
+            color: "#f1f5f9",
+            letterSpacing: "-0.5px",
+            lineHeight: 1.15,
+            marginBottom: "8px",
+          }}
+        >
           Stream Live Pulse
         </h2>
 
-        <p className="text-xs text-slate-400 max-w-md font-sans">
-          {statusText} • <span className="text-slate-200 font-semibold">{messagesCount}</span> messages buffered over 2-min window.
+        {/* Subtitle */}
+        <p style={{ fontSize: "12px", color: "#64748b", lineHeight: 1.5, maxWidth: "360px" }}>
+          {statusText}
+          {messagesCount > 0 && (
+            <>
+              {" · "}
+              <span style={{ color: "#94a3b8", fontWeight: "600" }}>{messagesCount}</span>
+              {" messages buffered"}
+            </>
+          )}
         </p>
 
-        {/* Quick Micro Stats */}
-        <div className="pt-2 flex items-center justify-center md:justify-start gap-6 text-xs text-slate-400 font-mono">
-          <div>
-            <span className="text-slate-500 block">HYPE INDEX</span>
-            <span className="text-emerald-400 font-bold text-sm">96 / 100</span>
-          </div>
-          <div className="h-6 w-px bg-white/10" />
-          <div>
-            <span className="text-slate-500 block">RETENTION</span>
-            <span className="text-purple-400 font-bold text-sm">94.2%</span>
-          </div>
-          <div className="h-6 w-px bg-white/10" />
-          <div>
-            <span className="text-slate-500 block">SAFETY SHIELD</span>
-            <span className="text-emerald-400 font-bold text-sm">SECURE</span>
-          </div>
+        {/* Micro stats */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "20px",
+            marginTop: "20px",
+          }}
+        >
+          {[
+            { label: "Hype Index", value: "96/100", color: "#10b981" },
+            { label: "Retention", value: "94.2%", color: "#a855f7" },
+            { label: "Safety Shield", value: "SECURE", color: "#10b981" },
+          ].map((stat, i) => (
+            <React.Fragment key={stat.label}>
+              {i > 0 && (
+                <div
+                  style={{
+                    width: "1px",
+                    height: "28px",
+                    background: "rgba(255,255,255,0.07)",
+                  }}
+                />
+              )}
+              <div>
+                <div
+                  style={{
+                    fontSize: "9px",
+                    fontWeight: "600",
+                    color: "#334155",
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    fontFamily: "'JetBrains Mono', monospace",
+                    marginBottom: "3px",
+                  }}
+                >
+                  {stat.label}
+                </div>
+                <div
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: "700",
+                    color: stat.color,
+                    fontFamily: "'JetBrains Mono', monospace",
+                  }}
+                >
+                  {stat.value}
+                </div>
+              </div>
+            </React.Fragment>
+          ))}
         </div>
       </div>
 
-      {/* Right Radial SVG Score Gauge */}
-      <div className="relative flex items-center justify-center z-10">
-        <svg className="w-48 h-48 transform -rotate-90">
+      {/* Right: Score Gauge */}
+      <div
+        style={{
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        <svg width="140" height="140" style={{ transform: "rotate(-90deg)" }}>
           <defs>
-            <linearGradient id="pulseGradientEmerald" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#10b981" />
-              <stop offset="100%" stopColor="#06b6d4" />
-            </linearGradient>
-            <linearGradient id="pulseGradientAmber" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#f59e0b" />
-              <stop offset="100%" stopColor="#d97706" />
-            </linearGradient>
-            <linearGradient id="pulseGradientRose" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#ef4444" />
-              <stop offset="100%" stopColor="#dc2626" />
+            <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={color} />
+              <stop offset="100%" stopColor={color === "#10b981" ? "#06b6d4" : color} />
             </linearGradient>
           </defs>
-          
-          {/* Track Circle */}
+          {/* Track */}
           <circle
-            cx="96"
-            cy="96"
-            r={radius}
-            stroke="currentColor"
-            strokeWidth="12"
-            className="text-slate-800/60"
-            fill="transparent"
+            cx="70" cy="70" r={radius}
+            fill="none"
+            stroke="rgba(255,255,255,0.06)"
+            strokeWidth="10"
           />
-          {/* Animated Progress Circle */}
+          {/* Progress */}
           <circle
-            cx="96"
-            cy="96"
-            r={radius}
-            stroke={`url(#${gradientId})`}
-            strokeWidth="12"
+            cx="70" cy="70" r={radius}
+            fill="none"
+            stroke="url(#scoreGrad)"
+            strokeWidth="10"
             strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
+            strokeDashoffset={dashOffset}
             strokeLinecap="round"
-            fill="transparent"
-            className="transition-all duration-1000 ease-out"
+            style={{ transition: "stroke-dashoffset 1s ease" }}
           />
         </svg>
 
-        {/* Center Text inside Arc */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-          <span className="text-5xl font-extrabold tracking-tight text-white font-sans drop-shadow-md">
+        {/* Center label */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <span
+            style={{
+              fontSize: "34px",
+              fontWeight: "900",
+              color: "#f1f5f9",
+              lineHeight: 1,
+              letterSpacing: "-1px",
+            }}
+          >
             {score}
           </span>
-          <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase mt-1">
+          <span
+            style={{
+              fontSize: "8px",
+              fontWeight: "700",
+              color: "#475569",
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              fontFamily: "'JetBrains Mono', monospace",
+              marginTop: "4px",
+            }}
+          >
             {label}
           </span>
         </div>

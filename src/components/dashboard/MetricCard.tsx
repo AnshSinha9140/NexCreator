@@ -13,6 +13,14 @@ interface MetricCardProps {
   children?: React.ReactNode;
 }
 
+const accentMap = {
+  purple:  { text: "#c084fc", bg: "rgba(168,85,247,0.1)",  border: "rgba(168,85,247,0.2)"  },
+  emerald: { text: "#34d399", bg: "rgba(16,185,129,0.1)",  border: "rgba(16,185,129,0.2)"  },
+  blue:    { text: "#38bdf8", bg: "rgba(6,182,212,0.1)",   border: "rgba(6,182,212,0.2)"   },
+  amber:   { text: "#fbbf24", bg: "rgba(245,158,11,0.1)",  border: "rgba(245,158,11,0.2)"  },
+  rose:    { text: "#fb7185", bg: "rgba(244,63,94,0.1)",   border: "rgba(244,63,94,0.2)"   },
+};
+
 export const MetricCard: React.FC<MetricCardProps> = ({
   title,
   value,
@@ -23,54 +31,111 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   accentColor = "purple",
   children,
 }) => {
-  const accentClasses = {
-    purple: "text-purple-400 border-purple-500/20 bg-purple-500/10",
-    emerald: "text-emerald-400 border-emerald-500/20 bg-emerald-500/10",
-    blue: "text-cyan-400 border-cyan-500/20 bg-cyan-500/10",
-    amber: "text-amber-400 border-amber-500/20 bg-amber-500/10",
-    rose: "text-rose-400 border-rose-500/20 bg-rose-500/10",
-  };
+  const accent = accentMap[accentColor];
 
   return (
-    <div className="glass p-6 flex flex-col justify-between relative overflow-hidden group hover:border-white/20 transition-all duration-300">
-      {/* Top Header */}
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest font-mono">
+    <div
+      style={{
+        background: "rgba(13,16,27,0.7)",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
+        border: "1px solid rgba(255,255,255,0.07)",
+        borderRadius: "14px",
+        padding: "20px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "12px",
+        transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+        cursor: "default",
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(255,255,255,0.13)";
+        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 8px 32px rgba(0,0,0,0.4)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(255,255,255,0.07)";
+        (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
+      }}
+    >
+      {/* Header row */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span
+          style={{
+            fontSize: "10px",
+            fontWeight: "700",
+            color: "#475569",
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            fontFamily: "'JetBrains Mono', monospace",
+          }}
+        >
           {title}
         </span>
         {icon && (
-          <div className={`p-2 rounded-xl border ${accentClasses[accentColor]} transition-transform group-hover:scale-110`}>
+          <div
+            style={{
+              width: "30px",
+              height: "30px",
+              borderRadius: "8px",
+              background: accent.bg,
+              border: `1px solid ${accent.border}`,
+              color: accent.text,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
             {icon}
           </div>
         )}
       </div>
 
-      {/* Main Metric & Change Badge */}
-      <div className="my-4 flex items-baseline justify-between gap-2">
-        <span className="text-2xl font-extrabold text-white tracking-tight font-sans truncate">
+      {/* Value + change */}
+      <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
+        <span
+          style={{
+            fontSize: "22px",
+            fontWeight: "800",
+            color: "#f1f5f9",
+            letterSpacing: "-0.5px",
+            lineHeight: 1,
+          }}
+        >
           {value}
         </span>
         {change && (
-          <span className={`flex-shrink-0 inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
-            isPositive ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
-          }`}>
-            {isPositive ? "▲" : "▼"} {change}
+          <span
+            style={{
+              fontSize: "10px",
+              fontWeight: "700",
+              padding: "2px 7px",
+              borderRadius: "99px",
+              background: isPositive ? "rgba(16,185,129,0.1)" : "rgba(244,63,94,0.1)",
+              color: isPositive ? "#34d399" : "#fb7185",
+              border: `1px solid ${isPositive ? "rgba(16,185,129,0.2)" : "rgba(244,63,94,0.2)"}`,
+              fontFamily: "'JetBrains Mono', monospace",
+            }}
+          >
+            {isPositive ? "↑" : "↓"} {change}
           </span>
         )}
       </div>
 
-      {/* Subtitle / Sparkline Area */}
+      {/* Subtitle */}
       {subtitle && (
-        <p className="text-[11px] text-slate-400 font-sans truncate">
+        <p
+          style={{
+            fontSize: "11px",
+            color: "#475569",
+            lineHeight: 1.4,
+            marginTop: "-4px",
+          }}
+        >
           {subtitle}
         </p>
       )}
 
-      {children && (
-        <div className="mt-3">
-          {children}
-        </div>
-      )}
+      {children && <div style={{ marginTop: "4px" }}>{children}</div>}
     </div>
   );
 };

@@ -8,107 +8,266 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
 }
 
+const navItems = [
+  { id: "overview",   name: "Live Stream Pulse",   icon: "●" },
+  { id: "analyzer",   name: "AI Deep Analyzer",    icon: "◎" },
+  { id: "insights",   name: "Performance Insights", icon: "▣" },
+  { id: "calendar",   name: "Content Calendar",    icon: "▦" },
+  { id: "crm",        name: "Brand Deals CRM",     icon: "◈" },
+  { id: "tasks",      name: "Team Collaborators",  icon: "◉" },
+  { id: "campaigns",  name: "Global Campaigns",    icon: "▲" },
+  { id: "chat",       name: "Support Desk",        icon: "◌" },
+];
+
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const { currentUser, logout } = useApp();
 
-  const navItems = [
-    { id: "overview", name: "Live Stream Pulse", icon: "🔴" },
-    { id: "analyzer", name: "AI Deep Analyzer", icon: "🤖" },
-    { id: "insights", name: "Performance Insights", icon: "📊" },
-    { id: "calendar", name: "Content Calendar", icon: "📅" },
-    { id: "crm", name: "Brand Deals CRM", icon: "💼" },
-    { id: "tasks", name: "Team Collaborators", icon: "👥" },
-    { id: "campaigns", name: "Global Campaigns", icon: "🚀" },
-    { id: "chat", name: "Support Desk", icon: "💬" },
-  ];
-
-  if (currentUser?.isAdmin) {
-    navItems.push({ id: "admin", name: "Admin Portal", icon: "⚡" });
-  }
+  const items = currentUser?.isAdmin
+    ? [...navItems, { id: "admin", name: "Admin Portal", icon: "⚡" }]
+    : navItems;
 
   return (
-    <aside className="w-64 flex-shrink-0 bg-[#0d101a] border-r border-white/5 flex flex-col justify-between p-6 font-sans">
-      {/* Workspace & Logo */}
-      <div className="space-y-6">
-        <div className="flex items-center gap-3 px-2">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center text-white font-extrabold text-lg shadow-lg shadow-purple-500/20">
+    <aside
+      style={{
+        width: "240px",
+        flexShrink: 0,
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        background: "#0b0d16",
+        borderRight: "1px solid rgba(255,255,255,0.06)",
+        overflowY: "auto",
+        overflowX: "hidden",
+      }}
+    >
+      {/* Logo */}
+      <div style={{ padding: "20px 20px 16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div
+            style={{
+              width: "34px",
+              height: "34px",
+              borderRadius: "10px",
+              background: "linear-gradient(135deg, #a855f7 0%, #6366f1 100%)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontWeight: "800",
+              fontSize: "16px",
+              color: "#fff",
+              flexShrink: 0,
+              boxShadow: "0 4px 12px rgba(168,85,247,0.3)",
+            }}
+          >
             N
           </div>
           <div>
-            <h1 className="text-base font-extrabold text-white tracking-tight">NexCreator</h1>
-            <span className="text-[10px] font-mono text-purple-400 font-bold uppercase tracking-wider">
+            <div style={{ fontSize: "14px", fontWeight: "700", color: "#f1f5f9", lineHeight: 1.2 }}>
+              NexCreator
+            </div>
+            <div
+              style={{
+                fontSize: "9px",
+                fontWeight: "700",
+                color: "#a855f7",
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                fontFamily: "'JetBrains Mono', monospace",
+              }}
+            >
               Creator Intelligence
-            </span>
-          </div>
-        </div>
-
-        {/* Workspace Switcher Pill */}
-        <div className="p-3 rounded-xl bg-slate-900/60 border border-white/5 flex items-center justify-between cursor-pointer hover:border-white/15 transition-all">
-          <div className="flex items-center gap-2.5 overflow-hidden">
-            <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-xs font-mono">
-              8B
-            </div>
-            <div className="truncate">
-              <span className="text-xs font-bold text-white block truncate">
-                {currentUser?.email?.split("@")[0] || "8bit_goldy"}
-              </span>
-              <span className="text-[10px] text-slate-400 font-mono block truncate">
-                Kick.com Channel
-              </span>
             </div>
           </div>
-          <span className="text-slate-500 text-xs">▾</span>
         </div>
-
-        {/* Navigation Section */}
-        <nav className="space-y-1">
-          <span className="px-3 text-[10px] font-mono font-semibold text-slate-500 uppercase tracking-widest block mb-2">
-            Platform Engine
-          </span>
-
-          {navItems.map((item) => {
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all text-left ${
-                  isActive
-                    ? "bg-purple-500/15 text-purple-300 border border-purple-500/30 font-bold shadow-sm"
-                    : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"
-                }`}
-              >
-                <span className="text-base">{item.icon}</span>
-                <span>{item.name}</span>
-              </button>
-            );
-          })}
-        </nav>
       </div>
 
-      {/* Footer Profile & Logout */}
-      <div className="pt-4 border-t border-white/5 space-y-3">
-        <div className="flex items-center justify-between px-2">
-          <div className="flex items-center gap-2 truncate">
-            <div className="w-8 h-8 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center font-bold text-xs text-white">
-              {currentUser?.email?.[0]?.toUpperCase() || "C"}
+      {/* Channel Pill */}
+      <div style={{ padding: "0 12px 16px" }}>
+        <div
+          style={{
+            padding: "10px 12px",
+            borderRadius: "10px",
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.06)",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+          }}
+        >
+          <div
+            style={{
+              width: "28px",
+              height: "28px",
+              borderRadius: "8px",
+              background: "rgba(16,185,129,0.15)",
+              border: "1px solid rgba(16,185,129,0.25)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "10px",
+              fontWeight: "700",
+              color: "#10b981",
+              flexShrink: 0,
+            }}
+          >
+            {(currentUser?.email?.[0] ?? "C").toUpperCase()}
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: "12px",
+                fontWeight: "600",
+                color: "#e2e8f0",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {currentUser?.email?.split("@")[0] ?? "creator"}
             </div>
-            <div className="truncate">
-              <span className="text-xs font-semibold text-white block truncate">
-                {currentUser?.email || "creator@nex.com"}
-              </span>
-              <span className="text-[10px] text-emerald-400 font-mono block">
-                ● PRO SUITE
-              </span>
+            <div
+              style={{
+                fontSize: "10px",
+                color: "#64748b",
+                fontFamily: "'JetBrains Mono', monospace",
+              }}
+            >
+              Kick.com Channel
             </div>
           </div>
+          <div style={{ marginLeft: "auto", color: "#475569", fontSize: "11px" }}>▾</div>
         </div>
+      </div>
 
+      {/* Nav label */}
+      <div
+        style={{
+          padding: "0 16px 6px",
+          fontSize: "9px",
+          fontWeight: "700",
+          color: "#334155",
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          fontFamily: "'JetBrains Mono', monospace",
+        }}
+      >
+        Platform Engine
+      </div>
+
+      {/* Nav Items */}
+      <nav style={{ padding: "0 8px", flex: 1 }}>
+        {items.map((item) => {
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                padding: "9px 12px",
+                borderRadius: "9px",
+                border: isActive ? "1px solid rgba(168,85,247,0.25)" : "1px solid transparent",
+                background: isActive ? "rgba(168,85,247,0.1)" : "transparent",
+                cursor: "pointer",
+                fontSize: "13px",
+                fontWeight: isActive ? "600" : "500",
+                color: isActive ? "#c084fc" : "#64748b",
+                textAlign: "left",
+                marginBottom: "2px",
+                transition: "all 0.15s ease",
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive) {
+                  (e.currentTarget as HTMLButtonElement).style.color = "#94a3b8";
+                  (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.04)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) {
+                  (e.currentTarget as HTMLButtonElement).style.color = "#64748b";
+                  (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                }
+              }}
+            >
+              <span style={{ fontSize: "11px", opacity: 0.8, flexShrink: 0 }}>{item.icon}</span>
+              <span>{item.name}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Footer */}
+      <div
+        style={{
+          padding: "12px",
+          borderTop: "1px solid rgba(255,255,255,0.05)",
+          marginTop: "auto",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 4px 8px" }}>
+          <div
+            style={{
+              width: "28px",
+              height: "28px",
+              borderRadius: "50%",
+              background: "rgba(168,85,247,0.15)",
+              border: "1px solid rgba(168,85,247,0.2)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "11px",
+              fontWeight: "700",
+              color: "#c084fc",
+              flexShrink: 0,
+            }}
+          >
+            {(currentUser?.email?.[0] ?? "C").toUpperCase()}
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: "11px",
+                fontWeight: "600",
+                color: "#cbd5e1",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {currentUser?.email ?? "creator@nex.com"}
+            </div>
+            <div style={{ fontSize: "9px", color: "#10b981", fontFamily: "monospace" }}>● PRO SUITE</div>
+          </div>
+        </div>
         <button
           onClick={logout}
-          className="w-full btn btn-secondary text-xs py-2 text-slate-400 hover:text-rose-400 font-mono border-white/5"
+          style={{
+            width: "100%",
+            padding: "8px",
+            borderRadius: "8px",
+            background: "transparent",
+            border: "1px solid rgba(255,255,255,0.06)",
+            color: "#475569",
+            fontSize: "12px",
+            fontWeight: "500",
+            cursor: "pointer",
+            transition: "all 0.15s ease",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.color = "#f43f5e";
+            (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(244,63,94,0.25)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.color = "#475569";
+            (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.06)";
+          }}
         >
-          Log Out
+          Sign Out
         </button>
       </div>
     </aside>

@@ -10,110 +10,212 @@ export interface TimelineEvent {
   description?: string;
 }
 
-const mockTimelineEvents: TimelineEvent[] = [
-  { id: "1", timestamp: "00:14", category: "laughter", title: "😂 Chat loved the joke", description: "Laughter spike across 84 viewer messages" },
-  { id: "2", timestamp: "00:29", category: "hype", title: "🔥 Viewer & CPM Spike", description: "Chat velocity reached 420 messages/min" },
-  { id: "3", timestamp: "00:46", category: "milestone", title: "🎁 Giveaway announced", description: "Positive sentiment jumped to 96%" },
-  { id: "4", timestamp: "01:12", category: "clip", title: "🚀 Viral Clip Candidate detected", description: "AI detected 15s high-excitement moment" },
-  { id: "5", timestamp: "01:18", category: "alert", title: "⚠️ Toxicity spike detected", description: "Auto-flagged spam trigger word" },
+const mockEvents: TimelineEvent[] = [
+  { id: "1", timestamp: "00:14", category: "laughter",  title: "Chat loved the joke",          description: "Laughter spike across 84 viewer messages" },
+  { id: "2", timestamp: "00:29", category: "hype",      title: "Viewer & CPM Spike",           description: "Chat velocity reached 420 messages/min" },
+  { id: "3", timestamp: "00:46", category: "milestone", title: "Giveaway announced",            description: "Positive sentiment jumped to 96%" },
+  { id: "4", timestamp: "01:12", category: "clip",      title: "Viral Clip Candidate detected", description: "AI detected 15s high-excitement moment" },
+  { id: "5", timestamp: "01:18", category: "alert",     title: "Toxicity spike detected",       description: "Auto-flagged spam trigger word" },
 ];
 
-export const SignatureTimeline: React.FC<{ events?: TimelineEvent[] }> = ({ events = mockTimelineEvents }) => {
-  const [filter, setFilter] = useState<string>("all");
+const categoryMeta = {
+  hype:      { label: "HYPE",      emoji: "🔥", color: "#a855f7", bg: "rgba(168,85,247,0.1)",  border: "rgba(168,85,247,0.2)",  dot: "#a855f7" },
+  laughter:  { label: "LAUGHTER",  emoji: "😂", color: "#34d399", bg: "rgba(16,185,129,0.1)",  border: "rgba(16,185,129,0.2)",  dot: "#34d399" },
+  clip:      { label: "VIRAL CLIP",emoji: "🚀", color: "#38bdf8", bg: "rgba(6,182,212,0.1)",   border: "rgba(6,182,212,0.2)",   dot: "#38bdf8" },
+  alert:     { label: "ALERT",     emoji: "⚠️", color: "#fb7185", bg: "rgba(244,63,94,0.1)",   border: "rgba(244,63,94,0.2)",   dot: "#fb7185" },
+  milestone: { label: "MILESTONE", emoji: "🎁", color: "#fbbf24", bg: "rgba(245,158,11,0.1)",  border: "rgba(245,158,11,0.2)",  dot: "#fbbf24" },
+};
 
-  const filteredEvents = events.filter((e) => {
-    if (filter === "all") return true;
-    return e.category === filter;
-  });
+const filters = [
+  { id: "all", label: "All" },
+  { id: "hype", label: "Hype 🔥" },
+  { id: "laughter", label: "Laughter" },
+  { id: "clip", label: "Clips" },
+  { id: "alert", label: "Alerts" },
+];
 
-  const getCategoryBadge = (cat: TimelineEvent["category"]) => {
-    switch (cat) {
-      case "hype":
-        return { bg: "bg-purple-500/10 text-purple-400 border-purple-500/30", label: "🔥 HYPE" };
-      case "laughter":
-        return { bg: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30", label: "😂 LAUGHTER" };
-      case "clip":
-        return { bg: "bg-cyan-500/10 text-cyan-400 border-cyan-500/30", label: "🚀 VIRAL CLIP" };
-      case "alert":
-        return { bg: "bg-rose-500/10 text-rose-400 border-rose-500/30", label: "⚠️ ALERT" };
-      case "milestone":
-        return { bg: "bg-amber-500/10 text-amber-400 border-amber-500/30", label: "🎁 MILESTONE" };
-      default:
-        return { bg: "bg-slate-800 text-slate-300 border-slate-700", label: "EVENT" };
-    }
-  };
+export const SignatureTimeline: React.FC<{ events?: TimelineEvent[] }> = ({ events = mockEvents }) => {
+  const [filter, setFilter] = useState("all");
+
+  const filtered = filter === "all" ? events : events.filter((e) => e.category === filter);
 
   return (
-    <div className="glass p-6 space-y-5">
-      {/* Header & Filter Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div
+      style={{
+        background: "rgba(13,16,27,0.7)",
+        backdropFilter: "blur(16px)",
+        border: "1px solid rgba(255,255,255,0.07)",
+        borderRadius: "14px",
+        padding: "20px",
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: "12px",
+          marginBottom: "16px",
+          flexWrap: "wrap",
+        }}
+      >
         <div>
-          <h3 className="text-lg font-bold text-white tracking-tight flex items-center gap-2 font-sans">
-            <span className="w-2.5 h-2.5 rounded-full bg-purple-500 animate-pulse" />
-            Signature Interactive Timeline
+          <h3
+            style={{
+              fontSize: "14px",
+              fontWeight: "700",
+              color: "#e2e8f0",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <span
+              style={{
+                width: "7px",
+                height: "7px",
+                borderRadius: "50%",
+                background: "#a855f7",
+                display: "inline-block",
+                animation: "pulse 2s infinite",
+              }}
+            />
+            Signature Timeline
           </h3>
-          <p className="text-xs text-slate-400 font-sans mt-0.5">
-            AI-flagged highlights, sentiment spikes, and viral moment candidates.
+          <p style={{ fontSize: "11px", color: "#475569", marginTop: "3px" }}>
+            AI-flagged highlights, sentiment spikes, and viral moments.
           </p>
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 font-mono text-xs">
-          {[
-            { id: "all", label: "All" },
-            { id: "hype", label: "Hype 🔥" },
-            { id: "laughter", label: "Laughter 😂" },
-            { id: "clip", label: "Clips 🚀" },
-            { id: "alert", label: "Alerts ⚠️" },
-          ].map((item) => (
+        {/* Filter pills */}
+        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+          {filters.map((f) => (
             <button
-              key={item.id}
-              onClick={() => setFilter(item.id)}
-              className={`px-3 py-1.5 rounded-lg border transition-all ${
-                filter === item.id
-                  ? "bg-purple-500/20 text-purple-300 border-purple-500/50 font-bold"
-                  : "bg-slate-900/50 text-slate-400 border-white/5 hover:bg-slate-800 hover:text-white"
-              }`}
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              style={{
+                padding: "4px 10px",
+                borderRadius: "99px",
+                border: filter === f.id
+                  ? "1px solid rgba(168,85,247,0.4)"
+                  : "1px solid rgba(255,255,255,0.07)",
+                background: filter === f.id ? "rgba(168,85,247,0.12)" : "rgba(255,255,255,0.02)",
+                color: filter === f.id ? "#c084fc" : "#64748b",
+                fontSize: "10px",
+                fontWeight: "600",
+                cursor: "pointer",
+                fontFamily: "'JetBrains Mono', monospace",
+                transition: "all 0.15s ease",
+              }}
             >
-              {item.label}
+              {f.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Timeline Event Feed */}
-      <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-gradient-to-b before:from-purple-500/50 before:via-cyan-500/30 before:to-transparent">
-        {filteredEvents.map((evt) => {
-          const badge = getCategoryBadge(evt.category);
-          return (
-            <div key={evt.id} className="relative group">
-              {/* Timeline Marker Dot */}
-              <div className="absolute -left-6 top-1.5 w-3 h-3 rounded-full bg-slate-900 border-2 border-purple-400 group-hover:scale-125 transition-transform" />
+      {/* Timeline feed */}
+      <div style={{ position: "relative", paddingLeft: "20px" }}>
+        {/* Vertical line */}
+        <div
+          style={{
+            position: "absolute",
+            left: "6px",
+            top: "8px",
+            bottom: "8px",
+            width: "1px",
+            background: "linear-gradient(to bottom, rgba(168,85,247,0.4), rgba(6,182,212,0.2), transparent)",
+          }}
+        />
 
-              {/* Event Content Container */}
-              <div className="p-4 rounded-xl bg-slate-900/40 border border-white/5 group-hover:border-purple-500/30 group-hover:bg-slate-900/70 transition-all">
-                <div className="flex items-center justify-between gap-3 mb-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {filtered.map((evt) => {
+            const meta = categoryMeta[evt.category];
+            return (
+              <div key={evt.id} style={{ position: "relative" }}>
+                {/* Timeline dot */}
+                <div
+                  style={{
+                    position: "absolute",
+                    left: "-17px",
+                    top: "12px",
+                    width: "8px",
+                    height: "8px",
+                    borderRadius: "50%",
+                    background: "#060810",
+                    border: `2px solid ${meta.dot}`,
+                    zIndex: 1,
+                  }}
+                />
+
+                {/* Event card */}
+                <div
+                  style={{
+                    padding: "12px 14px",
+                    borderRadius: "10px",
+                    background: "rgba(255,255,255,0.02)",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                    transition: "border-color 0.15s ease, background 0.15s ease",
+                    cursor: "default",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(168,85,247,0.2)";
+                    (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.04)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(255,255,255,0.06)";
+                    (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.02)";
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      marginBottom: "5px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "9px",
+                        fontWeight: "700",
+                        color: "#475569",
+                        background: "rgba(255,255,255,0.04)",
+                        padding: "2px 6px",
+                        borderRadius: "4px",
+                        fontFamily: "'JetBrains Mono', monospace",
+                      }}
+                    >
                       {evt.timestamp}
                     </span>
-                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${badge.bg}`}>
-                      {badge.label}
+                    <span
+                      style={{
+                        fontSize: "9px",
+                        fontWeight: "700",
+                        color: meta.color,
+                        background: meta.bg,
+                        border: `1px solid ${meta.border}`,
+                        padding: "2px 6px",
+                        borderRadius: "4px",
+                        fontFamily: "'JetBrains Mono', monospace",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      {meta.emoji} {meta.label}
                     </span>
                   </div>
-                  <button className="text-xs text-purple-400 hover:text-purple-300 opacity-0 group-hover:opacity-100 transition-opacity font-mono">
-                    Clip 🎬
-                  </button>
+                  <p style={{ fontSize: "12px", fontWeight: "600", color: "#cbd5e1", marginBottom: "2px" }}>
+                    {evt.title}
+                  </p>
+                  {evt.description && (
+                    <p style={{ fontSize: "11px", color: "#475569" }}>{evt.description}</p>
+                  )}
                 </div>
-
-                <h4 className="text-sm font-semibold text-white font-sans">{evt.title}</h4>
-                {evt.description && (
-                  <p className="text-xs text-slate-400 mt-1 font-sans">{evt.description}</p>
-                )}
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
