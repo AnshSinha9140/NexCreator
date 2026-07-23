@@ -58,11 +58,11 @@ export const LivePulseScore: React.FC<LivePulseScoreProps> = ({
           )}
         </div>
 
-        <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white font-sans">
+        <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white font-sans mt-1">
           Stream Live Pulse
         </h2>
 
-        <p className="text-sm text-slate-400 max-w-md font-sans">
+        <p className="text-xs text-slate-400 max-w-md font-sans">
           {statusText} • <span className="text-slate-200 font-semibold">{messagesCount}</span> messages buffered over 2-min window.
         </p>
 

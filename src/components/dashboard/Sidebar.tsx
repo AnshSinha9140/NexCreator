@@ -1,27 +1,33 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 
-export const Sidebar: React.FC = () => {
-  const pathname = usePathname();
+interface SidebarProps {
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const { currentUser, logout } = useApp();
 
   const navItems = [
-    { name: "Live Stream Pulse", href: "/", icon: "🔴" },
-    { name: "Analytics & VODs", href: "/vods", icon: "📊" },
-    { name: "Signature Timeline", href: "/timeline", icon: "⏱️" },
-    { name: "AI Creator Coach", href: "/coach", icon: "🤖" },
-    { name: "Brand Deals CRM", href: "/deals", icon: "💼" },
-    { name: "Collaborator Tasks", href: "/tasks", icon: "👥" },
-    { name: "Global Campaigns", href: "/campaigns", icon: "🚀" },
-    { name: "Support Desk", href: "/support", icon: "💬" },
+    { id: "overview", name: "Live Stream Pulse", icon: "🔴" },
+    { id: "analyzer", name: "AI Deep Analyzer", icon: "🤖" },
+    { id: "insights", name: "Performance Insights", icon: "📊" },
+    { id: "calendar", name: "Content Calendar", icon: "📅" },
+    { id: "crm", name: "Brand Deals CRM", icon: "💼" },
+    { id: "tasks", name: "Team Collaborators", icon: "👥" },
+    { id: "campaigns", name: "Global Campaigns", icon: "🚀" },
+    { id: "chat", name: "Support Desk", icon: "💬" },
   ];
 
+  if (currentUser?.isAdmin) {
+    navItems.push({ id: "admin", name: "Admin Portal", icon: "⚡" });
+  }
+
   return (
-    <aside className="w-64 bg-[#0d101a] border-r border-white/5 flex flex-col justify-between p-5 fixed h-screen left-0 top-0 z-20 font-sans">
+    <aside className="w-64 flex-shrink-0 bg-[#0d101a] border-r border-white/5 flex flex-col justify-between p-6 font-sans">
       {/* Workspace & Logo */}
       <div className="space-y-6">
         <div className="flex items-center gap-3 px-2">
@@ -61,12 +67,12 @@ export const Sidebar: React.FC = () => {
           </span>
 
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = activeTab === item.id;
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all text-left ${
                   isActive
                     ? "bg-purple-500/15 text-purple-300 border border-purple-500/30 font-bold shadow-sm"
                     : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"
@@ -74,7 +80,7 @@ export const Sidebar: React.FC = () => {
               >
                 <span className="text-base">{item.icon}</span>
                 <span>{item.name}</span>
-              </Link>
+              </button>
             );
           })}
         </nav>
