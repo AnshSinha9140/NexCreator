@@ -61,7 +61,7 @@ export async function getOfficialKickChannelInfo(username: string) {
       const channelObj = data.data?.[0];
       if (channelObj) {
         return {
-          chatroomId: channelObj.broadcaster_user_id,
+          chatroomId: channelObj.chatroom?.id || channelObj.chatroom_id || null,
           isLive: !!channelObj.stream?.is_live,
           username: channelObj.slug || username,
           followersCount: 0

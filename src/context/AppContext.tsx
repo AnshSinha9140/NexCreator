@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useRef } from "react";
+import { io, Socket } from "socket.io-client";
 
 export interface User {
   email: string;
@@ -106,9 +107,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [tasks, setTasks] = useState<CollaboratorTask[]>([]);
   const liveChatMessagesRef = useRef<string[]>([]);
-  const chatPollTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const socketRef = useRef<Socket | null>(null);
   const liveTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastChatTimestampRef = useRef<string>(new Date().toISOString());
   const activeChatroomIdRef = useRef<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [globalCampaigns, setGlobalCampaigns] = useState<GlobalCampaign[]>([]);
@@ -189,6 +189,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const email = currentUser?.email || "guest@creator.com";
     let chatroomId: string | null = directChatroomId ? String(directChatroomId) : null;
 
+    // Resolve real Kick Chatroom ID (e.g. 102763756 for 8bit_goldy)
+    if (!chatroomId) {
+      try {
+        const resV2 = await fetch(`https://kick.com/api/v2/channels/${username.toLowerCase()}`);
+        if (resV2.ok) {
+          const dataV2 = await resV2.json();
+          if (dataV2.chatroom?.id) {
+            chatroomId = String(dataV2.chatroom.id);
+            console.log(`[Bridge] Resolved real Kick Chatroom ID: ${chatroomId}`);
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (!chatroomId) {
+      try {
+        const proxiedData = await fetchWithCorsProxy(`https://kick.com/api/v2/channels/${username.toLowerCase()}`);
+        if (proxiedData?.chatroom?.id) {
+          chatroomId = String(proxiedData.chatroom.id);
+          console.log(`[Bridge] Resolved real Kick Chatroom ID via proxy: ${chatroomId}`);
+        }
+      } catch (e) {}
+    }
+
     if (!chatroomId) {
       try {
         const resChannel = await fetch(`/api/analysis?kickChannel=${encodeURIComponent(username.toLowerCase())}`);
@@ -200,10 +224,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     if (!chatroomId) {
-      throw new Error(`🛡️ Could not resolve Kick chatroom for '${username}'. Please try again.`);
+      throw new Error(`Could not resolve Kick chatroom for '${username}'.`);
     }
 
     activeChatroomIdRef.current = chatroomId;
+    liveChatMessagesRef.current = [];
+
+    // Clean up existing socket & timers
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+    if (liveTimerRef.current) {
+      clearInterval(liveTimerRef.current);
+      liveTimerRef.current = null;
+    }
 
     setActiveLiveJob({
       id: `job_live_${Date.now()}`,
@@ -213,73 +248,87 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       videoUrl: `https://kick.com/${username}`,
       title: `🔴 Live Stream Monitor: Kick.com/${username}`,
       status: "SCRAPING",
-      progressMessage: `🔲 Subscribing to Kick EventSub for ${username}...`,
+      progressMessage: `🔲 Connecting backend bridge to Kick chatroom #${chatroomId}...`,
       messagesCount: 0
     });
 
-    // Clean up any previous timers
-    if (chatPollTimerRef.current) { clearInterval(chatPollTimerRef.current); chatPollTimerRef.current = null; }
-    if (liveTimerRef.current) { clearInterval(liveTimerRef.current); liveTimerRef.current = null; }
-    liveChatMessagesRef.current = [];
-    lastChatTimestampRef.current = new Date().toISOString();
+    // Connect to our backend Socket.io bridge
+    const socketUrl = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+    const socket = io(socketUrl, { path: "/api/socketio", transports: ["websocket"] });
+    socketRef.current = socket;
 
-    // Step 1: Register EventSub webhook with Kick
-    const appBaseUrl = window.location.origin;
-    const webhookUrl = `${appBaseUrl}/api/kick/webhook`;
+    socket.on("connect", () => {
+      console.log("🔌 Socket.io connected to backend bridge:", socket.id);
+      // Tell backend to open Pusher connection for this chatroom
+      socket.emit("subscribe_kick", { chatroomId, username });
+    });
 
-    try {
-      const subRes = await fetch("/api/kick/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ broadcasterUserId: chatroomId, webhookUrl })
-      });
-      const subData = await subRes.json();
-      if (!subRes.ok) {
-        console.warn("📡 EventSub subscribe warning:", subData);
-      } else {
-        console.log("✅ Kick EventSub subscribed:", subData.message);
+    socket.on("kick_status", ({ status, error }: { status: string; error?: string }) => {
+      console.log("🔌 Bridge status:", status);
+      if (status === "subscribed") {
+        setActiveLiveJob((prev) => prev ? ({
+          ...prev,
+          progressMessage: `🟢 Live Monitoring Active (2-min cycle). Chat messages buffered: 0`
+        }) : null);
+      } else if (status === "error") {
+        setActiveLiveJob((prev) => prev ? ({
+          ...prev,
+          progressMessage: `❌ Bridge error: ${error}`
+        }) : null);
       }
-    } catch (e) {
-      console.warn("📡 EventSub subscribe failed, will still poll:", e);
-    }
+    });
 
-    setActiveLiveJob((prev) => prev ? ({
-      ...prev,
-      progressMessage: `🟢 Live Monitoring Active! Kick chat messages will appear here every 5 seconds.`,
-    }) : null);
-
-    // Step 2: Poll /api/kick/chat every 5 seconds for new messages
-    chatPollTimerRef.current = setInterval(async () => {
-      try {
-        const chatRes = await fetch(
-          `/api/kick/chat?broadcasterUserId=${chatroomId}&since=${encodeURIComponent(lastChatTimestampRef.current)}`
-        );
-        if (chatRes.ok) {
-          const chatData = await chatRes.json();
-          if (chatData.messages && chatData.messages.length > 0) {
-            liveChatMessagesRef.current.push(...chatData.messages);
-            lastChatTimestampRef.current = chatData.lastTimestamp;
-            console.log(`📨 Received ${chatData.messages.length} new Kick messages from EventSub buffer.`);
-            setActiveLiveJob((prev) => prev ? ({
-              ...prev,
-              messagesCount: liveChatMessagesRef.current.length,
-              progressMessage: `🟢 Live Monitoring Active (2-min cycle). Chat messages buffered: ${liveChatMessagesRef.current.length}`
-            }) : null);
-          }
+    socket.on("kick_chat_message", (data: any) => {
+      let msgText = "";
+      if (typeof data === "string") {
+        try {
+          const parsed = JSON.parse(data);
+          msgText = parsed?.content || parsed?.message || data;
+        } catch (e) {
+          msgText = data;
         }
-      } catch (err) {
-        console.warn("📡 Chat poll error:", err);
+      } else if (data && typeof data === "object") {
+        if (typeof data.message === "string") {
+          msgText = data.message;
+        } else if (data.content) {
+          const sender = data.sender?.username || data.username || "Viewer";
+          const timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+          msgText = `${sender} [${timestamp}]: ${data.content}`;
+        } else {
+          msgText = JSON.stringify(data);
+        }
       }
-    }, 5000);
 
-    // Step 3: Every 2 minutes, send batch to Gemini
+      if (msgText.trim()) {
+        liveChatMessagesRef.current.push(msgText);
+        setActiveLiveJob((prev) => prev ? ({
+          ...prev,
+          messagesCount: liveChatMessagesRef.current.length,
+          progressMessage: `🟢 Live Monitoring Active (2-min cycle). Chat messages buffered: ${liveChatMessagesRef.current.length}`
+        }) : null);
+      }
+    });
+
+    socket.on("disconnect", () => {
+      console.warn("🔌 Socket.io bridge disconnected");
+    });
+
+    socket.on("connect_error", (err) => {
+      console.error("🔌 Socket.io connect error:", err.message);
+      setActiveLiveJob((prev) => prev ? ({
+        ...prev,
+        progressMessage: `❌ Could not connect to backend bridge. Is 'npm run dev' running?`
+      }) : null);
+    });
+
+    // Every 2 minutes: send buffered messages to Gemini
     liveTimerRef.current = setInterval(async () => {
       const batch = [...liveChatMessagesRef.current];
 
       if (batch.length === 0) {
         setActiveLiveJob((prev) => prev ? ({
           ...prev,
-          progressMessage: `ℹ️ 2-min check: 0 messages in buffer. Still monitoring...`
+          progressMessage: `ℹ️ 2-min check: 0 messages buffered. Still monitoring...`
         }) : null);
         return;
       }
@@ -303,18 +352,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             comments: batch
           })
         });
-
         const data = await res.json();
         if (data.jobId) setLatestCompletedJobId(data.jobId);
 
-        // Clear buffer and MongoDB after Gemini evaluation
         liveChatMessagesRef.current = [];
-        await fetch(`/api/kick/chat?broadcasterUserId=${chatroomId}`, { method: "DELETE" });
-
         setActiveLiveJob((prev) => prev ? ({
           ...prev,
           status: "SCRAPING",
-          progressMessage: `🟢 2-min report generated! Buffering next batch... (Messages: 0)`,
+          progressMessage: `🟢 Report generated! Buffering next batch... (Messages: 0)`,
           messagesCount: 0
         }) : null);
       } catch (err) {
@@ -323,29 +368,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, 120000);
   };
 
+
   const stopLiveKickMonitoring = async () => {
-    if (chatPollTimerRef.current) {
-      clearInterval(chatPollTimerRef.current);
-      chatPollTimerRef.current = null;
+    const chatroomId = activeChatroomIdRef.current;
+
+    // Disconnect Socket.io bridge
+    if (socketRef.current) {
+      if (chatroomId) socketRef.current.emit("unsubscribe_kick", { chatroomId });
+      socketRef.current.disconnect();
+      socketRef.current = null;
     }
     if (liveTimerRef.current) {
       clearInterval(liveTimerRef.current);
       liveTimerRef.current = null;
     }
 
-    const chatroomId = activeChatroomIdRef.current;
     const batch = [...liveChatMessagesRef.current];
     const email = currentUser?.email || "guest@creator.com";
     const username = activeLiveJob?.videoId || "Kick Stream";
 
     setActiveLiveJob(null);
     activeChatroomIdRef.current = null;
-
-    // Unsubscribe from EventSub
-    if (chatroomId) {
-      fetch(`/api/kick/subscribe?broadcasterUserId=${chatroomId}`, { method: "DELETE" }).catch(() => {});
-      fetch(`/api/kick/chat?broadcasterUserId=${chatroomId}`, { method: "DELETE" }).catch(() => {});
-    }
 
     if (batch.length === 0) {
       return { error: "No live chat messages collected yet." };
