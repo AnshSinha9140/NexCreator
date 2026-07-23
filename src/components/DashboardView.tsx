@@ -2,10 +2,10 @@
 
 import React from "react";
 import { useApp } from "../context/AppContext";
-import { LivePulseScore } from "./LivePulseScore";
-import { MetricCard } from "./MetricCard";
-import { SignatureTimeline } from "./SignatureTimeline";
-import { AICreatorCoach } from "./AICreatorCoach";
+import { LivePulseScore } from "./dashboard/LivePulseScore";
+import { MetricCard } from "./dashboard/MetricCard";
+import { SignatureTimeline } from "./dashboard/SignatureTimeline";
+import { AICreatorCoach } from "./dashboard/AICreatorCoach";
 
 export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = ({ setActiveTab }) => {
   const { brandDeals, calendarEvents, tasks, currentUser, activeLiveJob } = useApp();
