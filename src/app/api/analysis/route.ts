@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { verifySessionToken } from "@/lib/session";
 import { getVideoDetailsAndComments } from "@/lib/youtube";
 import {
   createAnalysisJob,
@@ -14,12 +16,22 @@ import { analyzeCommentsWithGemini } from "@/lib/gemini";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/analysis?jobId=XYZ or ?creatorEmail=abc@gmail.com or ?kickChannel=8bitheadflicker
+// GET /api/analysis?jobId=XYZ or ?kickChannel=8bitheadflicker
 export async function GET(request: Request) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("auth_session")?.value;
+  const authUser = token ? await verifySessionToken(token) : null;
+
+  if (!authUser) {
+    return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const jobId = searchParams.get("jobId");
-  const creatorEmail = searchParams.get("creatorEmail");
   const kickChannel = searchParams.get("kickChannel");
+  
+  // Remove creatorEmail fallback parsing, explicitly use authUser.email
+  const creatorEmail = authUser.email;
 
   // Helper to fetch Kick Chatroom ID
   if (kickChannel) {
@@ -79,31 +91,40 @@ export async function GET(request: Request) {
     if (!job) {
       return NextResponse.json({ error: "Analysis job not found" }, { status: 404 });
     }
+    // Optional: Add authorization check here if jobs are private
+    if (job.creatorEmail !== creatorEmail) {
+      return NextResponse.json({ error: "Unauthorized to access this job" }, { status: 403 });
+    }
     return NextResponse.json({ job });
   }
 
-  if (creatorEmail) {
-    const quotaUsed = await getDailyQuotaUsage(creatorEmail);
-    const history = await getCreatorJobHistory(creatorEmail);
-    return NextResponse.json({
-      quotaUsed,
-      maxDailyQuota: 2,
-      remainingQuota: Math.max(0, 2 - quotaUsed),
-      history
-    });
-  }
+  // Handle quota usage
+  const quotaUsed = await getDailyQuotaUsage(creatorEmail);
+  const history = await getCreatorJobHistory(creatorEmail);
+  
+  // Log authentication explicitly to meet requirements
+  console.log(`[Auth] Authenticated User: ${creatorEmail} | Creator ID: ${authUser.userId} | Session Valid | Route: GET /api/analysis`);
 
-  return NextResponse.json({ error: "Missing jobId, creatorEmail, or kickChannel parameter" }, { status: 400 });
+  return NextResponse.json({
+    quotaUsed,
+    maxDailyQuota: 2,
+    remainingQuota: Math.max(0, 2 - quotaUsed),
+    history
+  });
 }
 
-// DELETE /api/analysis?creatorEmail=abc@gmail.com (Dev reset quota helper)
+// DELETE /api/analysis (Dev reset quota helper)
 export async function DELETE(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const creatorEmail = searchParams.get("creatorEmail");
+  const cookieStore = await cookies();
+  const token = cookieStore.get("auth_session")?.value;
+  const authUser = token ? await verifySessionToken(token) : null;
 
-  if (!creatorEmail) {
-    return NextResponse.json({ error: "creatorEmail parameter required" }, { status: 400 });
+  if (!authUser) {
+    return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
   }
+
+  const creatorEmail = authUser.email;
+  console.log(`[Auth] Authenticated User: ${creatorEmail} | Creator ID: ${authUser.userId} | Session Valid | Route: DELETE /api/analysis`);
 
   try {
     const collection = await getJobsCollection();
@@ -117,10 +138,19 @@ export async function DELETE(request: Request) {
 // POST /api/analysis (Queue a new analysis job)
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { videoUrl, creatorEmail, platform, title, thumbnailUrl, videoId, comments } = body;
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_session")?.value;
+    const authUser = token ? await verifySessionToken(token) : null;
 
-    const email = creatorEmail || "guest@creator.com";
+    if (!authUser) {
+      return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
+    }
+
+    const email = authUser.email;
+    console.log(`[Auth] Authenticated User: ${email} | Creator ID: ${authUser.userId} | Session Valid | Route: POST /api/analysis`);
+
+    const body = await request.json();
+    const { videoUrl, platform, title, thumbnailUrl, videoId, comments } = body;
 
     // 1. Enforce Daily Quota (Max 2 videos / day)
     const quotaUsed = await getDailyQuotaUsage(email);

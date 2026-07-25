@@ -37,7 +37,7 @@ interface AnalysisJob {
 
 export const VideoAnalyzerView: React.FC = () => {
   const { currentUser, activeLiveJob, latestCompletedJobId, startLiveKickMonitoring, stopLiveKickMonitoring } = useApp();
-  const creatorEmail = currentUser?.email || "guest@creator.com";
+  const creatorEmail = currentUser?.email || "";
 
   const [videoUrl, setVideoUrl] = useState("");
   const [loading, setLoading] = useState(false);
@@ -50,7 +50,7 @@ export const VideoAnalyzerView: React.FC = () => {
   // 1. Fetch Creator Quota and History on mount
   const fetchQuotaAndHistory = async () => {
     try {
-      const res = await fetch(`/api/analysis?creatorEmail=${encodeURIComponent(creatorEmail)}`);
+      const res = await fetch(`/api/analysis`);
       if (res.ok) {
         const data = await res.json();
         setQuotaInfo({
@@ -96,7 +96,7 @@ export const VideoAnalyzerView: React.FC = () => {
   // Dev Reset Quota helper
   const handleResetQuota = async () => {
     try {
-      const res = await fetch(`/api/analysis?creatorEmail=${encodeURIComponent(creatorEmail)}`, {
+      const res = await fetch(`/api/analysis`, {
         method: "DELETE"
       });
       if (res.ok) {
@@ -229,7 +229,6 @@ export const VideoAnalyzerView: React.FC = () => {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               platform: "kick",
-              creatorEmail,
               videoId: parsedKick.value,
               videoUrl: videoUrl.trim(),
               title,
@@ -239,7 +238,10 @@ export const VideoAnalyzerView: React.FC = () => {
           });
 
           const data = await res.json();
-          if (!res.ok) throw new Error(data.error || "Failed to queue Kick analysis");
+          if (!res.ok) {
+            const errorMsg = typeof data.error === "string" ? data.error : data.error?.message || "Failed to queue Kick analysis";
+            throw new Error(errorMsg);
+          }
 
           setActiveJobId(data.jobId);
           setActiveJob({
@@ -261,13 +263,15 @@ export const VideoAnalyzerView: React.FC = () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            videoUrl: videoUrl.trim(),
-            creatorEmail
+            videoUrl: videoUrl.trim()
           })
         });
 
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Failed to queue YouTube analysis");
+        if (!res.ok) {
+          const errorMsg = typeof data.error === "string" ? data.error : data.error?.message || "Failed to queue YouTube analysis";
+          throw new Error(errorMsg);
+        }
 
         setActiveJobId(data.jobId);
         setActiveJob({

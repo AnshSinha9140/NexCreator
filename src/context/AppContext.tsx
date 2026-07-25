@@ -188,39 +188,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const startLiveKickMonitoring = async (username: string, directChatroomId?: string) => {
-    const email = currentUser?.email || "guest@creator.com";
+    const email = currentUser?.email || "";
     let chatroomId: string | null = directChatroomId ? String(directChatroomId) : null;
 
-    // Resolve real Kick Chatroom ID (e.g. 102763756 for 8bit_goldy)
+    // Resolve real Kick Chatroom ID via our server-side proxy (avoids CORS)
     if (!chatroomId) {
       try {
-        const resV2 = await fetch(`https://kick.com/api/v2/channels/${username.toLowerCase()}`);
-        if (resV2.ok) {
-          const dataV2 = await resV2.json();
-          if (dataV2.chatroom?.id) {
-            chatroomId = String(dataV2.chatroom.id);
-            console.log(`[Bridge] Resolved real Kick Chatroom ID: ${chatroomId}`);
+        const chatroomRes = await fetch(`/api/kick/chatroom?slug=${encodeURIComponent(username.toLowerCase())}`);
+        if (chatroomRes.ok) {
+          const chatroomData = await chatroomRes.json();
+          if (chatroomData?.chatroomId) {
+            chatroomId = String(chatroomData.chatroomId);
+            console.log(`[Bridge] Resolved Kick chatroom.id: ${chatroomId} (via ${chatroomData.source})`);
           }
-        }
-      } catch (e) {}
-    }
-
-    if (!chatroomId) {
-      try {
-        const proxiedData = await fetchWithCorsProxy(`https://kick.com/api/v2/channels/${username.toLowerCase()}`);
-        if (proxiedData?.chatroom?.id) {
-          chatroomId = String(proxiedData.chatroom.id);
-          console.log(`[Bridge] Resolved real Kick Chatroom ID via proxy: ${chatroomId}`);
-        }
-      } catch (e) {}
-    }
-
-    if (!chatroomId) {
-      try {
-        const resChannel = await fetch(`/api/analysis?kickChannel=${encodeURIComponent(username.toLowerCase())}`);
-        if (resChannel.ok) {
-          const channelData = await resChannel.json();
-          if (channelData.chatroomId) chatroomId = String(channelData.chatroomId);
         }
       } catch (e) {}
     }
@@ -228,6 +208,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!chatroomId) {
       throw new Error(`Could not resolve Kick chatroom for '${username}'.`);
     }
+
 
     activeChatroomIdRef.current = chatroomId;
     liveChatMessagesRef.current = [];
@@ -401,7 +382,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     const batch = [...liveChatMessagesRef.current];
-    const email = currentUser?.email || "guest@creator.com";
+    const email = currentUser?.email || "";
     const username = activeLiveJob?.videoId || "Kick Stream";
 
     setActiveLiveJob(null);
@@ -455,7 +436,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to register");
+      if (!res.ok) {
+        const errorMsg = typeof data.error === "string" ? data.error : data.error?.message || "Failed to register";
+        throw new Error(errorMsg);
+      }
 
       setCurrentUser(data.user);
       localStorage.setItem("cm_current_user", JSON.stringify(data.user));
@@ -489,13 +473,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (e) {
+      console.error("Logout API call failed:", e);
+    }
     setCurrentUser(null);
     localStorage.removeItem("cm_current_user");
     setMessages([]);
     setBrandDeals([]);
     setCalendarEvents([]);
     setTasks([]);
+    window.location.href = "/login";
   };
 
   const updateUserStatus = async (email: string, status: "verified" | "rejected") => {
@@ -508,7 +498,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to update status");
+        const errorMsg = typeof data.error === "string" ? data.error : data.error?.message || "Failed to update status";
+        throw new Error(errorMsg);
       }
 
       // Keep active user email synced
@@ -534,7 +525,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to add deal");
+        const errorMsg = typeof data.error === "string" ? data.error : data.error?.message || "Failed to add deal";
+        throw new Error(errorMsg);
       }
 
       await fetchData(currentUser.email);
@@ -554,7 +546,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to update deal status");
+        const errorMsg = typeof data.error === "string" ? data.error : data.error?.message || "Failed to update deal status";
+        throw new Error(errorMsg);
       }
 
       await fetchData(currentUser.email);
@@ -577,7 +570,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to add event");
+        const errorMsg = typeof data.error === "string" ? data.error : data.error?.message || "Failed to add event";
+        throw new Error(errorMsg);
       }
 
       await fetchData(currentUser.email);
@@ -600,7 +594,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to add task");
+        const errorMsg = typeof data.error === "string" ? data.error : data.error?.message || "Failed to add task";
+        throw new Error(errorMsg);
       }
 
       await fetchData(currentUser.email);
@@ -620,7 +615,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to update task status");
+        const errorMsg = typeof data.error === "string" ? data.error : data.error?.message || "Failed to update task status";
+        throw new Error(errorMsg);
       }
 
       await fetchData(currentUser.email);
@@ -658,7 +654,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to send message");
+        const errorMsg = typeof data.error === "string" ? data.error : data.error?.message || "Failed to send message";
+        throw new Error(errorMsg);
       }
 
       const creatorEmail = role === "creator" ? currentUser.email : receiverEmail;
@@ -682,7 +679,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to add campaign");
+        const errorMsg = typeof data.error === "string" ? data.error : data.error?.message || "Failed to add campaign";
+        throw new Error(errorMsg);
       }
 
       const storedCurrentUser = localStorage.getItem("cm_current_user");
@@ -704,7 +702,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Failed to refresh metrics");
+        const errorMsg = typeof data.error === "string" ? data.error : data.error?.message || "Failed to refresh metrics";
+        throw new Error(errorMsg);
       }
 
       setCurrentUser(data.user);

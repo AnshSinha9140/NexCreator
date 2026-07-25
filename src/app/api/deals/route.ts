@@ -1,35 +1,26 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { verifySessionToken } from "@/lib/session";
 import clientPromise from "@/lib/mongodb";
-
-const DEFAULT_DEALS = [
-  { id: "1", title: "Apex Legends Stream Sponsor", brand: "EA", platform: "Twitch", payout: 5000, status: "signed", date: "2026-07-25", creatorEmail: "mrbeast@gmail.com" },
-  { id: "2", title: "VPN Sponsorship Integration", brand: "NordVPN", platform: "YouTube", payout: 3500, status: "completed", date: "2026-07-15", creatorEmail: "mrbeast@gmail.com" },
-  { id: "3", title: "Keyboard Review Promo", brand: "Keychron", platform: "YouTube", payout: 1200, status: "negotiating", date: "2026-08-02", creatorEmail: "mrbeast@gmail.com" },
-];
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const creatorEmail = searchParams.get("creatorEmail");
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_session")?.value;
+    const authUser = token ? await verifySessionToken(token) : null;
 
-    if (!creatorEmail) {
-      return NextResponse.json([]);
+    if (!authUser) {
+      return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
     }
+
+    const creatorEmail = authUser.email;
+    console.log(`[Auth] Authenticated User: ${creatorEmail} | Creator ID: ${authUser.userId} | Session Valid | Route: GET /api/deals`);
 
     const client = await clientPromise;
     const db = client.db("nexcreator");
 
     // Fetch deals only for the requested creator
     let deals = await db.collection("deals").find({ creatorEmail: creatorEmail.toLowerCase() }).toArray();
-
-    // If mrbeast is logging in for the first time and database is empty, seed defaults
-    if (creatorEmail.toLowerCase() === "mrbeast@gmail.com" && deals.length === 0) {
-      const allDeals = await db.collection("deals").countDocuments();
-      if (allDeals === 0) {
-        await db.collection("deals").insertMany(DEFAULT_DEALS);
-        deals = await db.collection("deals").find({ creatorEmail: "mrbeast@gmail.com" }).toArray();
-      }
-    }
 
     return NextResponse.json(deals);
   } catch (error: any) {
@@ -40,6 +31,17 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_session")?.value;
+    const authUser = token ? await verifySessionToken(token) : null;
+
+    if (!authUser) {
+      return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
+    }
+
+    const creatorEmail = authUser.email;
+    console.log(`[Auth] Authenticated User: ${creatorEmail} | Creator ID: ${authUser.userId} | Session Valid | Route: POST /api/deals`);
+
     const deal = await request.json();
     const client = await clientPromise;
     const db = client.db("nexcreator");
@@ -47,7 +49,7 @@ export async function POST(request: Request) {
     const newDeal = {
       ...deal,
       id: Math.random().toString(36).substring(2, 9),
-      creatorEmail: deal.creatorEmail.toLowerCase(),
+      creatorEmail: creatorEmail.toLowerCase(),
       createdAt: new Date(),
     };
 

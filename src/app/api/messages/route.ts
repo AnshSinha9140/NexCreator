@@ -1,25 +1,32 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { verifySessionToken } from "@/lib/session";
 import clientPromise from "@/lib/mongodb";
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const creatorEmail = searchParams.get("creatorEmail");
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_session")?.value;
+    const authUser = token ? await verifySessionToken(token) : null;
 
-    if (!creatorEmail) {
-      return NextResponse.json({ error: "creatorEmail is required" }, { status: 400 });
+    if (!authUser) {
+      return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
     }
+
+    let targetEmail = authUser.email;
+
+    console.log(`[Auth] Authenticated User: ${authUser.email} | Creator ID: ${authUser.userId} | Session Valid | Route: GET /api/messages`);
 
     const client = await clientPromise;
     const db = client.db("nexcreator");
 
-    // Fetch all messages where creatorEmail is either sender or receiver
+    // Fetch all messages where targetEmail is either sender or receiver
     const messages = await db
       .collection("messages")
       .find({
         $or: [
-          { senderEmail: creatorEmail.toLowerCase() },
-          { receiverEmail: creatorEmail.toLowerCase() },
+          { senderEmail: targetEmail.toLowerCase() },
+          { receiverEmail: targetEmail.toLowerCase() },
         ],
       })
       .sort({ timestamp: 1 })
@@ -34,9 +41,19 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { senderEmail, receiverEmail, content, senderRole } = await request.json();
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_session")?.value;
+    const authUser = token ? await verifySessionToken(token) : null;
 
-    if (!senderEmail || !receiverEmail || !content || !senderRole) {
+    if (!authUser) {
+      return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
+    }
+
+    console.log(`[Auth] Authenticated User: ${authUser.email} | Creator ID: ${authUser.userId} | Session Valid | Route: POST /api/messages`);
+
+    const { receiverEmail, content } = await request.json();
+
+    if (!receiverEmail || !content) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -45,10 +62,10 @@ export async function POST(request: Request) {
 
     const newMessage = {
       id: Math.random().toString(36).substring(2, 9),
-      senderEmail: senderEmail.toLowerCase(),
+      senderEmail: authUser.email.toLowerCase(),
       receiverEmail: receiverEmail.toLowerCase(),
       content,
-      senderRole,
+      senderRole: authUser.role || (authUser.isAdmin ? "admin" : "creator"),
       timestamp: new Date(),
     };
 

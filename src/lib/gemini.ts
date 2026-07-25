@@ -54,17 +54,20 @@ export async function analyzeCommentsWithGemini(comments: string[]): Promise<Gem
   }
   `;
 
-  // Models to try in order of priority if Google experiences high demand (503)
-  const models = ["gemini-3.5-flash", "gemini-2.0-flash"];
+  // Priority list of valid Gemini models
+  const MODELS = [
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+  ];
   let lastError: Error | null = null;
 
-  for (const model of models) {
+  for (const model of MODELS) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-    // Retry loop (3 attempts with exponential backoff per model)
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    // Retry loop (5 attempts with exponential backoff per model)
+    for (let attempt = 1; attempt <= 5; attempt++) {
       try {
-        console.log(`[Gemini Call] Model: ${model}, Attempt: ${attempt}/3...`);
+        console.log(`[Gemini Call] Model: ${model}, Attempt: ${attempt}/5...`);
         const response = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -75,8 +78,9 @@ export async function analyzeCommentsWithGemini(comments: string[]): Promise<Gem
         });
 
         if (response.status === 503 || response.status === 429) {
-          console.warn(`Gemini returned ${response.status} high demand. Waiting ${attempt * 2}s before retry...`);
-          await sleep(attempt * 2000);
+          const waitTime = attempt * 3000;
+          console.warn(`Gemini returned ${response.status} (Busy/Throttled). Waiting ${attempt * 3}s before retry...`);
+          await sleep(waitTime);
           continue;
         }
 

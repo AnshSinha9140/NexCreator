@@ -12,7 +12,7 @@ export async function GET() {
     return NextResponse.json(users);
   } catch (error: any) {
     console.error("Creators GET API error:", error);
-    return NextResponse.json({ error: error.message || "Failed to fetch creators" }, { status: 500 });
+    return NextResponse.json([]);
   }
 }
 

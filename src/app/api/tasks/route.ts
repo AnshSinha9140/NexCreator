@@ -1,34 +1,25 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { verifySessionToken } from "@/lib/session";
 import clientPromise from "@/lib/mongodb";
-
-const DEFAULT_TASKS = [
-  { id: "1", title: "Color Grade Vlog Footage", role: "Editor", status: "in-progress", videoTitle: "Custom PC Build Vlog", creatorEmail: "mrbeast@gmail.com" },
-  { id: "2", title: "Design High-CTR Thumbnail", role: "Designer", status: "todo", videoTitle: "Custom PC Build Vlog", creatorEmail: "mrbeast@gmail.com" },
-  { id: "3", title: "Write Intro Script Hooks", role: "Writer", status: "done", videoTitle: "Custom PC Build Vlog", creatorEmail: "mrbeast@gmail.com" },
-];
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const creatorEmail = searchParams.get("creatorEmail");
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_session")?.value;
+    const authUser = token ? await verifySessionToken(token) : null;
 
-    if (!creatorEmail) {
-      return NextResponse.json([]);
+    if (!authUser) {
+      return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
     }
+
+    const creatorEmail = authUser.email;
+    console.log(`[Auth] Authenticated User: ${creatorEmail} | Creator ID: ${authUser.userId} | Session Valid | Route: GET /api/tasks`);
 
     const client = await clientPromise;
     const db = client.db("nexcreator");
 
     let tasks = await db.collection("tasks").find({ creatorEmail: creatorEmail.toLowerCase() }).toArray();
-
-    // Seed defaults for mrbeast if empty
-    if (creatorEmail.toLowerCase() === "mrbeast@gmail.com" && tasks.length === 0) {
-      const allTasks = await db.collection("tasks").countDocuments();
-      if (allTasks === 0) {
-        await db.collection("tasks").insertMany(DEFAULT_TASKS);
-        tasks = await db.collection("tasks").find({ creatorEmail: "mrbeast@gmail.com" }).toArray();
-      }
-    }
 
     return NextResponse.json(tasks);
   } catch (error: any) {
@@ -39,6 +30,17 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_session")?.value;
+    const authUser = token ? await verifySessionToken(token) : null;
+
+    if (!authUser) {
+      return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
+    }
+
+    const creatorEmail = authUser.email;
+    console.log(`[Auth] Authenticated User: ${creatorEmail} | Creator ID: ${authUser.userId} | Session Valid | Route: POST /api/tasks`);
+
     const task = await request.json();
     const client = await clientPromise;
     const db = client.db("nexcreator");
@@ -46,7 +48,7 @@ export async function POST(request: Request) {
     const newTask = {
       ...task,
       id: Math.random().toString(36).substring(2, 9),
-      creatorEmail: task.creatorEmail.toLowerCase(),
+      creatorEmail: creatorEmail.toLowerCase(),
       createdAt: new Date(),
     };
 

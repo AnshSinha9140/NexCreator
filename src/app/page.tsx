@@ -6,24 +6,20 @@ import { AuthView } from "../components/AuthView";
 import { PendingView } from "../components/PendingView";
 import { Sidebar } from "../components/dashboard/Sidebar";
 import { TopNav } from "../components/dashboard/TopNav";
+import { CommandCenterView } from "../components/CommandCenterView";
 import { DashboardView } from "../components/DashboardView";
-import { CalendarView } from "../components/CalendarView";
-import { CrmView } from "../components/CrmView";
-import { TasksView } from "../components/TasksView";
-import { AdminView } from "../components/AdminView";
-import { CreatorChatView } from "../components/CreatorChatView";
-import { AdminChatView } from "../components/AdminChatView";
-import { CampaignsView } from "../components/CampaignsView";
+import { SettingsView } from "../components/SettingsView";
 import { InsightsView } from "../components/InsightsView";
 import { VideoAnalyzerView } from "../components/VideoAnalyzerView";
+import { AdminView } from "../components/AdminView";
 
 export default function Home() {
   const { currentUser } = useApp();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("command_center");
 
   useEffect(() => {
     if (currentUser?.isAdmin) setActiveTab("admin");
-    else setActiveTab("overview");
+    else setActiveTab("command_center");
   }, [currentUser]);
 
   if (!currentUser) return <AuthView />;
@@ -31,16 +27,13 @@ export default function Home() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case "overview":    return <DashboardView setActiveTab={setActiveTab} />;
-      case "insights":    return <InsightsView />;
-      case "analyzer":    return <VideoAnalyzerView />;
-      case "calendar":    return <CalendarView />;
-      case "crm":         return <CrmView />;
-      case "tasks":       return <TasksView />;
-      case "admin":       return currentUser.isAdmin ? <AdminView /> : <DashboardView setActiveTab={setActiveTab} />;
-      case "chat":        return currentUser.isAdmin ? <AdminChatView /> : <CreatorChatView />;
-      case "campaigns":   return <CampaignsView />;
-      default:            return <DashboardView setActiveTab={setActiveTab} />;
+      case "command_center": return <CommandCenterView setActiveTab={setActiveTab} />;
+      case "live":           return <DashboardView setActiveTab={setActiveTab} />;
+      case "content":        return <VideoAnalyzerView />;
+      case "audience":       return <InsightsView />;
+      case "settings":       return <SettingsView />;
+      case "admin":          return currentUser.isAdmin ? <AdminView /> : <CommandCenterView setActiveTab={setActiveTab} />;
+      default:               return <CommandCenterView setActiveTab={setActiveTab} />;
     }
   };
 
@@ -54,10 +47,8 @@ export default function Home() {
         background: "#060810",
       }}
     >
-      {/* Sidebar — fixed width, full height */}
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {/* Main area — flex column, fills remaining space */}
       <div
         style={{
           flex: 1,
@@ -69,7 +60,6 @@ export default function Home() {
       >
         <TopNav />
 
-        {/* Scrollable content */}
         <main
           style={{
             flex: 1,

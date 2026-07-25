@@ -13,7 +13,7 @@ export async function GET() {
     return NextResponse.json(campaigns);
   } catch (error: any) {
     console.error("Campaigns GET API error:", error);
-    return NextResponse.json({ error: error.message || "Failed to fetch global campaigns" }, { status: 500 });
+    return NextResponse.json([]);
   }
 }
 

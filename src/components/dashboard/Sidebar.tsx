@@ -8,23 +8,20 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
 }
 
-const navItems = [
-  { id: "overview",   name: "Live Stream Pulse",   icon: "●" },
-  { id: "analyzer",   name: "AI Deep Analyzer",    icon: "◎" },
-  { id: "insights",   name: "Performance Insights", icon: "▣" },
-  { id: "calendar",   name: "Content Calendar",    icon: "▦" },
-  { id: "crm",        name: "Brand Deals CRM",     icon: "◈" },
-  { id: "tasks",      name: "Team Collaborators",  icon: "◉" },
-  { id: "campaigns",  name: "Global Campaigns",    icon: "▲" },
-  { id: "chat",       name: "Support Desk",        icon: "◌" },
+const PRIMARY_NAV = [
+  { id: "command_center", name: "Command Center", icon: "🏠" },
+  { id: "live",           name: "Live",           icon: "📡" },
+  { id: "content",        name: "Content",        icon: "🎥" },
+  { id: "audience",       name: "Audience",       icon: "👥" },
+  { id: "settings",       name: "Settings",       icon: "⚙" },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const { currentUser, logout } = useApp();
 
-  const items = currentUser?.isAdmin
-    ? [...navItems, { id: "admin", name: "Admin Portal", icon: "⚡" }]
-    : navItems;
+  const navList = currentUser?.isAdmin
+    ? [...PRIMARY_NAV, { id: "admin", name: "Admin Portal", icon: "⚡" }]
+    : PRIMARY_NAV;
 
   return (
     <aside
@@ -40,7 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
         overflowX: "hidden",
       }}
     >
-      {/* Logo */}
+      {/* Brand Logo Header */}
       <div style={{ padding: "20px 20px 16px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <div
@@ -81,7 +78,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
         </div>
       </div>
 
-      {/* Channel Pill */}
+      {/* User / Workspace Badge */}
       <div style={{ padding: "0 12px 16px" }}>
         <div
           style={{
@@ -89,7 +86,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
             borderRadius: "10px",
             background: "rgba(255,255,255,0.03)",
             border: "1px solid rgba(255,255,255,0.06)",
-            cursor: "pointer",
             display: "flex",
             alignItems: "center",
             gap: "10px",
@@ -125,7 +121,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                 whiteSpace: "nowrap",
               }}
             >
-              {currentUser?.email?.split("@")[0] ?? "creator"}
+              {currentUser?.email?.split("@")[0] || "Creator"}
             </div>
             <div
               style={{
@@ -134,14 +130,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                 fontFamily: "'JetBrains Mono', monospace",
               }}
             >
-              Kick.com Channel
+              Command Center
             </div>
           </div>
-          <div style={{ marginLeft: "auto", color: "#475569", fontSize: "11px" }}>▾</div>
         </div>
       </div>
 
-      {/* Nav label */}
+      {/* Primary Navigation */}
       <div
         style={{
           padding: "0 16px 6px",
@@ -153,13 +148,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           fontFamily: "'JetBrains Mono', monospace",
         }}
       >
-        Platform Engine
+        Navigation
       </div>
 
-      {/* Nav Items */}
       <nav style={{ padding: "0 8px", flex: 1 }}>
-        {items.map((item) => {
-          const isActive = activeTab === item.id;
+        {navList.map((item) => {
+          const isActive = activeTab === item.id || (activeTab === "overview" && item.id === "command_center");
           return (
             <button
               key={item.id}
@@ -194,14 +188,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                 }
               }}
             >
-              <span style={{ fontSize: "11px", opacity: 0.8, flexShrink: 0 }}>{item.icon}</span>
+              <span style={{ fontSize: "13px", flexShrink: 0 }}>{item.icon}</span>
               <span>{item.name}</span>
             </button>
           );
         })}
       </nav>
 
-      {/* Footer */}
+      {/* Footer User Info & Sign Out */}
       <div
         style={{
           padding: "12px",
@@ -239,9 +233,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                 whiteSpace: "nowrap",
               }}
             >
-              {currentUser?.email ?? "creator@nex.com"}
+              {currentUser?.email || ""}
             </div>
-            <div style={{ fontSize: "9px", color: "#10b981", fontFamily: "monospace" }}>● PRO SUITE</div>
+            <div style={{ fontSize: "9px", color: "#10b981", fontFamily: "monospace" }}>● PRO OPERATING SYSTEM</div>
           </div>
         </div>
         <button

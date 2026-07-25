@@ -1,341 +1,682 @@
 "use client";
 
 import React, { useState } from "react";
-import { useApp } from "../context/AppContext";
+import Link from "next/link";
+import { validateLogin, validateSignup } from "@/lib/authValidation";
 
-export const AuthView: React.FC = () => {
-  const { loginUser, registerUser, usersList } = useApp();
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [youtube, setYoutube] = useState("");
-  const [twitch, setTwitch] = useState("");
-  const [kick, setKick] = useState("");
-  const [error, setError] = useState("");
+interface AuthViewProps {
+  initialMode?: "login" | "signup";
+  onSuccess?: (user: any, redirectTo: string) => void;
+}
 
-  const handleSubmit = (e: React.FormEvent) => {
+export const AuthView: React.FC<AuthViewProps> = ({
+  initialMode = "login",
+  onSuccess,
+}) => {
+  const [mode, setMode] = useState<"login" | "signup">(initialMode);
+  
+  // Login State
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+
+  // Signup State
+  const [signupName, setSignupName] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  // UI States
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState("");
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setApiError("");
+    setFormErrors({});
 
-    if (!email || !password) {
-      setError("Please fill in email and password.");
+    const validation = validateLogin({ email: loginEmail, password: loginPassword });
+    if (!validation.isValid) {
+      setFormErrors(validation.errors);
       return;
     }
 
-    if (isLogin) {
-      const success = loginUser(email);
-      if (!success) {
-        setError("User not found. Try 'admin@creatormanager.com' or register a new account.");
-      }
-    } else {
-      const exists = usersList.some((u) => u.email.toLowerCase() === email.toLowerCase());
-      if (exists) {
-        setError("Email is already registered.");
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: loginEmail,
+          password: loginPassword,
+          rememberMe,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        const errorMsg =
+          typeof data.error === "string"
+            ? data.error
+            : data.error?.message || "Failed to log in. Please check your credentials.";
+        setApiError(errorMsg);
         return;
       }
-      registerUser(email, {
-        youtube: youtube.trim(),
-        twitch: twitch.trim(),
-        kick: kick.trim(),
-      });
+
+      if (onSuccess) {
+        onSuccess(data.user, data.redirectTo || "/dashboard");
+      } else {
+        window.location.href = data.redirectTo || "/dashboard";
+      }
+    } catch (err: any) {
+      setApiError("Network error. Please check your connection and try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  return (
-    <div className="auth-container" style={{ padding: 0, overflow: "hidden" }}>
-      {/* Dynamic Keyframes injected into DOM for Lottie-like complex animations */}
-      <style>{`
-        @keyframes float {
-          0% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-15px) rotate(3deg); }
-          100% { transform: translateY(0px) rotate(0deg); }
-        }
-        @keyframes orbit-yt {
-          0% { transform: rotate(0deg) translateX(90px) rotate(0deg); }
-          100% { transform: rotate(360deg) translateX(90px) rotate(-360deg); }
-        }
-        @keyframes orbit-tw {
-          0% { transform: rotate(120deg) translateX(90px) rotate(-120deg); }
-          100% { transform: rotate(480deg) translateX(90px) rotate(-480deg); }
-        }
-        @keyframes orbit-kk {
-          0% { transform: rotate(240deg) translateX(90px) rotate(-240deg); }
-          100% { transform: rotate(600deg) translateX(90px) rotate(-600deg); }
-        }
-        @keyframes pulse-ring {
-          0% { transform: scale(0.95); opacity: 0.2; }
-          50% { transform: scale(1.1); opacity: 0.4; }
-          100% { transform: scale(0.95); opacity: 0.2; }
-        }
-        @keyframes gradient-move {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        @media (max-width: 900px) {
-          .auth-split-left { display: none !important; }
-          .auth-split-right { width: 100% !important; max-width: 100% !important; }
-        }
-      `}</style>
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setApiError("");
+    setFormErrors({});
 
-      <div style={{ display: "flex", width: "100vw", height: "100vh" }}>
-        
-        {/* Left Side: Playful & Professional Animation Panel */}
-        <div className="auth-split-left" style={{
+    const validation = validateSignup({
+      name: signupName,
+      email: signupEmail,
+      password: signupPassword,
+      confirmPassword,
+    });
+
+    if (!validation.isValid) {
+      setFormErrors(validation.errors);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: signupName,
+          email: signupEmail,
+          password: signupPassword,
+          confirmPassword,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        const errorMsg =
+          typeof data.error === "string"
+            ? data.error
+            : data.error?.message || "Failed to complete registration.";
+        setApiError(errorMsg);
+        return;
+      }
+
+      if (onSuccess) {
+        onSuccess(data.user, data.redirectTo || "/onboarding");
+      } else {
+        window.location.href = data.redirectTo || "/onboarding";
+      }
+    } catch (err: any) {
+      setApiError("Network error. Please check your connection and try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail) return;
+    setForgotSuccess(true);
+  };
+
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        width: "100vw",
+        display: "flex",
+        background: "#060810",
+        color: "#e2e8f0",
+        fontFamily: "'Inter', sans-serif",
+        overflow: "hidden",
+      }}
+    >
+      {/* ─── Left Branding Panel (Linear / Vercel Dark Aesthetic) ────────── */}
+      <div
+        style={{
           flex: 1,
-          background: "linear-gradient(-45deg, #090b11, #131726, #1b122e, #0c1824)",
-          backgroundSize: "400% 400%",
-          animation: "gradient-move 15s ease infinite",
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "48px",
+          justifyContent: "between",
+          padding: "48px 64px",
+          background: "radial-gradient(circle at 0% 0%, rgba(168, 85, 247, 0.12) 0%, transparent 50%), radial-gradient(circle at 100% 100%, rgba(99, 102, 241, 0.1) 0%, transparent 50%), #080b14",
+          borderRight: "1px solid rgba(255, 255, 255, 0.06)",
           position: "relative",
-          borderRight: "1px solid var(--border-color)",
-          overflow: "hidden"
-        }}>
-          {/* Pulsing Backlight */}
-          <div style={{
-            position: "absolute",
-            width: "350px",
-            height: "350px",
-            background: "radial-gradient(circle, var(--glow-purple) 0%, transparent 70%)",
-            borderRadius: "50%",
-            zIndex: 1,
-            animation: "pulse-ring 4s ease-in-out infinite"
-          }}></div>
-
-          {/* Animated SVG Illustration */}
-          <div style={{ position: "relative", width: "240px", height: "240px", zIndex: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            
-            {/* Center Console Icon */}
-            <div style={{
-              width: "80px",
-              height: "80px",
-              borderRadius: "24px",
-              background: "linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-pink) 100%)",
+        }}
+      >
+        {/* Top Logo */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div
+            style={{
+              width: "40px",
+              height: "40px",
+              borderRadius: "12px",
+              background: "linear-gradient(135deg, #a855f7 0%, #6366f1 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: "0 10px 30px rgba(189, 92, 255, 0.4)",
-              animation: "float 6s ease-in-out infinite",
-              zIndex: 3
-            }}>
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-              </svg>
-            </div>
-
-            {/* Orbiting Youtube Channel Badge */}
-            <div style={{
-              position: "absolute",
-              width: "48px",
-              height: "48px",
-              borderRadius: "50%",
-              backgroundColor: "#ff0000",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 0 20px rgba(255, 0, 0, 0.4)",
-              animation: "orbit-yt 12s linear infinite",
-              zIndex: 2
-            }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
-                <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.518 3.5 12 3.5 12 3.5s-7.518 0-9.388.553a3.002 3.002 0 0 0-2.11 2.11C0 8.033 0 12 0 12s0 3.967.502 5.837a3.003 3.003 0 0 0 2.11 2.11C6.482 20.5 12 20.5 12 20.5s7.518 0 9.388-.553a3.002 3.002 0 0 0 2.11-2.11C24 15.967 24 12 24 12s0-3.967-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-              </svg>
-            </div>
-
-            {/* Orbiting Twitch Channel Badge */}
-            <div style={{
-              position: "absolute",
-              width: "48px",
-              height: "48px",
-              borderRadius: "50%",
-              backgroundColor: "#9146ff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 0 20px rgba(145, 70, 255, 0.4)",
-              animation: "orbit-tw 12s linear infinite",
-              zIndex: 2
-            }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
-                <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
-              </svg>
-            </div>
-
-            {/* Orbiting Kick Channel Badge */}
-            <div style={{
-              position: "absolute",
-              width: "48px",
-              height: "48px",
-              borderRadius: "50%",
-              backgroundColor: "#53fc18",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 0 20px rgba(83, 252, 24, 0.4)",
-              animation: "orbit-kk 12s linear infinite",
-              zIndex: 2
-            }}>
-              <span style={{ color: "#000", fontWeight: 900, fontSize: "1.1rem", fontFamily: "sans-serif", transform: "translateY(-1px)" }}>K</span>
-            </div>
-
+              fontWeight: "900",
+              fontSize: "18px",
+              color: "#fff",
+              boxShadow: "0 8px 24px rgba(168, 85, 247, 0.4)",
+            }}
+          >
+            N
           </div>
-
-          {/* Marketing Copy */}
-          <div style={{ marginTop: "40px", textAlign: "center", zIndex: 2, maxWidth: "400px" }}>
-            <h3 style={{ fontSize: "1.75rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "12px" }}>
-              Level Up Your Content & Streams
-            </h3>
-            <p style={{ color: "var(--text-secondary)", fontSize: "0.95rem", lineHeight: "1.6" }}>
-              Plan your publishing calendar, schedule your next big stream, organize editor tasks, and track sponsorships all in one professional yet playful dashboard.
-            </p>
+          <div>
+            <div style={{ fontSize: "18px", fontWeight: "800", color: "#f8fafc", lineHeight: 1.1 }}>
+              NexCreator
+            </div>
+            <div style={{ fontSize: "10px", fontWeight: "700", color: "#a855f7", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+              Creator Intelligence Platform
+            </div>
           </div>
         </div>
 
-        {/* Right Side: The Sign In / Sign Up Form */}
-        <div className="auth-split-right" style={{
-          width: "520px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "36px",
-          background: "var(--bg-main)",
-          position: "relative"
-        }}>
-          <div className="auth-card glass-premium animate-fade-in" style={{ padding: "32px", border: "none", background: "transparent", boxShadow: "none" }}>
-            
-            <div style={{ textAlign: "center", marginBottom: "28px", display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
-              <img src="/logo.png" alt="NexCreator Logo" style={{ width: "60px", height: "60px", borderRadius: "14px", marginBottom: "4px", boxShadow: "0 6px 16px rgba(0,0,0,0.4)" }} />
-              <h2 style={{ fontSize: "2.1rem", fontWeight: 900, background: "linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-pink) 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                NexCreator
-              </h2>
-              <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
-                Please sign in or request access to enter the manager.
-              </p>
-            </div>
+        {/* Hero Visual Mockup Element */}
+        <div
+          style={{
+            margin: "auto 0",
+            maxWidth: "480px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "24px",
+          }}
+        >
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "6px 14px",
+              borderRadius: "99px",
+              background: "rgba(168, 85, 247, 0.1)",
+              border: "1px solid rgba(168, 85, 247, 0.25)",
+              color: "#c084fc",
+              fontSize: "11px",
+              fontWeight: "700",
+              fontFamily: "'JetBrains Mono', monospace",
+              width: "fit-content",
+            }}
+          >
+            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#10b981" }} />
+            The Bloomberg Terminal for Creators
+          </div>
 
-            <div style={{ display: "flex", background: "var(--bg-input)", padding: "4px", borderRadius: "var(--radius-md)", marginBottom: "24px" }}>
-              <button
-                onClick={() => { setIsLogin(true); setError(""); }}
-                style={{
-                  flex: 1,
-                  padding: "10px",
-                  background: isLogin ? "var(--bg-sidebar)" : "transparent",
-                  color: isLogin ? "var(--text-primary)" : "var(--text-muted)",
-                  border: "none",
-                  borderRadius: "10px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  transition: "0.2s"
-                }}
-              >
-                Log In
-              </button>
-              <button
-                onClick={() => { setIsLogin(false); setError(""); }}
-                style={{
-                  flex: 1,
-                  padding: "10px",
-                  background: !isLogin ? "var(--bg-sidebar)" : "transparent",
-                  color: !isLogin ? "var(--text-primary)" : "var(--text-muted)",
-                  border: "none",
-                  borderRadius: "10px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  transition: "0.2s"
-                }}
-              >
-                Sign Up
-              </button>
-            </div>
+          <h1
+            style={{
+              fontSize: "40px",
+              fontWeight: "900",
+              color: "#f8fafc",
+              lineHeight: 1.15,
+              letterSpacing: "-1px",
+            }}
+          >
+            Turn Live Stream Data Into Instant Growth.
+          </h1>
 
-            {error && (
-              <div style={{ background: "rgba(248, 113, 113, 0.08)", border: "2px solid var(--accent-red)", color: "var(--accent-red)", padding: "12px", borderRadius: "var(--radius-md)", marginBottom: "20px", fontSize: "0.85rem", fontWeight: 500 }}>
-                ⚠️ {error}
+          <p style={{ fontSize: "15px", color: "#94a3b8", lineHeight: 1.6 }}>
+            Real-time chat sentiment analysis, AI stream producer recommendations, automated clip candidate detection, and multi-platform creator analytics.
+          </p>
+
+          {/* Feature Highlights */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginTop: "12px" }}>
+            {[
+              { title: "Live Pulse & Sentiment Engine", desc: "Track community hype, retention & chat velocity live." },
+              { title: "AI Creator Producer", desc: "Instant real-time action recommendations during streams." },
+              { title: "Sponsor & Content Pipeline", desc: "Manage brand deals, deliverables & editing tasks seamlessly." },
+            ].map((feat, idx) => (
+              <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+                <div
+                  style={{
+                    width: "22px",
+                    height: "22px",
+                    borderRadius: "6px",
+                    background: "rgba(16, 185, 129, 0.15)",
+                    border: "1px solid rgba(16, 185, 129, 0.3)",
+                    color: "#34d399",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "12px",
+                    fontWeight: "bold",
+                    flexShrink: 0,
+                    marginTop: "2px",
+                  }}
+                >
+                  ✓
+                </div>
+                <div>
+                  <div style={{ fontSize: "13px", fontWeight: "700", color: "#e2e8f0" }}>{feat.title}</div>
+                  <div style={{ fontSize: "12px", color: "#64748b" }}>{feat.desc}</div>
+                </div>
               </div>
-            )}
+            ))}
+          </div>
+        </div>
 
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        {/* Footer Note */}
+        <div style={{ fontSize: "12px", color: "#475569" }}>
+          © 2026 NexCreator. Enterprise Grade Intelligence for Streamers & YouTubers.
+        </div>
+      </div>
+
+      {/* ─── Right Form Panel (Linear/Stripe Form Redesign) ───────────── */}
+      <div
+        style={{
+          width: "540px",
+          flexShrink: 0,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          padding: "48px 56px",
+          background: "#060810",
+          overflowY: "auto",
+        }}
+      >
+        <div style={{ width: "100%", maxWidth: "400px", margin: "0 auto" }}>
+          {/* Header */}
+          <div style={{ marginBottom: "32px" }}>
+            <h2 style={{ fontSize: "28px", fontWeight: "800", color: "#f8fafc", letterSpacing: "-0.5px", marginBottom: "8px" }}>
+              {mode === "login" ? "Welcome back" : "Create your account"}
+            </h2>
+            <p style={{ fontSize: "14px", color: "#64748b" }}>
+              {mode === "login"
+                ? "Enter your credentials to access your creator workspace."
+                : "Get started with AI-powered creator analytics in minutes."}
+            </p>
+          </div>
+
+          {/* Mode Switcher Tabs */}
+          <div
+            style={{
+              display: "flex",
+              background: "rgba(255, 255, 255, 0.03)",
+              border: "1px solid rgba(255, 255, 255, 0.07)",
+              borderRadius: "10px",
+              padding: "4px",
+              marginBottom: "24px",
+            }}
+          >
+            <button
+              onClick={() => { setMode("login"); setApiError(""); setFormErrors({}); }}
+              style={{
+                flex: 1,
+                padding: "8px",
+                borderRadius: "7px",
+                border: "none",
+                background: mode === "login" ? "rgba(168, 85, 247, 0.15)" : "transparent",
+                color: mode === "login" ? "#c084fc" : "#64748b",
+                fontSize: "13px",
+                fontWeight: "600",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => { setMode("signup"); setApiError(""); setFormErrors({}); }}
+              style={{
+                flex: 1,
+                padding: "8px",
+                borderRadius: "7px",
+                border: "none",
+                background: mode === "signup" ? "rgba(168, 85, 247, 0.15)" : "transparent",
+                color: mode === "signup" ? "#c084fc" : "#64748b",
+                fontSize: "13px",
+                fontWeight: "600",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+            >
+              Sign Up
+            </button>
+          </div>
+
+          {/* API Global Error */}
+          {apiError && (
+            <div
+              style={{
+                padding: "12px 14px",
+                borderRadius: "10px",
+                background: "rgba(244, 63, 94, 0.1)",
+                border: "1px solid rgba(244, 63, 94, 0.25)",
+                color: "#fb7185",
+                fontSize: "13px",
+                marginBottom: "20px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <span>⚠️</span>
+              <span>{apiError}</span>
+            </div>
+          )}
+
+          {/* ─── LOGIN FORM ───────────────────────────────────────────── */}
+          {mode === "login" ? (
+            <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
               <div>
-                <label style={{ display: "block", marginBottom: "6px", fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 600 }}>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#94a3b8", marginBottom: "6px" }}>
                   Email Address
                 </label>
                 <input
                   type="email"
-                  placeholder="creator@hub.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
+                  placeholder="name@company.com"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  style={{
+                    borderColor: formErrors.email ? "rgba(244, 63, 94, 0.5)" : undefined,
+                  }}
                 />
+                {formErrors.email && (
+                  <span style={{ fontSize: "11px", color: "#fb7185", marginTop: "4px", display: "block" }}>
+                    {formErrors.email}
+                  </span>
+                )}
               </div>
 
               <div>
-                <label style={{ display: "block", marginBottom: "6px", fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 600 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: "600", color: "#94a3b8" }}>
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPasswordModal(true)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#a855f7",
+                      fontSize: "11px",
+                      fontWeight: "600",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  style={{
+                    borderColor: formErrors.password ? "rgba(244, 63, 94, 0.5)" : undefined,
+                  }}
+                />
+                {formErrors.password && (
+                  <span style={{ fontSize: "11px", color: "#fb7185", marginTop: "4px", display: "block" }}>
+                    {formErrors.password}
+                  </span>
+                )}
+              </div>
+
+              {/* Remember Me Checkbox */}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  style={{ width: "16px", height: "16px", accentColor: "#a855f7", cursor: "pointer" }}
+                />
+                <label htmlFor="rememberMe" style={{ fontSize: "12px", color: "#94a3b8", cursor: "pointer" }}>
+                  Remember me for 30 days
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="btn btn-primary"
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  fontSize: "14px",
+                  marginTop: "8px",
+                  opacity: isLoading ? 0.6 : 1,
+                  cursor: isLoading ? "not-allowed" : "pointer",
+                }}
+              >
+                {isLoading ? (
+                  <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ width: "14px", height: "14px", border: "2px solid #fff", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+                    Signing in...
+                  </span>
+                ) : (
+                  "Sign In to Workspace →"
+                )}
+              </button>
+            </form>
+          ) : (
+            /* ─── SIGNUP FORM ───────────────────────────────────────────── */
+            <form onSubmit={handleSignup} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#94a3b8", marginBottom: "6px" }}>
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="Alex Rivera"
+                  value={signupName}
+                  onChange={(e) => setSignupName(e.target.value)}
+                  style={{
+                    borderColor: formErrors.name ? "rgba(244, 63, 94, 0.5)" : undefined,
+                  }}
+                />
+                {formErrors.name && (
+                  <span style={{ fontSize: "11px", color: "#fb7185", marginTop: "4px", display: "block" }}>
+                    {formErrors.name}
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#94a3b8", marginBottom: "6px" }}>
+                  Work Email
+                </label>
+                <input
+                  type="email"
+                  placeholder="alex@creator.com"
+                  value={signupEmail}
+                  onChange={(e) => setSignupEmail(e.target.value)}
+                  style={{
+                    borderColor: formErrors.email ? "rgba(244, 63, 94, 0.5)" : undefined,
+                  }}
+                />
+                {formErrors.email && (
+                  <span style={{ fontSize: "11px", color: "#fb7185", marginTop: "4px", display: "block" }}>
+                    {formErrors.email}
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#94a3b8", marginBottom: "6px" }}>
                   Password
                 </label>
                 <input
                   type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
+                  placeholder="At least 8 chars (1 upper, 1 lower, 1 num)"
+                  value={signupPassword}
+                  onChange={(e) => setSignupPassword(e.target.value)}
+                  style={{
+                    borderColor: formErrors.password ? "rgba(244, 63, 94, 0.5)" : undefined,
+                  }}
                 />
+                {formErrors.password && (
+                  <span style={{ fontSize: "11px", color: "#fb7185", marginTop: "4px", display: "block" }}>
+                    {formErrors.password}
+                  </span>
+                )}
               </div>
 
-              {!isLogin && (
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "4px", borderTop: "1px solid var(--border-color)", paddingTop: "16px" }}>
-                  <h4 style={{ fontSize: "0.85rem", color: "var(--text-primary)", fontWeight: 700, marginBottom: "4px" }}>
-                    🔗 Channel Links
-                  </h4>
-                  <div>
-                    <input
-                      type="url"
-                      placeholder="YouTube URL"
-                      value={youtube}
-                      onChange={(e) => setYoutube(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="url"
-                      placeholder="Twitch URL"
-                      value={twitch}
-                      onChange={(e) => setTwitch(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="url"
-                      placeholder="Kick URL"
-                      value={kick}
-                      onChange={(e) => setKick(e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
+              <div>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#94a3b8", marginBottom: "6px" }}>
+                  Confirm Password
+                </label>
+                <input
+                  type="password"
+                  placeholder="Re-enter password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  style={{
+                    borderColor: formErrors.confirmPassword ? "rgba(244, 63, 94, 0.5)" : undefined,
+                  }}
+                />
+                {formErrors.confirmPassword && (
+                  <span style={{ fontSize: "11px", color: "#fb7185", marginTop: "4px", display: "block" }}>
+                    {formErrors.confirmPassword}
+                  </span>
+                )}
+              </div>
 
-              <button type="submit" className="btn btn-primary" style={{ marginTop: "8px", width: "100%" }}>
-                {isLogin ? "Sign In" : "Request Channel Verification"}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="btn btn-primary"
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  fontSize: "14px",
+                  marginTop: "8px",
+                  opacity: isLoading ? 0.6 : 1,
+                  cursor: isLoading ? "not-allowed" : "pointer",
+                }}
+              >
+                {isLoading ? (
+                  <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ width: "14px", height: "14px", border: "2px solid #fff", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+                    Creating account...
+                  </span>
+                ) : (
+                  "Create Creator Account →"
+                )}
               </button>
             </form>
+          )}
 
-            <div style={{ marginTop: "24px", textAlign: "center", fontSize: "0.85rem", color: "var(--text-muted)" }}>
-              {isLogin ? (
-                <p>
-                  🔑 Demo admin login: <strong style={{ color: "var(--text-secondary)" }}>admin@creatormanager.com</strong>
-                </p>
-              ) : (
-                <p>Your request goes to admins for approval before unlocking dashboards.</p>
-              )}
-            </div>
-
+          {/* Bottom Switcher CTA */}
+          <div style={{ marginTop: "28px", textAlign: "center", fontSize: "13px", color: "#64748b" }}>
+            {mode === "login" ? (
+              <p>
+                Don't have an account?{" "}
+                <button
+                  onClick={() => { setMode("signup"); setApiError(""); setFormErrors({}); }}
+                  style={{ background: "none", border: "none", color: "#a855f7", fontWeight: "600", cursor: "pointer" }}
+                >
+                  Sign up free
+                </button>
+              </p>
+            ) : (
+              <p>
+                Already have an account?{" "}
+                <button
+                  onClick={() => { setMode("login"); setApiError(""); setFormErrors({}); }}
+                  style={{ background: "none", border: "none", color: "#a855f7", fontWeight: "600", cursor: "pointer" }}
+                >
+                  Sign in
+                </button>
+              </p>
+            )}
           </div>
         </div>
-
       </div>
+
+      {/* ─── Forgot Password UI-Only Modal ───────────────────────────────── */}
+      {showForgotPasswordModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.8)",
+            backdropFilter: "blur(12px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "420px",
+              background: "#0b0d16",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              borderRadius: "16px",
+              padding: "28px",
+              boxShadow: "0 24px 60px rgba(0, 0, 0, 0.8)",
+            }}
+          >
+            <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#f8fafc", marginBottom: "8px" }}>
+              Reset your password
+            </h3>
+            <p style={{ fontSize: "13px", color: "#64748b", marginBottom: "20px" }}>
+              Enter your email address and we'll send you a password reset link.
+            </p>
+
+            {forgotSuccess ? (
+              <div>
+                <div style={{ padding: "12px", borderRadius: "10px", background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.25)", color: "#34d399", fontSize: "13px", marginBottom: "20px" }}>
+                  ✓ Password reset link sent to <strong>{forgotEmail}</strong>. Please check your inbox.
+                </div>
+                <button
+                  onClick={() => { setShowForgotPasswordModal(false); setForgotSuccess(false); setForgotEmail(""); }}
+                  className="btn btn-secondary"
+                  style={{ width: "100%" }}
+                >
+                  Back to Sign In
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPasswordSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  required
+                />
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPasswordModal(false)}
+                    className="btn btn-secondary"
+                    style={{ flex: 1 }}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
+                    Send Reset Link
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
