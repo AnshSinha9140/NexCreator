@@ -75,13 +75,10 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({ onNavigateToLive
   const fetchData = async () => {
     try {
       // 1. Fetch live monitoring sessions
-      const sessRes = await fetch("/api/sessions");
+      const sessRes = await fetch("/api/sessions?mode=active");
       const sessJson = await sessRes.json();
-      const hasLiveSess = Boolean(
-        sessJson.success &&
-        Array.isArray(sessJson.sessions) &&
-        sessJson.sessions.some((s: any) => s.status === "live" || s.isLive)
-      );
+      const activeSession = sessJson.activeSession || (Array.isArray(sessJson.sessions) && sessJson.sessions.find((s: any) => s.status === "live" || s.status === "starting"));
+      const hasLiveSess = Boolean(activeSession);
       setIsMonitoringActive(hasLiveSess);
 
       // 2. Fetch AI Insights
@@ -90,13 +87,16 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({ onNavigateToLive
 
       if (json.success && Array.isArray(json.insights) && json.insights.length > 0) {
         setInsights(json.insights);
-      } else {
-        // Use demo insights when monitoring is active or for initial view
+      } else if (hasLiveSess) {
+        // If live monitoring is active but insights haven't arrived yet, show demo preview
         setInsights(DEMO_INSIGHTS);
+      } else {
+        // Inactive / No linked session -> show empty standby state
+        setInsights([]);
       }
     } catch (e) {
       console.error("[Copilot] Error fetching data:", e);
-      setInsights(DEMO_INSIGHTS);
+      setInsights([]);
     } finally {
       setLoading(false);
     }
@@ -286,7 +286,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({ onNavigateToLive
       ) : activeTab === "feed" ? (
         <InsightFeed
           insights={insights}
-          isMonitoringActive={true}
+          isMonitoringActive={isMonitoringActive}
           onStartMonitoring={onNavigateToLive}
           onDismiss={handleDismiss}
           onPin={handlePin}
