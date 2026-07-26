@@ -104,7 +104,7 @@ export default function SystemTimelinePage() {
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                           <span style={{ fontSize: "14px", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: "#f1f5f9" }}>
-                            {ev.event}
+                            {ev.event || ev.title || "System Event"}
                           </span>
                           <span style={{
                             padding: "2px 8px", borderRadius: "6px", fontSize: "10px",
@@ -112,7 +112,7 @@ export default function SystemTimelinePage() {
                             background: "rgba(168, 85, 247, 0.12)", color: "#c084fc",
                             border: "1px solid rgba(168, 85, 247, 0.25)", textTransform: "uppercase"
                           }}>
-                            {ev.category}
+                            {ev.category || ev.type || "system"}
                           </span>
                         </div>
                         <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b" }} suppressHydrationWarning>
@@ -121,7 +121,7 @@ export default function SystemTimelinePage() {
                       </div>
 
                       <p style={{ margin: 0, fontSize: "12px", fontFamily: "'JetBrains Mono', monospace", color: "#94a3b8", lineHeight: "1.4" }}>
-                        {ev.details}
+                        {ev.details || ev.description || ""}
                       </p>
                     </div>
                   </div>
