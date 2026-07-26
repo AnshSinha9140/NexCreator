@@ -38,12 +38,35 @@ export default function LiveSessionsPage() {
       />
 
       <div className="admin-page">
-        {/* Active Sessions Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sessions.map((sess) => (
-            <SessionCard key={sess.id} session={sess} onSelect={(s) => setSelectedSession(s)} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="admin-card" style={{ padding: "60px 24px", textAlign: "center", fontSize: "13px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b" }}>
+            Loading Live Monitoring Sessions...
+          </div>
+        ) : sessions.length === 0 ? (
+          <div className="admin-card" style={{ padding: "60px 24px", textAlign: "center" }}>
+            <div style={{
+              width: "56px", height: "56px", borderRadius: "16px",
+              background: "rgba(168, 85, 247, 0.1)", border: "1px solid rgba(168, 85, 247, 0.25)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              margin: "0 auto 16px", color: "#c084fc", fontSize: "24px"
+            }}>
+              📡
+            </div>
+            <h3 style={{ margin: "0 0 8px", fontSize: "16px", fontWeight: 700, color: "#f1f5f9" }}>
+              No Active Live Sessions
+            </h3>
+            <p style={{ margin: 0, fontSize: "13px", color: "#94a3b8", maxWidth: "420px", marginLeft: "auto", marginRight: "auto", lineHeight: "1.5" }}>
+              There are currently no active creator live streams or telemetry collectors running.
+            </p>
+          </div>
+        ) : (
+          /* Active Sessions Grid */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {sessions.map((sess) => (
+              <SessionCard key={sess.id} session={sess} onSelect={(s) => setSelectedSession(s)} />
+            ))}
+          </div>
+        )}
 
         {/* Detailed Inspection Modal */}
         {selectedSession && (
