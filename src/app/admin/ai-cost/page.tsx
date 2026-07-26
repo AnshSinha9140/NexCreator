@@ -56,9 +56,27 @@ export default function AICostIntelligencePage() {
         {/* Row 1: Key Cost & Token Metrics */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard title="Est. Monthly Cost" value={`$${m.estimatedMonthlyCostUsd || 0}`} subtitle="Base API Rate Projections" statusColor="emerald" />
-          <MetricCard title="Total Tokens Today" value={`${((m.totalTokens || 0) / 1000000).toFixed(1)}M`} subtitle="Prompt + Completion" statusColor="purple" />
+          <MetricCard
+            title="Total Tokens Today"
+            value={
+              (m.totalTokens || 0) >= 100000
+                ? `${((m.totalTokens || 0) / 1000000).toFixed(2)}M`
+                : `${((m.totalTokens || 0) / 1000).toFixed(1)}k`
+            }
+            subtitle="Prompt + Completion"
+            statusColor="purple"
+          />
           <MetricCard title="Cache Hit %" value={m.cacheHitPercentage || "0%"} subtitle="Zero-Latency Prompt Re-use" statusColor="blue" />
-          <MetricCard title="Cost Saved by Cache" value={`$${m.costSavedByCacheUsd || 0}`} subtitle={`${((m.tokensSavedByCache || 0) / 1000000).toFixed(1)}M Tokens Saved`} statusColor="amber" />
+          <MetricCard
+            title="Cost Saved by Cache"
+            value={`$${m.costSavedByCacheUsd || 0}`}
+            subtitle={
+              (m.tokensSavedByCache || 0) >= 100000
+                ? `${((m.tokensSavedByCache || 0) / 1000000).toFixed(2)}M Tokens Saved`
+                : `${((m.tokensSavedByCache || 0) / 1000).toFixed(1)}k Tokens Saved`
+            }
+            statusColor="amber"
+          />
         </div>
 
         {/* Row 2: Secondary Token Breakdown */}
@@ -66,14 +84,18 @@ export default function AICostIntelligencePage() {
           <div style={{ background: "rgba(6, 8, 16, 0.6)", padding: "14px 16px", borderRadius: "12px", border: "1px solid rgba(255, 255, 255, 0.06)" }}>
             <span style={{ fontSize: "10px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em", display: "block" }}>Prompt Tokens</span>
             <span style={{ fontSize: "18px", fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: "#c084fc", marginTop: "6px", display: "block" }}>
-              {((m.promptTokens || 0) / 1000000).toFixed(2)}M
+              {(m.promptTokens || 0) >= 100000
+                ? `${((m.promptTokens || 0) / 1000000).toFixed(2)}M`
+                : `${((m.promptTokens || 0) / 1000).toFixed(1)}k`}
             </span>
           </div>
 
           <div style={{ background: "rgba(6, 8, 16, 0.6)", padding: "14px 16px", borderRadius: "12px", border: "1px solid rgba(255, 255, 255, 0.06)" }}>
             <span style={{ fontSize: "10px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em", display: "block" }}>Completion Tokens</span>
             <span style={{ fontSize: "18px", fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: "#60a5fa", marginTop: "6px", display: "block" }}>
-              {((m.completionTokens || 0) / 1000000).toFixed(2)}M
+              {(m.completionTokens || 0) >= 100000
+                ? `${((m.completionTokens || 0) / 1000000).toFixed(2)}M`
+                : `${((m.completionTokens || 0) / 1000).toFixed(1)}k`}
             </span>
           </div>
 
