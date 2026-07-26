@@ -11,9 +11,15 @@ export async function GET(request: NextRequest) {
   try {
     const { db } = await connectToDatabase();
 
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
     const totalCreators = await db.collection("users").countDocuments();
     const approvedCreators = await db.collection("users").countDocuments({ status: "verified" });
     const pendingVerifications = await db.collection("users").countDocuments({ status: "pending" });
+    const todaysNewCreators = await db.collection("users").countDocuments({
+      createdAt: { $gte: startOfToday.toISOString() },
+    });
 
     const activeSessions = await db.collection("monitoring_sessions").countDocuments({ status: "live" });
     const totalSessions = await db.collection("monitoring_sessions").countDocuments();
@@ -24,6 +30,7 @@ export async function GET(request: NextRequest) {
         metrics: {
           pendingVerifications,
           approvedCreators,
+          todaysNewCreators,
           currentlyLive: activeSessions,
           monitoringSessions: totalSessions,
           aiRequestsToday: 0,

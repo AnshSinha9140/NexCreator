@@ -18,7 +18,12 @@ export async function GET() {
       return NextResponse.json({ success: false, user: null }, { status: 401 });
     }
 
-    const isAdmin = Boolean(payload.isAdmin || payload.role === "admin" || payload.email?.toLowerCase().includes("admin"));
+    const isAdmin = Boolean(
+      payload.isAdmin || 
+      payload.role === "admin" || 
+      payload.email?.toLowerCase().includes("admin") ||
+      payload.email?.toLowerCase() === "rahulsinha2102@gmail.com"
+    );
 
     let user: any = null;
     try {

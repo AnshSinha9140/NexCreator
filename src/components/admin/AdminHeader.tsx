@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useApp } from "@/context/AppContext";
 
 interface AdminHeaderProps {
   title?: string;
@@ -10,6 +11,7 @@ interface AdminHeaderProps {
 }
 
 export default function AdminHeader({ title, subtitle, onRefresh }: AdminHeaderProps) {
+  const { currentUser } = useApp();
   const [refreshing, setRefreshing] = useState(false);
 
   const handleRefresh = () => {
@@ -61,10 +63,10 @@ export default function AdminHeader({ title, subtitle, onRefresh }: AdminHeaderP
 
         {/* Admin Avatar */}
         <div className="admin-header-avatar">
-          <div className="admin-header-avatar-icon">AD</div>
+          <div className="admin-header-avatar-icon">{(currentUser?.email?.[0] || "A").toUpperCase()}</div>
           <div className="admin-header-avatar-info">
-            <span className="admin-header-avatar-name">Admin Ops</span>
-            <span className="admin-header-avatar-email">admin@nexcreator.com</span>
+            <span className="admin-header-avatar-name">{currentUser?.name || "Admin Ops"}</span>
+            <span className="admin-header-avatar-email">{currentUser?.email || "admin@nexcreator.com"}</span>
           </div>
         </div>
       </div>

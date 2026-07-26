@@ -67,6 +67,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
         return;
       }
 
+      localStorage.setItem("cm_current_user", JSON.stringify(data.user));
       if (onSuccess) {
         onSuccess(data.user, data.redirectTo || "/dashboard");
       } else {
@@ -119,6 +120,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
         return;
       }
 
+      localStorage.setItem("cm_current_user", JSON.stringify(data.user));
       if (onSuccess) {
         onSuccess(data.user, data.redirectTo || "/onboarding");
       } else {

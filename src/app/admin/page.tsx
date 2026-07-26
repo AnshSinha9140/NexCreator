@@ -55,11 +55,11 @@ export default function AdminDashboardPage() {
           </div>
           <div className="admin-hero-banner-right">
             <div className="admin-hero-stat">
-              <span className="admin-hero-stat-value" style={{ color: "#10b981" }}>{m.systemUptime || "99.98%"}</span>
+              <span className="admin-hero-stat-value" style={{ color: "#10b981" }}>{m.systemUptime || "100%"}</span>
               <span className="admin-hero-stat-label">System Uptime</span>
             </div>
             <div className="admin-hero-stat">
-              <span className="admin-hero-stat-value" style={{ color: "#a855f7" }}>{m.overallPlatformScore || 98}%</span>
+              <span className="admin-hero-stat-value" style={{ color: "#a855f7" }}>{m.overallPlatformScore || 100}%</span>
               <span className="admin-hero-stat-label">Health Score</span>
             </div>
           </div>
@@ -106,9 +106,9 @@ export default function AdminDashboardPage() {
           <MetricCard
             href="/admin/creators"
             title="Today's New Creators"
-            value={m.todaysNewCreators || 4}
-            subtitle={`${m.approvedCreators} Approved Total`}
-            change="+18% MoM"
+            value={m.todaysNewCreators ?? 0}
+            subtitle={`${m.approvedCreators ?? 0} Approved Total`}
+            change="MongoDB Live"
             trend="up"
             statusColor="emerald"
             icon={(props) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
@@ -116,7 +116,7 @@ export default function AdminDashboardPage() {
           <MetricCard
             href="/admin/live-sessions"
             title="Currently Live"
-            value={m.currentlyLive}
+            value={m.currentlyLive ?? 0}
             subtitle="Active Collector Sessions"
             change="LIVE"
             statusColor="rose"
@@ -125,9 +125,9 @@ export default function AdminDashboardPage() {
           <MetricCard
             href="/admin/ai-operations"
             title="AI Requests Today"
-            value={m.aiRequestsToday?.toLocaleString() || "14,820"}
+            value={m.aiRequestsToday ?? 0}
             subtitle="Gemini + Groq Total"
-            change="Load: 42%"
+            change="Load: 0%"
             statusColor="purple"
             icon={(props) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}
           />
@@ -137,15 +137,15 @@ export default function AdminDashboardPage() {
         <div className="admin-grid-6">
           <Link href="/admin/ai-cost" className="admin-tele-tile" style={{ textDecoration: "none" }}>
             <span className="admin-tele-tile-label">Current AI Load</span>
-            <span className="admin-tele-tile-value" style={{ color: "#a855f7" }}>{m.currentAiLoadPercentage || "42%"}</span>
+            <span className="admin-tele-tile-value" style={{ color: "#a855f7" }}>{m.currentAiLoadPercentage || "0%"}</span>
           </Link>
           <Link href="/admin/queues" className="admin-tele-tile" style={{ textDecoration: "none" }}>
             <span className="admin-tele-tile-label">Queue Load</span>
-            <span className="admin-tele-tile-value" style={{ color: "#60a5fa" }}>{m.currentQueueLoad || "3 Jobs"}</span>
+            <span className="admin-tele-tile-value" style={{ color: "#60a5fa" }}>{m.currentQueueLoad || "0 Jobs"}</span>
           </Link>
           <Link href="/admin/notifications" className="admin-tele-tile" style={{ textDecoration: "none" }}>
             <span className="admin-tele-tile-label">Unread Alerts</span>
-            <span className="admin-tele-tile-value" style={{ color: "#f87171" }}>{m.unreadNotificationsCount || 2} Alerts</span>
+            <span className="admin-tele-tile-value" style={{ color: "#f87171" }}>{m.unreadNotificationsCount || 0} Alerts</span>
           </Link>
           <div className="admin-tele-tile">
             <span className="admin-tele-tile-label">Fallbacks Today</span>

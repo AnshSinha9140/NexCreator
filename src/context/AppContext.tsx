@@ -153,8 +153,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           (u: User) => u.email.toLowerCase() === parsed.email.toLowerCase()
         );
         if (freshUser) {
-          setCurrentUser(freshUser);
-          localStorage.setItem("cm_current_user", JSON.stringify(freshUser));
+          const isAdmin = Boolean(
+            freshUser.isAdmin ||
+            (freshUser as any).role === "admin" ||
+            parsed.isAdmin ||
+            parsed.role === "admin" ||
+            freshUser.email?.toLowerCase().includes("admin") ||
+            freshUser.email?.toLowerCase() === "rahulsinha2102@gmail.com"
+          );
+          const updatedUser = { ...freshUser, isAdmin };
+          setCurrentUser(updatedUser);
+          localStorage.setItem("cm_current_user", JSON.stringify(updatedUser));
         } else {
           setCurrentUser(parsed);
         }
@@ -414,12 +423,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   useEffect(() => {
-    const storedCurrentUser = localStorage.getItem("cm_current_user");
-    let email: string | undefined = undefined;
-    if (storedCurrentUser) {
-      email = JSON.parse(storedCurrentUser).email;
-    }
-    fetchData(email).then(() => setIsLoaded(true));
+    const initSession = async () => {
+      let email: string | undefined = undefined;
+      const storedCurrentUser = localStorage.getItem("cm_current_user");
+      if (storedCurrentUser) {
+        email = JSON.parse(storedCurrentUser).email;
+      } else {
+        try {
+          const res = await fetch("/api/auth/session");
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.user) {
+              setCurrentUser(data.user);
+              localStorage.setItem("cm_current_user", JSON.stringify(data.user));
+              email = data.user.email;
+            }
+          }
+        } catch(e) {}
+      }
+      await fetchData(email);
+      setIsLoaded(true);
+    };
+    initSession();
   }, []);
 
   const registerUser = async (email: string, links: { youtube?: string; twitch?: string; kick?: string }) => {

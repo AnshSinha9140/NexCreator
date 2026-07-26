@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useApp } from "@/context/AppContext";
 
 interface NavItem {
   name: string;
@@ -195,6 +196,7 @@ const navItems: NavItem[] = [
 export default function AdminSidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const { logout } = useApp();
 
   return (
     <aside className={`admin-sidebar${collapsed ? " collapsed" : ""}`}>
@@ -250,13 +252,24 @@ export default function AdminSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="admin-sidebar-footer">
+      <div className="admin-sidebar-footer" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
         <Link href="/dashboard" className="admin-nav-item" title={collapsed ? "Exit to Creator App" : undefined}>
           <svg className={ICON_CLS} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
           </svg>
           <span className="admin-nav-item-label">Exit to Creator App</span>
         </Link>
+        <button
+          onClick={logout}
+          className="admin-nav-item"
+          style={{ width: "100%", background: "none", border: "none", cursor: "pointer", textAlign: "left", color: "inherit", font: "inherit" }}
+          title={collapsed ? "Sign Out" : undefined}
+        >
+          <svg className={ICON_CLS} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          <span className="admin-nav-item-label">Sign Out</span>
+        </button>
       </div>
     </aside>
   );

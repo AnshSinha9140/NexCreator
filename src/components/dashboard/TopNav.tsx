@@ -149,29 +149,35 @@ export const TopNav: React.FC = () => {
         </button>
 
         {/* Admin Ops Button */}
-        <a
-          href="/admin"
-          style={{
-            padding: "7px 14px",
-            borderRadius: "8px",
-            background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-            border: "none",
-            color: "#fff",
-            fontSize: "11px",
-            fontWeight: "700",
-            fontFamily: "'JetBrains Mono', monospace",
-            letterSpacing: "0.08em",
-            cursor: "pointer",
-            boxShadow: "0 4px 12px rgba(16,185,129,0.3)",
-            flexShrink: 0,
-            textDecoration: "none",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "4px",
-          }}
-        >
-          ⚡ ADMIN OPS
-        </a>
+        {Boolean(
+          currentUser?.isAdmin ||
+          (currentUser as any)?.role === "admin" ||
+          currentUser?.email?.toLowerCase().includes("admin")
+        ) && (
+          <a
+            href="/admin"
+            style={{
+              padding: "7px 14px",
+              borderRadius: "8px",
+              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+              border: "none",
+              color: "#fff",
+              fontSize: "11px",
+              fontWeight: "700",
+              fontFamily: "'JetBrains Mono', monospace",
+              letterSpacing: "0.08em",
+              cursor: "pointer",
+              boxShadow: "0 4px 12px rgba(16,185,129,0.3)",
+              flexShrink: 0,
+              textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px",
+            }}
+          >
+            ⚡ ADMIN OPS
+          </a>
+        )}
 
         {/* Pro button */}
         <button

@@ -19,7 +19,16 @@ const PRIMARY_NAV = [
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const { currentUser, logout } = useApp();
 
-  const navList = [...PRIMARY_NAV, { id: "admin", name: "Admin Operations Portal", icon: "⚡" }];
+  const isAdmin = Boolean(
+    currentUser?.isAdmin ||
+    (currentUser as any)?.role === "admin" ||
+    currentUser?.email?.toLowerCase().includes("admin")
+  );
+
+  const navList = [
+    ...PRIMARY_NAV,
+    ...(isAdmin ? [{ id: "admin", name: "Admin Operations Portal", icon: "⚡" }] : []),
+  ];
 
   return (
     <aside
