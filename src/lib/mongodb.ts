@@ -56,6 +56,12 @@ if (uri) {
   clientPromise = Promise.reject(new Error('Invalid/Missing environment variable: "MONGODB_URI"'));
 }
 
+export async function connectToDatabase() {
+  const client = await clientPromise;
+  const db = client.db(process.env.MONGODB_DB_NAME || "creator-manager");
+  return { client, db };
+}
+
 // Export a module-scoped MongoClient promise. By doing this in a
 // separate module, the client can be shared across functions.
 export default clientPromise;

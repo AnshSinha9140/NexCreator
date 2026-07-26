@@ -7,11 +7,12 @@ const JWT_SECRET = new TextEncoder().encode(
 );
 
 // Protected routes list
-const PROTECTED_ROUTES = ["/dashboard", "/live", "/content", "/audience", "/settings"];
+const PROTECTED_ROUTES = ["/dashboard", "/live", "/content", "/audience", "/settings", "/admin"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
   const isProtectedRoute = PROTECTED_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
@@ -28,14 +29,28 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 1. Unauthenticated users trying to access protected routes -> redirect to /login
+  // 1. Check Admin Routes
+  if (isAdminRoute) {
+    if (!session) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("from", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    const isAdmin = session.role === "admin" || session.isAdmin === true || session.email === "admin@nexcreator.com";
+    if (!isAdmin) {
+      return NextResponse.redirect(new URL("/403", request.url));
+    }
+  }
+
+  // 2. Unauthenticated users trying to access protected routes -> redirect to /login
   if (isProtectedRoute && !session) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("from", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // 2. Authenticated users trying to access auth pages (/login, /signup) -> redirect based on onboarding
+  // 3. Authenticated users trying to access auth pages (/login, /signup) -> redirect based on onboarding
   if ((pathname === "/login" || pathname === "/signup") && session) {
     if (session.onboardingCompleted === false) {
       return NextResponse.redirect(new URL("/onboarding", request.url));
@@ -48,6 +63,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/admin/:path*",
     "/dashboard/:path*",
     "/live/:path*",
     "/content/:path*",

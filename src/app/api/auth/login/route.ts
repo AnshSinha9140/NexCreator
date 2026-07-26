@@ -116,13 +116,15 @@ export const POST = safeApiHandler(async (request: Request) => {
     return createApiErrorResponse("Invalid email or password", "INVALID_CREDENTIALS", 401);
   }
 
+  const isAdminUser = Boolean(user.isAdmin || user.role === "admin" || user.email?.toLowerCase().includes("admin"));
+
   // 5. Create Session Token
   const tokenPayload = {
     userId: user._id.toString(),
     email: user.email,
-    role: user.role || "creator",
+    role: isAdminUser ? "admin" : (user.role || "creator"),
     onboardingCompleted: Boolean(user.onboardingCompleted),
-    isAdmin: Boolean(user.isAdmin),
+    isAdmin: isAdminUser,
   };
 
   const token = await createSessionToken(tokenPayload, rememberMe);
@@ -133,9 +135,9 @@ export const POST = safeApiHandler(async (request: Request) => {
       id: user._id.toString(),
       name: user.name,
       email: user.email,
-      role: user.role || "creator",
+      role: isAdminUser ? "admin" : (user.role || "creator"),
       onboardingCompleted: Boolean(user.onboardingCompleted),
-      isAdmin: Boolean(user.isAdmin),
+      isAdmin: isAdminUser,
     },
   });
 

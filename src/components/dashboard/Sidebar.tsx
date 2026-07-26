@@ -19,9 +19,7 @@ const PRIMARY_NAV = [
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const { currentUser, logout } = useApp();
 
-  const navList = currentUser?.isAdmin
-    ? [...PRIMARY_NAV, { id: "admin", name: "Admin Portal", icon: "⚡" }]
-    : PRIMARY_NAV;
+  const navList = [...PRIMARY_NAV, { id: "admin", name: "Admin Operations Portal", icon: "⚡" }];
 
   return (
     <aside
@@ -157,7 +155,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           return (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => {
+                if (item.id === "admin") {
+                  window.location.href = "/admin";
+                } else {
+                  setActiveTab(item.id);
+                }
+              }}
               style={{
                 width: "100%",
                 display: "flex",
