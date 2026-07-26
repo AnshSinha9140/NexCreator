@@ -71,28 +71,28 @@ export default function SessionCard({ session, onSelect }: SessionCardProps) {
         <div style={{ background: "rgba(6, 8, 16, 0.6)", padding: "10px 12px", borderRadius: "10px", border: "1px solid rgba(255, 255, 255, 0.06)" }}>
           <span style={{ fontSize: "9px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em", display: "block" }}>VIEWERS</span>
           <span style={{ fontSize: "15px", fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: "#34d399", marginTop: "4px", display: "block" }}>
-            {session.viewerCount?.toLocaleString() || 0}
+            {(session.viewerCount ?? (session as any).currentViewers ?? (session as any).peakViewers ?? 0).toLocaleString()}
           </span>
         </div>
 
         <div style={{ background: "rgba(6, 8, 16, 0.6)", padding: "10px 12px", borderRadius: "10px", border: "1px solid rgba(255, 255, 255, 0.06)" }}>
           <span style={{ fontSize: "9px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em", display: "block" }}>MESSAGES</span>
           <span style={{ fontSize: "15px", fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: "#c084fc", marginTop: "4px", display: "block" }}>
-            {session.chatMessagesCount?.toLocaleString() || 0}
+            {(session.chatMessagesCount ?? (session as any).messagesProcessed ?? (session as any).bufferSize ?? 0).toLocaleString()}
           </span>
         </div>
 
         <div style={{ background: "rgba(6, 8, 16, 0.6)", padding: "10px 12px", borderRadius: "10px", border: "1px solid rgba(255, 255, 255, 0.06)" }}>
           <span style={{ fontSize: "9px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em", display: "block" }}>SNAPSHOTS</span>
           <span style={{ fontSize: "15px", fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: "#60a5fa", marginTop: "4px", display: "block" }}>
-            {session.snapshotsGenerated || 0}
+            {session.snapshotsGenerated ?? (session as any).snapshotCount ?? 0}
           </span>
         </div>
 
         <div style={{ background: "rgba(6, 8, 16, 0.6)", padding: "10px 12px", borderRadius: "10px", border: "1px solid rgba(255, 255, 255, 0.06)" }}>
           <span style={{ fontSize: "9px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em", display: "block" }}>AI INSIGHTS</span>
           <span style={{ fontSize: "15px", fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: "#fbbf24", marginTop: "4px", display: "block" }}>
-            {session.aiInsightsGenerated || 0}
+            {session.aiInsightsGenerated ?? (session as any).aiInsightCount ?? 0}
           </span>
         </div>
       </div>
