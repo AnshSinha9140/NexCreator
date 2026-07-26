@@ -21,23 +21,23 @@ export async function GET(req: NextRequest) {
     const collection = db.collection("ai_insights");
 
     if (!sessionId) {
-      // Find latest live session for this creator
-      const liveSession = await db.collection("monitoring_sessions").findOne(
+      // Find latest monitoring session for this specific creator
+      const latestSession = await db.collection("monitoring_sessions").findOne(
         { userId: authUser.email },
         { sort: { createdAt: -1 } }
       );
-      if (liveSession) {
-        sessionId = liveSession.id;
+      if (latestSession) {
+        sessionId = latestSession.id;
       }
     }
 
-    const query: any = {};
-    if (sessionId) {
-      query.sessionId = sessionId;
+    // If no session exists for this user, return empty array (do NOT fallback to find({}))
+    if (!sessionId) {
+      return NextResponse.json({ success: true, insights: [], sessionId: null }, { status: 200 });
     }
 
     const insights = await collection
-      .find(query)
+      .find({ sessionId })
       .sort({ createdAt: -1 })
       .limit(50)
       .toArray();
