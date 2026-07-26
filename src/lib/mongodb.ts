@@ -58,7 +58,7 @@ if (uri) {
 
 export async function connectToDatabase() {
   const client = await clientPromise;
-  const db = client.db(process.env.MONGODB_DB_NAME || "creator-manager");
+  const db = client.db(process.env.MONGODB_DB_NAME || "nexcreator");
   return { client, db };
 }
 

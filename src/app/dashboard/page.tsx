@@ -16,10 +16,7 @@ export default function DashboardPage() {
   const { currentUser } = useApp();
   const [activeTab, setActiveTab] = useState("command_center");
 
-  useEffect(() => {
-    if (currentUser?.isAdmin) setActiveTab("admin");
-    else setActiveTab("command_center");
-  }, [currentUser]);
+  // Default active tab is command_center for creator app view
 
   if (currentUser && currentUser.status !== "verified" && !currentUser.isAdmin) {
     return <PendingView />;
