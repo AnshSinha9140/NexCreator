@@ -1,0 +1,212 @@
+{
+  "id": 668,
+  "user_id": 676,
+  "slug": "xqc",
+  "is_banned": false,
+  "playback_url": "https://fa723fc1b171.us-west-2.playback.live-video.net/api/video/v1/us-west-2.196233775518.channel.DsuAwCgUc9Bh.m3u8?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzM4NCJ9.eyJhd3M6Y2hhbm5lbC1hcm4iOiJhcm46YXdzOml2czp1cy13ZXN0LTI6MTk2MjMzNzc1NTE4OmNoYW5uZWwvRHN1QXdDZ1VjOUJoIiwiYXdzOmFjY2Vzcy1jb250cm9sLWFsbG93LW9yaWdpbiI6Imh0dHBzOi8va2ljay5jb20saHR0cHM6Ly93d3cuZ3N0YXRpYy5jb20saHR0cHM6Ly8qLmtpY2subGl2ZSxodHRwczovL3BsYXllci5raWNrLmNvbSxodHRwczovL2FkbWluLmtpY2suY29tLGh0dHBzOi8vYmV0YS5raWNrLmNvbSxodHRwczovL25leHQua2ljay5jb20saHR0cHM6Ly9kYXNoYm9hcmQua2ljay5jb20saHR0cHM6Ly8qLnByZXZpZXcua2ljay5jb20saHR0cHM6Ly94Ym94LmtpY2suY29tLGh0dHBzOi8vcGxheXN0YXRpb24ua2ljay5jb20saHR0cHM6Ly90aXplbi5raWNrLmNvbSxodHRwczovL3dlYm9zLmtpY2suY29tLGh0dHBzOi8vKi5raWNrLXByZXByb2R1Y3Rpb24uY29tLGh0dHBzOi8vKi5raWNrLWRldmVsb3BtZW50LmNvbSIsImF3czpzdHJpY3Qtb3JpZ2luLWVuZm9yY2VtZW50IjpmYWxzZSwiYXdzOmFkcy1vcHQtb3V0Ijp0cnVlLCJleHAiOjE3ODQ5OTcyMjR9.-3ijC1vU20nC5AFO2Sk671NIXX3METVrYZj8N5o58rE541LQ1fc8uOrSgULOJ-kbUrYW30L-x73b5fE3IdZbGRet8CcDZ-T18MLA9Eq0_nc1Sd5-8jsw80-5aYJwcvTc",
+  "vod_enabled": true,
+  "subscription_enabled": true,
+  "is_affiliate": false,
+  "followers_count": "1094962",
+  "subscriber_badges": [
+    {
+      "id": 97968,
+      "channel_id": 668,
+      "months": 1,
+      "badge_image": {
+        "srcset": "",
+        "src": "https://files.kick.com/channel_subscriber_badges/97968/original"
+      }
+    },
+    {
+      "id": 97975,
+      "channel_id": 668,
+      "months": 2,
+      "badge_image": {
+        "srcset": "",
+        "src": "https://files.kick.com/channel_subscriber_badges/97975/original"
+      }
+    },
+    {
+      "id": 97977,
+      "channel_id": 668,
+      "months": 3,
+      "badge_image": {
+        "srcset": "",
+        "src": "https://files.kick.com/channel_subscriber_badges/97977/original"
+      }
+    },
+    {
+      "id": 97978,
+      "channel_id": 668,
+      "months": 6,
+      "badge_image": {
+        "srcset": "",
+        "src": "https://files.kick.com/channel_subscriber_badges/97978/original"
+      }
+    },
+    {
+      "id": 97982,
+      "channel_id": 668,
+      "months": 9,
+      "badge_image": {
+        "srcset": "",
+        "src": "https://files.kick.com/channel_subscriber_badges/97982/original"
+      }
+    },
+    {
+      "id": 97985,
+      "channel_id": 668,
+      "months": 12,
+      "badge_image": {
+        "srcset": "",
+        "src": "https://files.kick.com/channel_subscriber_badges/97985/original"
+      }
+    },
+    {
+      "id": 97987,
+      "channel_id": 668,
+      "months": 18,
+      "badge_image": {
+        "srcset": "",
+        "src": "https://files.kick.com/channel_subscriber_badges/97987/original"
+      }
+    },
+    {
+      "id": 97988,
+      "channel_id": 668,
+      "months": 24,
+      "badge_image": {
+        "srcset": "",
+        "src": "https://files.kick.com/channel_subscriber_badges/97988/original"
+      }
+    },
+    {
+      "id": 97989,
+      "channel_id": 668,
+      "months": 30,
+      "badge_image": {
+        "srcset": "",
+        "src": "https://files.kick.com/channel_subscriber_badges/97989/original"
+      }
+    }
+  ],
+  "banner_image": {
+    "url": "https://files.kick.com/images/channel/668/banner_image/6fcf7418-df00-460b-9467-1fa95b8eb981"
+  },
+  "livestream": null,
+  "role": null,
+  "muted": false,
+  "follower_badges": [],
+  "offline_banner_image": null,
+  "verified": true,
+  "recent_categories": [
+    {
+      "id": 15,
+      "category_id": 2,
+      "name": "Just Chatting",
+      "slug": "just-chatting",
+      "tags": [
+        "IRL",
+        "Casual"
+      ],
+      "description": null,
+      "deleted_at": null,
+      "is_mature": false,
+      "is_promoted": false,
+      "viewers": 215415,
+      "is_fallback": true,
+      "banner": {
+        "responsive": "https://files.kick.com/images/subcategories/15/banner/responsives/b697a8a3-62db-4779-aa76-e4e47662af97___banner_600_800.webp 600w, https://files.kick.com/images/subcategories/15/banner/responsives/b697a8a3-62db-4779-aa76-e4e47662af97___banner_501_668.webp 501w, https://files.kick.com/images/subcategories/15/banner/responsives/b697a8a3-62db-4779-aa76-e4e47662af97___banner_420_560.webp 420w, https://files.kick.com/images/subcategories/15/banner/responsives/b697a8a3-62db-4779-aa76-e4e47662af97___banner_351_468.webp 351w, https://files.kick.com/images/subcategories/15/banner/responsives/b697a8a3-62db-4779-aa76-e4e47662af97___banner_294_392.webp 294w",
+        "url": "https://files.kick.com/images/subcategories/15/banner/b697a8a3-62db-4779-aa76-e4e47662af97"
+      },
+      "category": {
+        "id": 2,
+        "name": "IRL",
+        "slug": "irl",
+        "icon": "\ud83c\udf99\ufe0f"
+      }
+    },
+    {
+      "id": 28,
+      "category_id": 4,
+      "name": "Slots & Casino",
+      "slug": "slots",
+      "tags": [
+        "Gambling"
+      ],
+      "description": null,
+      "deleted_at": null,
+      "is_mature": true,
+      "is_promoted": false,
+      "viewers": 47420,
+      "is_fallback": false,
+      "banner": {
+        "responsive": "https://files.kick.com/images/subcategories/28/banner/responsives/ca01a05f-f807-4fbf-8794-3d547b1bb7a6___banner_600_800.webp 600w, https://files.kick.com/images/subcategories/28/banner/responsives/ca01a05f-f807-4fbf-8794-3d547b1bb7a6___banner_501_668.webp 501w, https://files.kick.com/images/subcategories/28/banner/responsives/ca01a05f-f807-4fbf-8794-3d547b1bb7a6___banner_420_560.webp 420w, https://files.kick.com/images/subcategories/28/banner/responsives/ca01a05f-f807-4fbf-8794-3d547b1bb7a6___banner_351_468.webp 351w, https://files.kick.com/images/subcategories/28/banner/responsives/ca01a05f-f807-4fbf-8794-3d547b1bb7a6___banner_294_392.webp 294w, https://files.kick.com/images/subcategories/28/banner/responsives/ca01a05f-f807-4fbf-8794-3d547b1bb7a6___banner_245_327.webp 245w",
+        "url": "https://files.kick.com/images/subcategories/28/banner/ca01a05f-f807-4fbf-8794-3d547b1bb7a6"
+      },
+      "category": {
+        "id": 4,
+        "name": "Gambling",
+        "slug": "gambling",
+        "icon": "\ud83c\udfb0"
+      }
+    },
+    {
+      "id": 8549,
+      "category_id": 2,
+      "name": "IRL",
+      "slug": "irl",
+      "tags": [
+        "IRL",
+        "Adventure"
+      ],
+      "description": null,
+      "deleted_at": null,
+      "is_mature": false,
+      "is_promoted": false,
+      "viewers": 91547,
+      "is_fallback": false,
+      "banner": {
+        "responsive": "https://files.kick.com/images/subcategories/8549/banner/responsives/3b142fca-b643-48d9-8ed0-405d454181d1___banner_408_546.webp 408w, https://files.kick.com/images/subcategories/8549/banner/responsives/3b142fca-b643-48d9-8ed0-405d454181d1___banner_341_456.webp 341w, https://files.kick.com/images/subcategories/8549/banner/responsives/3b142fca-b643-48d9-8ed0-405d454181d1___banner_285_381.webp 285w, https://files.kick.com/images/subcategories/8549/banner/responsives/3b142fca-b643-48d9-8ed0-405d454181d1___banner_238_319.webp 238w, https://files.kick.com/images/subcategories/8549/banner/responsives/3b142fca-b643-48d9-8ed0-405d454181d1___banner_199_266.webp 199w",
+        "url": "https://files.kick.com/images/subcategories/8549/banner/3b142fca-b643-48d9-8ed0-405d454181d1"
+      },
+      "category": {
+        "id": 2,
+        "name": "IRL",
+        "slug": "irl",
+        "icon": "\ud83c\udf99\ufe0f"
+      }
+    }
+  ],
+  "can_host": true,
+  "user": {
+    "id": 676,
+    "username": "xQc",
+    "bio": "THE BEST AT ABSOLUTELY EVERYTHING. THE JUICER. LEADER OF THE JUICERS.",
+    "instagram": "xqcow1/",
+    "twitter": "xqc",
+    "youtube": "channel/UCmDTrq0LNgPodDOFZiSbsww",
+    "discord": "xqcow",
+    "tiktok": "",
+    "facebook": "",
+    "club": null,
+    "profile_pic": "https://files.kick.com/images/user/676/profile_image/conversion/931b4e8f-5445-427c-bd82-b473530390cc-fullsize.webp"
+  },
+  "chatroom": {
+    "id": 668,
+    "chatable_type": "App\\Models\\Channel",
+    "channel_id": 668,
+    "created_at": "2022-10-22T06:59:51.000000Z",
+    "updated_at": "2026-01-08T23:32:57.000000Z",
+    "chat_mode_old": "public",
+    "chat_mode": "public",
+    "slow_mode": false,
+    "chatable_id": 668,
+    "followers_mode": true,
+    "subscribers_mode": false,
+    "emotes_mode": false,
+    "message_interval": 5,
+    "following_min_duration": 5760
+  }
+}

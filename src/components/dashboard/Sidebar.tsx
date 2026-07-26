@@ -10,6 +10,7 @@ interface SidebarProps {
 
 const PRIMARY_NAV = [
   { id: "command_center", name: "Command Center", icon: "🏠" },
+  { id: "copilot",        name: "AI Copilot",     icon: "🤖" },
   { id: "live",           name: "Live",           icon: "📡" },
   { id: "content",        name: "Content",        icon: "🎥" },
   { id: "audience",       name: "Audience",       icon: "👥" },
