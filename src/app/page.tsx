@@ -12,6 +12,8 @@ import { SettingsView } from "../components/SettingsView";
 import { InsightsView } from "../components/InsightsView";
 import { VideoAnalyzerView } from "../components/VideoAnalyzerView";
 import { AdminView } from "../components/AdminView";
+import { AICopilotPanel } from "../components/copilot/AICopilotPanel";
+import { ExecutiveReportView } from "../components/executive/ExecutiveReportView";
 
 export default function Home() {
   const { currentUser } = useApp();
@@ -28,6 +30,8 @@ export default function Home() {
   const renderContent = () => {
     switch (activeTab) {
       case "command_center": return <CommandCenterView setActiveTab={setActiveTab} />;
+      case "copilot":        return <AICopilotPanel onNavigateToLive={() => setActiveTab("live")} />;
+      case "reports":        return <ExecutiveReportView />;
       case "live":           return <DashboardView setActiveTab={setActiveTab} />;
       case "content":        return <VideoAnalyzerView />;
       case "audience":       return <InsightsView />;
