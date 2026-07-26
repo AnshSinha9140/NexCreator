@@ -47,14 +47,14 @@ export default function VerificationCard({ creator, onAction }: VerificationCard
             border: "1px solid rgba(168,85,247,0.3)"
           }}>
             {creator.avatarUrl ? (
-              <img src={creator.avatarUrl} alt={creator.displayName} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "12px" }} />
+              <img src={creator.avatarUrl} alt={creator.displayName || "Avatar"} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "12px" }} />
             ) : (
-              creator.displayName.slice(0, 2).toUpperCase()
+              (creator.displayName || creator.email || "CR").slice(0, 2).toUpperCase()
             )}
           </div>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-              <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#f1f5f9" }}>{creator.displayName}</h3>
+              <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#f1f5f9" }}>{creator.displayName || creator.email || "Creator"}</h3>
               <HealthBadge
                 status={
                   creator.status === "verified" ? "healthy" :

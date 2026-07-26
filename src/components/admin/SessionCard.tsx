@@ -50,14 +50,14 @@ export default function SessionCard({ session, onSelect }: SessionCardProps) {
             display: "flex", alignItems: "center", justifyContent: "center",
             fontWeight: 800, color: "#c084fc", fontSize: "13px", fontFamily: "'JetBrains Mono', monospace"
           }}>
-            {session.creatorName.slice(0, 2).toUpperCase()}
+            {(session.creatorName || session.creatorEmail || "CR").slice(0, 2).toUpperCase()}
           </div>
           <div>
             <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#f1f5f9" }}>
-              {session.creatorName}
+              {session.creatorName || session.creatorEmail || "Unknown Creator"}
             </h4>
             <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b", textTransform: "capitalize", marginTop: "2px", display: "block" }}>
-              {session.platform} • Session #{session.id.slice(-6)}
+              {session.platform || "Platform"} • Session #{(session.id || "000000").slice(-6)}
             </span>
           </div>
         </div>
