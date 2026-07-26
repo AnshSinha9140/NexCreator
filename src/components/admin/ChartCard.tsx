@@ -39,12 +39,13 @@ export default function ChartCard({ title, subtitle, data, color = "purple" }: C
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
         <div className="admin-chart-bars" style={{ height: "130px", alignItems: "flex-end" }}>
           {data.map((d, i) => {
-            const pct = Math.max(6, (d.value / max) * 100);
+            const val = d?.value ?? 0;
+            const pct = Math.max(6, (val / max) * 100);
             return (
               <div key={i} className="admin-chart-bar-col">
                 <div
                   className="admin-chart-bar"
-                  title={`${d.label}: ${d.value.toLocaleString()}`}
+                  title={`${d?.label || ""}: ${val.toLocaleString()}`}
                   style={{ height: `${pct}%`, background: hexColor, borderRadius: "4px 4px 0 0", opacity: 0.85 }}
                 />
               </div>
@@ -53,7 +54,7 @@ export default function ChartCard({ title, subtitle, data, color = "purple" }: C
         </div>
         <div style={{ display: "flex", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "6px" }}>
           {data.map((d, i) => (
-            <span key={i} className="admin-chart-bar-label" style={{ flex: 1 }}>{d.label}</span>
+            <span key={i} className="admin-chart-bar-label" style={{ flex: 1 }}>{d?.label || ""}</span>
           ))}
         </div>
       </div>
