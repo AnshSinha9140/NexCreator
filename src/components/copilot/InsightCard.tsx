@@ -36,6 +36,7 @@ export interface CopilotInsightItem {
   isCompleted?: boolean;
   isSaved?: boolean;
   isDismissed?: boolean;
+  sourceBadge?: "instant_rule" | "ai_analysis" | "pattern_learned" | string;
 }
 
 interface InsightCardProps {
@@ -125,6 +126,43 @@ export const InsightCard: React.FC<InsightCardProps> = ({
           </span>
 
           <PriorityBadge priority={insight.priority} size="sm" />
+
+          {/* Source Badge Pill (Instant Rule vs AI Analysis vs Pattern Learned) */}
+          {insight.sourceBadge && (
+            <span
+              style={{
+                padding: "2px 8px",
+                borderRadius: "6px",
+                fontSize: "10px",
+                fontFamily: "'JetBrains Mono', monospace",
+                fontWeight: 800,
+                background:
+                  insight.sourceBadge === "ai_analysis"
+                    ? "rgba(99, 102, 241, 0.15)"
+                    : insight.sourceBadge === "pattern_learned"
+                    ? "rgba(245, 158, 11, 0.15)"
+                    : "rgba(16, 185, 129, 0.15)",
+                border:
+                  insight.sourceBadge === "ai_analysis"
+                    ? "1px solid rgba(99, 102, 241, 0.35)"
+                    : insight.sourceBadge === "pattern_learned"
+                    ? "1px solid rgba(245, 158, 11, 0.35)"
+                    : "1px solid rgba(16, 185, 129, 0.35)",
+                color:
+                  insight.sourceBadge === "ai_analysis"
+                    ? "#818cf8"
+                    : insight.sourceBadge === "pattern_learned"
+                    ? "#fbbf24"
+                    : "#34d399",
+              }}
+            >
+              {insight.sourceBadge === "ai_analysis"
+                ? "🧠 AI Analysis"
+                : insight.sourceBadge === "pattern_learned"
+                ? "📈 Pattern Learned"
+                : "⚡ Instant Rule"}
+            </span>
+          )}
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>

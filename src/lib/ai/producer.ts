@@ -7,6 +7,7 @@ import { AIProviderFactory } from "./providerFactory";
 import { AIResponseParser } from "./parser";
 import { AIObservability } from "./telemetry";
 import { AIInsight } from "./types";
+import { AIBudgetManager } from "./budgetManager";
 import clientPromise from "@/lib/mongodb";
 import { v4 as uuidv4 } from "uuid";
 import { DiagnosticsLogger } from "@/lib/diagnostics/logger";
@@ -22,7 +23,6 @@ export class AIProducer {
       }
 
       AIObservability.recordRequest();
-
       const sessionId = currentSnapshot.sessionId;
 
       const client = await clientPromise;
@@ -38,7 +38,7 @@ export class AIProducer {
 
       const previousInsights = previousInsightArray as unknown as AIInsight[];
 
-      // 2. Fetch previous snapshot for Decision Engine MPM delta
+      // 2. Fetch previous snapshot for Decision Engine delta
       const snapshotsCollection = db.collection("pulse_snapshots");
       const recentSnapshots = await snapshotsCollection
         .find({ sessionId })
@@ -49,10 +49,14 @@ export class AIProducer {
 
       const previousSnapshot = recentSnapshots.length > 0 ? (recentSnapshots[0] as unknown as PulseSnapshot) : null;
 
-      // 3. Consult Decision Engine
+      // 3. Consult Event-Driven Decision Engine
       const decision = DecisionEngine.evaluate(currentSnapshot, previousSnapshot);
-      if (!decision.analyze) {
+
+      // Route: IGNORE
+      if (!decision.analyze || decision.routingPath === "ignore") {
         AIObservability.recordSkip();
+        AIBudgetManager.recordSkip(decision.reason?.includes("similarity") ? "similarity" : "low_importance");
+        console.log(`[AIProducer] ⏭ Skipped snapshot processing (${decision.reason})`);
         return;
       }
 
@@ -60,78 +64,88 @@ export class AIProducer {
       const cachedInsight = AICache.get(sessionId, currentSnapshot);
       if (cachedInsight) {
         AIObservability.recordCacheHit();
+        AIBudgetManager.recordSkip("similarity");
         return;
       }
 
-      // 5. Build Prompt
-      const prompt = PromptBuilder.buildPrompt(currentSnapshot, previousInsights);
-
-      // 6. MULTI-PROVIDER FAILOVER CHAIN
       let insightData: Omit<AIInsight, "id" | "createdAt" | "snapshotVersion" | "sourceModel" | "modelVersion" | "promptVersion" | "provider" | "model" | "fallbackUsed"> | null = null;
       let usedProvider = "rule_engine";
       let usedModel = "rule-based-v1";
       let fallbackUsed = false;
       let currentLatency = 0;
+      let sourceBadge: "instant_rule" | "ai_analysis" | "pattern_learned" = "instant_rule";
 
-      // ── Level 1: Primary Provider (Gemini) ──
-      const primary = AIProviderFactory.getPrimaryProvider();
-      try {
-        AIObservability.recordProviderRequest(primary.name);
-        console.log(`[AIProducer] Attempting Primary Provider: '${primary.name}' (${primary.model})...`);
-        const rawResponse = await primary.provider.generateInsight(prompt);
-
-        // Strict JSON Parse
-        insightData = AIResponseParser.parseRawContent(rawResponse.content, currentSnapshot);
-        usedProvider = primary.name;
-        usedModel = primary.model;
-        fallbackUsed = false;
-        currentLatency = rawResponse.latencyMs;
-        AIObservability.recordLatency(rawResponse.latencyMs);
-
-        console.log(`[AIProducer] ✅ Provider: ${primary.name} | Status: Success | Latency: ${rawResponse.latencyMs}ms | FallbackUsed: false`);
-      } catch (primaryErr: any) {
-        AIObservability.recordProviderFailure(primary.name);
-        if (primaryErr.message?.includes("429")) {
-          AIObservability.recordQuotaFailure();
-        }
-        console.warn(`[AIProducer] ⚠️ Primary provider '${primary.name}' failed (${primaryErr.message}). Switching to fallback provider...`);
-
-        // ── Level 2: Fallback Provider (Groq) ──
-        const fallback = AIProviderFactory.getFallbackProvider();
-        if (fallback) {
-          try {
-            AIObservability.recordProviderSwitch();
-            AIObservability.recordProviderRequest(fallback.name);
-            console.log(`[AIProducer] Attempting Fallback Provider: '${fallback.name}' (${fallback.model})...`);
-            const rawResponse = await fallback.provider.generateInsight(prompt);
-
-            // Strict JSON Parse
-            insightData = AIResponseParser.parseRawContent(rawResponse.content, currentSnapshot);
-            usedProvider = fallback.name;
-            usedModel = fallback.model;
-            fallbackUsed = true;
-            currentLatency = rawResponse.latencyMs;
-            AIObservability.recordLatency(rawResponse.latencyMs);
-
-            console.log(`[AIProducer] ✅ Provider: ${fallback.name} | Status: Success | Latency: ${rawResponse.latencyMs}ms | FallbackUsed: true`);
-          } catch (fallbackErr: any) {
-            AIObservability.recordProviderFailure(fallback.name);
-            console.warn(`[AIProducer] ⚠️ Fallback provider '${fallback.name}' failed (${fallbackErr.message}). Falling back to Level 3 Rule Engine...`);
-          }
-        }
-      }
-
-      // ── Level 3: Existing Rule-Based Insight Generator ──
-      if (!insightData) {
-        AIObservability.recordRuleEngineActivation();
-        console.log("[AIProducer] ⚠️ Generating Level 3 Rule-Based Insight...");
-        insightData = AIResponseParser.generateFallbackInsight(currentSnapshot);
+      // ── Route: RULE ENGINE (Deterministic 0-Cost Path) ──
+      if (decision.routingPath === "rule_engine") {
+        console.log(`[AIProducer] ⚡ Deterministic Rule Engine path activated (${decision.reason})`);
+        insightData = AIResponseParser.generateFallbackInsight(currentSnapshot, decision.events || []);
         usedProvider = "rule_engine";
         usedModel = "rule-based-v1";
-        fallbackUsed = true;
+        fallbackUsed = false;
+        sourceBadge = "instant_rule";
+        AIObservability.recordRuleEngineActivation();
+        await AIBudgetManager.recordCall("rule_engine", 0);
+      } else {
+        // ── Route: LLM ESCALATION (Gemini / Groq) ──
+        const prompt = PromptBuilder.buildPrompt(currentSnapshot, previousInsights);
+        const primary = AIProviderFactory.getPrimaryProvider();
+
+        try {
+          AIObservability.recordProviderRequest(primary.name);
+          console.log(`[AIProducer] 🧠 Escalating to Primary LLM: '${primary.name}' (${primary.model})...`);
+          const rawResponse = await primary.provider.generateInsight(prompt);
+
+          insightData = AIResponseParser.parseRawContent(rawResponse.content, currentSnapshot);
+          usedProvider = primary.name;
+          usedModel = primary.model;
+          fallbackUsed = false;
+          currentLatency = rawResponse.latencyMs;
+          sourceBadge = "ai_analysis";
+          AIObservability.recordLatency(rawResponse.latencyMs);
+          await AIBudgetManager.recordCall("gemini", rawResponse.tokensUsed || 500);
+
+          console.log(`[AIProducer] ✅ Provider: ${primary.name} | Latency: ${rawResponse.latencyMs}ms`);
+        } catch (primaryErr: any) {
+          AIObservability.recordProviderFailure(primary.name);
+          console.warn(`[AIProducer] ⚠️ Primary LLM '${primary.name}' failed (${primaryErr.message}). Attempting fallback...`);
+
+          const fallback = AIProviderFactory.getFallbackProvider();
+          if (fallback) {
+            try {
+              AIObservability.recordProviderSwitch();
+              AIObservability.recordProviderRequest(fallback.name);
+              const rawResponse = await fallback.provider.generateInsight(prompt);
+
+              insightData = AIResponseParser.parseRawContent(rawResponse.content, currentSnapshot);
+              usedProvider = fallback.name;
+              usedModel = fallback.model;
+              fallbackUsed = true;
+              currentLatency = rawResponse.latencyMs;
+              sourceBadge = "ai_analysis";
+              AIObservability.recordLatency(rawResponse.latencyMs);
+              await AIBudgetManager.recordCall("groq", rawResponse.tokensUsed || 500);
+
+              console.log(`[AIProducer] ✅ Provider: ${fallback.name} | Latency: ${rawResponse.latencyMs}ms | Fallback: true`);
+            } catch (fallbackErr: any) {
+              AIObservability.recordProviderFailure(fallback.name);
+            }
+          }
+        }
+
+        // Fallback to Rule Engine if all LLMs fail
+        if (!insightData) {
+          AIObservability.recordRuleEngineActivation();
+          console.log("[AIProducer] ⚠️ All LLM providers failed, generating Rule-Based Insight...");
+          insightData = AIResponseParser.generateFallbackInsight(currentSnapshot, decision.events || []);
+          usedProvider = "rule_engine";
+          usedModel = "rule-based-v1";
+          fallbackUsed = true;
+          sourceBadge = "instant_rule";
+          await AIBudgetManager.recordCall("rule_engine", 0);
+        }
       }
 
-      // 7. Construct Final Insight Entity
+      // Construct Final Insight Entity
       const finalInsight: AIInsight = {
         ...insightData,
         id: uuidv4(),
@@ -143,14 +157,16 @@ export class AIProducer {
         provider: usedProvider,
         model: usedModel,
         fallbackUsed,
+        sourceBadge: sourceBadge || insightData.sourceBadge || "instant_rule",
+        importanceScore: decision.importanceScore || 50,
       };
 
-      // 8. Cache & Store Result in Database
+      // Cache & Store Result in Database
       AICache.set(sessionId, currentSnapshot, finalInsight);
       await insightsCollection.insertOne(finalInsight);
 
-      console.log(`[AIProducer] Persisted insight '${finalInsight.type}' for session '${sessionId}' [Provider: ${usedProvider}, Model: ${usedModel}, FallbackUsed: ${fallbackUsed}]`);
-      
+      console.log(`[AIProducer] Persisted insight '${finalInsight.type}' for session '${sessionId}' [Badge: ${finalInsight.sourceBadge}, Provider: ${usedProvider}]`);
+
       const state = DiagnosticsState.getState();
       DiagnosticsLogger.log("AIProducer", "Persist", `Persisted insight '${finalInsight.type}' using provider ${usedProvider}`);
       DiagnosticsState.updateSubsystem("ai", {
@@ -167,7 +183,6 @@ export class AIProducer {
         fallbackCount: (state.ai.fallbackCount || 0) + (fallbackUsed ? 1 : 0),
       });
     } catch (error: any) {
-      // 100% Failure isolation - never throw back to snapshot engine or disrupt monitoring
       console.error("[AIProducer] Unhandled error in processing snapshot:", error);
       DiagnosticsLogger.error("AIProducer", "ProcessSnapshot", "Unhandled error in processing snapshot", error.message);
       DiagnosticsState.updateSubsystem("ai", { status: "failed", lastFailure: new Date().toISOString(), lastError: error.message });

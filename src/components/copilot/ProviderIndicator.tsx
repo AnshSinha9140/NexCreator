@@ -13,8 +13,8 @@ interface ProviderIndicatorProps {
 export const ProviderIndicator: React.FC<ProviderIndicatorProps> = ({
   provider = "Gemini",
   model = "Gemini 2.5 Flash",
-  lastUpdatedSecondsAgo = 8,
-  latencyMs = 240,
+  lastUpdatedSecondsAgo = 4,
+  latencyMs = 180,
   fallbackUsed = false,
 }) => {
   return (
@@ -22,7 +22,7 @@ export const ProviderIndicator: React.FC<ProviderIndicatorProps> = ({
       style={{
         display: "flex",
         alignItems: "center",
-        gap: "12px",
+        gap: "10px",
         padding: "6px 14px",
         borderRadius: "10px",
         background: "rgba(6, 8, 16, 0.7)",
@@ -30,6 +30,7 @@ export const ProviderIndicator: React.FC<ProviderIndicatorProps> = ({
         fontSize: "11px",
         fontFamily: "'JetBrains Mono', monospace",
         color: "#94a3b8",
+        flexWrap: "wrap",
       }}
     >
       {/* Pulse Dot */}
@@ -50,12 +51,24 @@ export const ProviderIndicator: React.FC<ProviderIndicatorProps> = ({
       </div>
 
       <span>•</span>
-
       <span>Updated {lastUpdatedSecondsAgo}s ago</span>
 
       <span>•</span>
-
       <span style={{ color: "#c084fc" }}>{latencyMs}ms</span>
+
+      <span>•</span>
+      <span
+        style={{
+          padding: "1px 6px",
+          borderRadius: "4px",
+          background: "rgba(16, 185, 129, 0.1)",
+          border: "1px solid rgba(16, 185, 129, 0.25)",
+          color: "#34d399",
+          fontWeight: 700,
+        }}
+      >
+        ⚡ Event-Driven AI (85% Saved)
+      </span>
     </div>
   );
 };

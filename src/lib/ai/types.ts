@@ -33,6 +33,8 @@ export interface AIInsight {
   provider?: string;      // e.g. "gemini" | "groq" | "rule_engine"
   model?: string;         // e.g. "gemini-2.0-flash" | "llama-3.3-70b-versatile" | "rule-based-v1"
   fallbackUsed?: boolean; // true if failover triggered
+  sourceBadge?: "instant_rule" | "ai_analysis" | "pattern_learned";
+  importanceScore?: number;
 }
 
 export interface PromptPayload {
@@ -55,6 +57,9 @@ export interface DecisionResult {
   reason: string;
   priority: "low" | "medium" | "high";
   confidence: number;
+  routingPath?: "ignore" | "rule_engine" | "llm";
+  importanceScore?: number;
+  events?: any[];
 }
 
 export interface AITelemetry {
