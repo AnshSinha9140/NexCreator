@@ -44,7 +44,7 @@ export class AdminAggregationService {
   /**
    * Helper to format duration seconds to "Xh Ym" or "Ym Zs"
    */
-  private static formatDuration(seconds: number): string {
+  static formatDuration(seconds: number): string {
     if (!seconds || seconds <= 0) return "0m 0s";
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
@@ -300,5 +300,344 @@ export class AdminAggregationService {
       monitoringHistory: sessions,
       executiveReports: reports,
     };
+  }
+
+  /**
+   * Returns a human-readable activity feed from recent sessions, insights, reports, and audit logs.
+   */
+  static async getDashboardActivityFeed(limit = 20): Promise<any[]> {
+    const client = await clientPromise;
+    const db = client.db(process.env.MONGODB_DB_NAME || "nexcreator");
+
+    const [sessions, insights, reports, auditLogs] = await Promise.all([
+      db.collection("monitoring_sessions").find({}).sort({ createdAt: -1 }).limit(10).toArray(),
+      db.collection("ai_insights").find({}).sort({ createdAt: -1 }).limit(10).toArray(),
+      db.collection("executive_reports").find({}).sort({ createdAt: -1 }).limit(5).toArray(),
+      db.collection("admin_audit_logs").find({}).sort({ timestamp: -1 }).limit(10).toArray(),
+    ]);
+
+    const events: any[] = [];
+
+    sessions.forEach((s, idx) => {
+      const creator = (s.userId || "unknown").split("@")[0];
+      const platform = s.platform || "stream";
+      const ts = s.startedAt || s.createdAt;
+      if (ts) {
+        events.push({
+          id: `session_${s.id || idx}`,
+          message: s.status === "completed"
+            ? `Creator ${creator} completed a ${platform} stream`
+            : `Creator ${creator} started a ${platform} session`,
+          timestamp: ts,
+          type: "session",
+        });
+      }
+    });
+
+    insights.forEach((ins, idx) => {
+      const creator = (ins.creatorId || ins.userId || "system").split("@")[0];
+      const provider = ins.provider || ins.sourceModel || "AI";
+      const headline = (ins.headline || ins.type || "Insight").slice(0, 60);
+      const ts = ins.createdAt;
+      if (ts) {
+        events.push({
+          id: `insight_${ins._id?.toString() || idx}`,
+          message: `${provider} generated insight for ${creator}: "${headline}"`,
+          timestamp: ts,
+          type: "insight",
+        });
+      }
+    });
+
+    reports.forEach((rep, idx) => {
+      const creator = (rep.creatorId || "unknown").split("@")[0];
+      const grade = rep.scores?.overallGrade || "N/A";
+      const ts = rep.createdAt;
+      if (ts) {
+        events.push({
+          id: `report_${rep._id?.toString() || idx}`,
+          message: `Executive Report generated for ${creator} — Grade: ${grade}`,
+          timestamp: ts,
+          type: "report",
+        });
+      }
+    });
+
+    auditLogs.forEach((log, idx) => {
+      const admin = log.admin || "admin";
+      const action = log.action || "action";
+      const target = log.target || "";
+      const ts = log.timestamp;
+      if (ts) {
+        events.push({
+          id: `audit_${log._id?.toString() || idx}`,
+          message: `Admin ${admin.split("@")[0]} performed: ${action}${target ? ` on ${target}` : ""}`,
+          timestamp: ts,
+          type: "audit",
+        });
+      }
+    });
+
+    events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return events.slice(0, limit);
+  }
+
+  /**
+   * Returns AI stream rows from ai_insights — Kibana-style, newest first.
+   */
+  static async getAIStreamRows(options: {
+    provider?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+  } = {}): Promise<any[]> {
+    const client = await clientPromise;
+    const db = client.db(process.env.MONGODB_DB_NAME || "nexcreator");
+
+    const query: any = {};
+    if (options.provider && options.provider !== "all") {
+      query.$or = [
+        { provider: { $regex: options.provider, $options: "i" } },
+        { sourceModel: { $regex: options.provider, $options: "i" } },
+      ];
+    }
+
+    const limit = options.limit || 200;
+    const skip = ((options.page || 1) - 1) * limit;
+
+    const insights = await db.collection("ai_insights")
+      .find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+
+    return insights.map((ins) => {
+      const provider = ins.provider || ins.sourceModel || "Gemini";
+      const fallbackUsed = ins.fallback === true || (ins.sourceModel || "").toLowerCase().includes("groq");
+      const status = ins.error ? "ERROR" : fallbackUsed ? "FALLBACK" : "SUCCESS";
+      const estimatedTokens = ins.tokens || ins.estimatedTokens || Math.round((ins.promptLength || 400) * 1.3);
+      const latencyMs = ins.latencyMs || ins.processingTimeMs || ins.generationTimeMs || 0;
+
+      // Apply status filter
+      if (options.status && options.status !== "all") {
+        if (status.toLowerCase() !== options.status.toLowerCase()) return null;
+      }
+
+      return {
+        id: ins._id?.toString() || ins.id,
+        timestamp: ins.createdAt,
+        creator: (ins.creatorId || ins.userId || "unknown").split("@")[0],
+        creatorEmail: ins.creatorId || ins.userId || "unknown",
+        sessionId: ins.sessionId || "—",
+        provider,
+        model: ins.model || ins.modelVersion || (provider.toLowerCase().includes("groq") ? "Llama 3.3 70B" : "Gemini 2.5 Flash"),
+        estimatedTokens,
+        promptTokens: ins.promptTokens || Math.round(estimatedTokens * 0.7),
+        completionTokens: ins.completionTokens || Math.round(estimatedTokens * 0.3),
+        latencyMs,
+        status,
+        fallbackUsed,
+        insightType: ins.type || ins.category || "recommendation",
+        confidence: ins.confidence || ins.confidenceScore || null,
+        recommendation: (ins.headline || ins.message || ins.recommendation || "").slice(0, 120),
+      };
+    }).filter(Boolean);
+  }
+
+  /**
+   * Returns queue metrics derived from MongoDB collection lifecycle states.
+   */
+  static async getQueueMetrics() {
+    const client = await clientPromise;
+    const db = client.db(process.env.MONGODB_DB_NAME || "nexcreator");
+
+    const now = new Date();
+    const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    const [
+      liveSessionsCount,
+      completedSessionsCount,
+      failedSessionsCount,
+      allInsights,
+      totalSnapshots,
+      totalReports,
+    ] = await Promise.all([
+      db.collection("monitoring_sessions").countDocuments({ status: { $in: ["waiting", "starting", "live", "paused"] } }),
+      db.collection("monitoring_sessions").countDocuments({ status: "completed" }),
+      db.collection("monitoring_sessions").countDocuments({ status: "failed" }),
+      db.collection("ai_insights").find({ createdAt: { $gte: last24h.toISOString() } }).toArray(),
+      db.collection("pulse_snapshots").countDocuments({}),
+      db.collection("executive_reports").countDocuments({}),
+    ]);
+
+    // Compute avg latency from ai_insights
+    const latencies = allInsights.map((i) => i.latencyMs || i.processingTimeMs || i.generationTimeMs || 0).filter((l) => l > 0);
+    const avgLatencyMs = latencies.length > 0 ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length) : 0;
+
+    const successInsights = allInsights.filter((i) => !i.error).length;
+    const failedInsights = allInsights.filter((i) => !!i.error).length;
+    const successRate = allInsights.length > 0
+      ? Math.round((successInsights / allInsights.length) * 100)
+      : 100;
+
+    return {
+      metrics: {
+        snapshotQueueSize: liveSessionsCount,
+        aiQueueSize: liveSessionsCount,
+        retryQueueSize: failedInsights,
+        failedQueueSize: failedSessionsCount,
+        completedJobsToday: totalSnapshots + allInsights.length + totalReports,
+        avgQueueTimeMs: avgLatencyMs,
+        retryCountToday: failedInsights,
+        jobSuccessPercentage: `${successRate}%`,
+      },
+      queues: [
+        {
+          name: "Snapshot Ingestion Queue",
+          pending: liveSessionsCount,
+          active: liveSessionsCount,
+          completed: totalSnapshots,
+          failed: 0,
+          status: liveSessionsCount > 0 ? "active" : totalSnapshots > 0 ? "idle" : "idle",
+        },
+        {
+          name: "AI Dispatch Worker Queue",
+          pending: liveSessionsCount,
+          active: liveSessionsCount,
+          completed: allInsights.length,
+          failed: failedInsights,
+          status: liveSessionsCount > 0 ? "active" : allInsights.length > 0 ? "idle" : "idle",
+        },
+        {
+          name: "Executive Report Queue",
+          pending: completedSessionsCount - totalReports > 0 ? completedSessionsCount - totalReports : 0,
+          active: 0,
+          completed: totalReports,
+          failed: 0,
+          status: totalReports > 0 ? "idle" : "idle",
+        },
+        {
+          name: "Retry & Backoff Queue",
+          pending: failedInsights,
+          active: 0,
+          completed: 0,
+          failed: failedSessionsCount,
+          status: failedInsights > 0 ? "retrying" : "idle",
+        },
+      ],
+    };
+  }
+
+  /**
+   * Synthesizes log entries from diagnostics_logs (if available) and pipeline event collections.
+   */
+  static async getLogEntries(options: {
+    subsystem?: string;
+    search?: string;
+    limit?: number;
+  } = {}): Promise<any[]> {
+    const client = await clientPromise;
+    const db = client.db(process.env.MONGODB_DB_NAME || "nexcreator");
+
+    const limit = options.limit || 500;
+    const entries: any[] = [];
+
+    // 1. Try to read real diagnostics_logs first
+    try {
+      const diagLogs = await db.collection("diagnostics_logs")
+        .find({})
+        .sort({ timestamp: -1 })
+        .limit(limit)
+        .toArray();
+      diagLogs.forEach((l) => {
+        entries.push({
+          id: l._id?.toString() || l.id,
+          timestamp: l.timestamp,
+          level: l.level || "info",
+          subsystem: l.subsystem || "system",
+          message: l.message || "",
+          metadata: l.metadata || {},
+        });
+      });
+    } catch (_) { /* diagnostics_logs may not exist yet */ }
+
+    // 2. Synthesize from ai_insights
+    if (entries.length < 50) {
+      const insights = await db.collection("ai_insights").find({}).sort({ createdAt: -1 }).limit(100).toArray();
+      insights.forEach((ins) => {
+        const provider = ins.provider || ins.sourceModel || "Gemini";
+        entries.push({
+          id: `ai_${ins._id?.toString()}`,
+          timestamp: ins.createdAt,
+          level: ins.error ? "error" : ins.fallback ? "warn" : "info",
+          subsystem: "ai",
+          message: ins.error
+            ? `AI error (${provider}): ${ins.error}`
+            : `${provider} generated ${ins.type || "insight"} — confidence: ${ins.confidence || "N/A"}`,
+          metadata: { provider, sessionId: ins.sessionId, creatorId: ins.creatorId },
+        });
+      });
+    }
+
+    // 3. Synthesize from monitoring_sessions
+    if (entries.length < 100) {
+      const sessions = await db.collection("monitoring_sessions").find({}).sort({ createdAt: -1 }).limit(30).toArray();
+      sessions.forEach((s) => {
+        const creator = (s.userId || "unknown").split("@")[0];
+        entries.push({
+          id: `session_start_${s.id}`,
+          timestamp: s.startedAt || s.createdAt,
+          level: "info",
+          subsystem: "monitoring",
+          message: `Monitoring session started for ${creator} on ${s.platform || "platform"}`,
+          metadata: { sessionId: s.id, platform: s.platform, status: s.status },
+        });
+        if (s.completedAt) {
+          entries.push({
+            id: `session_end_${s.id}`,
+            timestamp: s.completedAt,
+            level: s.status === "failed" ? "error" : "info",
+            subsystem: "monitoring",
+            message: `Monitoring session ${s.status} for ${creator}`,
+            metadata: { sessionId: s.id, status: s.status },
+          });
+        }
+      });
+    }
+
+    // 4. Synthesize from pulse_snapshots
+    if (entries.length < 150) {
+      const snaps = await db.collection("pulse_snapshots").find({}).sort({ createdAt: -1 }).limit(50).toArray();
+      snaps.forEach((snap) => {
+        entries.push({
+          id: `snap_${snap._id?.toString()}`,
+          timestamp: snap.windowEnd || snap.createdAt,
+          level: "info",
+          subsystem: "snapshot",
+          message: `Pulse snapshot generated — ${snap.viewerMetrics?.averageViewerCount ?? 0} viewers, ${snap.metrics?.totalMessages ?? 0} messages`,
+          metadata: { sessionId: snap.sessionId, windowEnd: snap.windowEnd },
+        });
+      });
+    }
+
+    // Sort all entries by timestamp desc
+    entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    // Apply filters
+    let filtered = entries;
+    if (options.subsystem && options.subsystem !== "all") {
+      filtered = filtered.filter((l) => (l.subsystem || "").toLowerCase() === options.subsystem!.toLowerCase());
+    }
+    if (options.search) {
+      const q = options.search.toLowerCase();
+      filtered = filtered.filter((l) =>
+        l.message?.toLowerCase().includes(q) ||
+        l.subsystem?.toLowerCase().includes(q) ||
+        l.level?.toLowerCase().includes(q)
+      );
+    }
+
+    return filtered.slice(0, limit);
   }
 }

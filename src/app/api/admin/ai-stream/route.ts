@@ -1,23 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdminSession } from "@/lib/adminAuth";
+import { AdminAggregationService } from "@/lib/admin/adminAggregation";
 
 export async function GET(request: NextRequest) {
   const auth = await verifyAdminSession(request);
   if (!auth.authorized) return auth.errorResponse!;
 
   const { searchParams } = new URL(request.url);
-  const providerFilter = searchParams.get("provider");
-  const statusFilter = searchParams.get("status");
+  const providerFilter = searchParams.get("provider") || undefined;
+  const statusFilter = searchParams.get("status") || undefined;
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const limit = parseInt(searchParams.get("limit") || "200", 10);
 
-  const streamEvents: any[] = [];
+  try {
+    const streamEvents = await AdminAggregationService.getAIStreamRows({
+      provider: providerFilter,
+      status: statusFilter,
+      page,
+      limit,
+    });
 
-  let filtered = streamEvents;
-  if (providerFilter && providerFilter !== "all") {
-    filtered = filtered.filter((e) => e.provider.toLowerCase().includes(providerFilter.toLowerCase()));
+    return NextResponse.json({ success: true, data: streamEvents });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
-  if (statusFilter && statusFilter !== "all") {
-    filtered = filtered.filter((e) => e.status.toLowerCase() === statusFilter.toLowerCase());
-  }
-
-  return NextResponse.json({ success: true, data: filtered });
 }
