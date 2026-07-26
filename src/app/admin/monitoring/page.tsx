@@ -120,7 +120,9 @@ export default function MonitoringDashboardPage() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#f1f5f9" }}>Active Session Realtime Telemetry</h3>
             <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#c084fc" }}>
-              ID: {d.telemetry?.currentSession || "N/A"}
+              ID: {typeof d.telemetry?.currentSession === "object" && d.telemetry?.currentSession !== null
+                ? d.telemetry.currentSession.id || d.telemetry.currentSession.creatorId || d.telemetry.currentSession.user || "Active Session"
+                : d.telemetry?.currentSession || "N/A"}
             </span>
           </div>
 
