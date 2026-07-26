@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdminSession } from "@/lib/adminAuth";
 import { connectToDatabase } from "@/lib/mongodb";
+import { ObjectId } from "mongodb";
 
 export async function GET(request: NextRequest) {
   const auth = await verifyAdminSession(request);
@@ -14,7 +15,16 @@ export async function GET(request: NextRequest) {
     const { db } = await connectToDatabase();
     const query: any = {};
     if (statusFilter && statusFilter !== "all") {
-      query.status = statusFilter;
+      if (statusFilter === "pending") {
+        query.$or = [
+          { status: "pending" },
+          { status: "unverified" },
+          { status: { $exists: false } },
+          { status: null },
+        ];
+      } else {
+        query.status = statusFilter;
+      }
     }
 
     const users = await db.collection("users").find(query).sort({ createdAt: -1 }).toArray();
@@ -28,7 +38,7 @@ export async function GET(request: NextRequest) {
       kickFollowers: 0,
       youtubeUrl: u.youtubeLink || u.youtubeUrl || "",
       youtubeSubscribers: 0,
-      status: u.status || "pending",
+      status: (!u.status || u.status === "unverified") ? "pending" : u.status,
       createdAt: u.createdAt || new Date().toISOString(),
       notes: u.notes || "",
       connectedPlatforms: u.connectedPlatforms ? u.connectedPlatforms.map((p: any) => p.platform || p) : [],
@@ -81,10 +91,15 @@ export async function POST(request: NextRequest) {
 
     const { db } = await connectToDatabase();
     
-    // Attempt DB update
+    // Attempt DB update using ObjectId fallback
     try {
+      const matchCriteria: any[] = [{ id: creatorId }, { email: creatorId }];
+      if (ObjectId.isValid(creatorId)) {
+        matchCriteria.push({ _id: new ObjectId(creatorId) });
+      }
+
       await db.collection("users").updateOne(
-        { $or: [{ id: creatorId }, { email: creatorId }] },
+        { $or: matchCriteria },
         {
           $set: {
             status: newStatus,

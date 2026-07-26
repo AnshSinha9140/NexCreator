@@ -16,7 +16,10 @@ export async function GET(request: NextRequest) {
 
     const totalCreators = await db.collection("users").countDocuments();
     const approvedCreators = await db.collection("users").countDocuments({ status: "verified" });
-    const pendingVerifications = await db.collection("users").countDocuments({ status: "pending" });
+    const pendingVerifications = await db.collection("users").countDocuments({
+      status: { $in: ["pending", "unverified", null] },
+      role: { $ne: "admin" },
+    });
     const todaysNewCreators = await db.collection("users").countDocuments({
       createdAt: { $gte: startOfToday.toISOString() },
     });
