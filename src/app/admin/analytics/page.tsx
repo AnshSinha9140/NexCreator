@@ -140,8 +140,14 @@ export default function AdminAnalyticsPage() {
                   </span>
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <span style={{ color: "#c084fc", fontWeight: 700, display: "block" }}>{(c.tokens / 1000000).toFixed(1)}M tokens</span>
-                  <span style={{ fontSize: "10px", color: "#64748b" }}>{c.sessions} sessions</span>
+                  <span style={{ color: "#c084fc", fontWeight: 700, display: "block" }}>
+                    {typeof c.tokens === "number" && !isNaN(c.tokens)
+                      ? (c.tokens / 1000000 >= 0.1
+                        ? `${(c.tokens / 1000000).toFixed(1)}M tokens`
+                        : `${(c.tokens / 1000).toFixed(0)}k tokens`)
+                      : "0k tokens"}
+                  </span>
+                  <span style={{ fontSize: "10px", color: "#64748b" }}>{c.sessions ?? c.streamsCount ?? 0} sessions</span>
                 </div>
               </div>
             ))}

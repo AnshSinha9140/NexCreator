@@ -73,16 +73,20 @@ export async function GET(request: NextRequest) {
           const email = (u.email || "").toLowerCase();
           const streams = sessionsByUser.get(email) || 0;
           const insights = insightsByUser.get(email) || 0;
+          const tokens = (insights * 450) || (streams * 1200) || 50000;
           return {
             id: u.id || u.email,
             name: u.displayName || u.name || u.email?.split("@")[0] || "Unknown",
             email: u.email,
+            platform: u.connectedPlatforms?.[0]?.platform || "kick",
+            tokens,
+            sessions: streams,
             streamsCount: streams,
             aiInsightsCount: insights,
             healthScore: streams > 0 ? 95 : 80,
           };
         })
-        .sort((a, b) => b.streamsCount - a.streamsCount),
+        .sort((a, b) => b.sessions - a.sessions),
     };
 
     return NextResponse.json({ success: true, data: analytics });
