@@ -9,6 +9,7 @@ import { AIProducerTab } from "./dashboard/AIProducerTab";
 import { TimelineTab } from "./dashboard/TimelineTab";
 import { LiveChatTab } from "./dashboard/LiveChatTab";
 import { HighlightsTab } from "./dashboard/HighlightsTab";
+import { CompletedSessionSummaryCard } from "./dashboard/CompletedSessionSummaryCard";
 
 type LiveModuleTab = "pulse" | "producer" | "timeline" | "chat" | "highlights";
 
@@ -82,6 +83,11 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
   const [isLoading, setIsLoading] = useState(true);
   const [startStep, setStartStep] = useState<StartStep>("idle");
   const [errorState, setErrorState] = useState<ErrorState | null>(null);
+
+  // Sprint 17: Multi-Step Graceful Finalization States
+  const [isStopping, setIsStopping] = useState<boolean>(false);
+  const [stoppingStep, setStoppingStep] = useState<string>("Closing collectors...");
+  const [sessionSummary, setSessionSummary] = useState<any>(null);
 
   // Telemetry & Browser Countdown Timers (0 Network Overhead)
   const [lastPolledAt, setLastPolledAt] = useState<string | null>(null);
@@ -475,11 +481,15 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
     }
   }, [connectedPlatformsList, executeStartSession, setActiveTab]);
 
-  // ─── STOP SESSION HANDLER ──────────────────────────────────────────────────
+  // ─── STOP SESSION HANDLER (SPRINT 17 GRACEFUL FINALIZATION) ───────────────
   const handleStopSession = useCallback(async () => {
-    if (!activeSession) return;
+    if (!activeSession || isStopping) return;
+    setIsStopping(true);
+    setStoppingStep("Closing collectors & saving analytics...");
+
     try {
-      await fetch("/api/detection", {
+      setStoppingStep("Generating final pulse snapshot & AI synthesis...");
+      const res = await fetch("/api/detection", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -488,20 +498,24 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
         }),
       });
 
-      setActiveSession(null);
-      setDetectionMetadata(null);
-      setLastPolledAt(null);
-      setErrorState({
-        type: "stopped",
-        title: "Monitoring Stopped",
-        whatHappened: "The live detection monitoring session was manually terminated.",
-        whatNexCreatorIsDoing: "Stopped backend detection daemon and cleared local telemetry.",
-        whatCreatorCanDo: "Click 'Start Monitoring Session' whenever you prepare for your next broadcast.",
+      setStoppingStep("Finalizing session summary & archiving stream...");
+      const data = await res.json();
+      if (data.summary) {
+        setSessionSummary(data.summary);
+      }
+
+      // Transition session to COMPLETED mode (workspace remains active!)
+      setActiveSession({
+        ...activeSession,
+        status: "completed",
       });
+      setErrorState(null);
     } catch (e: any) {
-      console.error("Failed to stop session:", e);
+      console.error("Failed to finalize session:", e);
+    } finally {
+      setIsStopping(false);
     }
-  }, [activeSession]);
+  }, [activeSession, isStopping]);
 
   // ─── PART 7: ERROR STATES RENDERER COMPONENT ─────────────────────────────────
   const renderErrorBanner = () => {
@@ -1230,6 +1244,19 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
           overflowY: "auto",
         }}
       >
+        {/* Sprint 17: Post-Stream Session Summary Banner */}
+        {activeSession?.status === "completed" && (
+          <CompletedSessionSummaryCard
+            summary={sessionSummary}
+            session={activeSession}
+            onStartNewMonitoring={() => {
+              setActiveSession(null);
+              setSessionSummary(null);
+            }}
+            onNavigateTab={(tab) => setActiveModule(tab as any)}
+          />
+        )}
+
         {/* Module Header */}
         <div style={{ marginBottom: "20px" }}>
           <h2 style={{ fontSize: "20px", fontWeight: "800", color: "#f8fafc", display: "flex", alignItems: "center", gap: "10px" }}>
@@ -1247,7 +1274,13 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
             <LivePulseTab snapshots={snapshots} currentSession={activeSession} isLoading={isLoading} />
           )}
           {activeModule === "producer" && (
-            <AIProducerTab insights={insights} isLoading={isLoading} onUpdateInsight={handleUpdateInsight} />
+            <AIProducerTab
+              insights={insights}
+              isLoading={isLoading}
+              onUpdateInsight={handleUpdateInsight}
+              summary={sessionSummary}
+              sessionStatus={activeSession?.status}
+            />
           )}
           {activeModule === "timeline" && (
             <TimelineTab session={activeSession} snapshots={snapshots} insights={insights} isLoading={isLoading} />
@@ -1413,26 +1446,90 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
           </div>
         </div>
 
-        <button
-          onClick={handleStopSession}
-          style={{
-            marginTop: "auto",
-            width: "100%",
-            padding: "10px",
-            borderRadius: "8px",
-            background: "rgba(244, 63, 94, 0.1)",
-            border: "1px solid rgba(244, 63, 94, 0.25)",
-            color: "#fb7185",
-            fontSize: "12px",
-            fontWeight: "600",
-            cursor: "pointer",
-            transition: "all 0.15s ease",
-          }}
-          aria-label="Stop Monitoring Session"
-        >
-          Stop Monitoring
-        </button>
+        {activeSession?.status !== "completed" && (
+          <button
+            onClick={handleStopSession}
+            disabled={isStopping}
+            style={{
+              marginTop: "auto",
+              width: "100%",
+              padding: "10px",
+              borderRadius: "8px",
+              background: isStopping ? "rgba(255,255,255,0.05)" : "rgba(244, 63, 94, 0.1)",
+              border: isStopping ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(244, 63, 94, 0.25)",
+              color: isStopping ? "#64748b" : "#fb7185",
+              fontSize: "12px",
+              fontWeight: "600",
+              cursor: isStopping ? "not-allowed" : "pointer",
+              transition: "all 0.15s ease",
+            }}
+            aria-label="Stop Monitoring Session"
+          >
+            {isStopping ? "Finalizing Session..." : "Stop Monitoring"}
+          </button>
+        )}
       </div>
+
+      {/* Sprint 17: Stopping Progress Overlay */}
+      <AnimatePresence>
+        {isStopping && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(10, 14, 26, 0.85)",
+              backdropFilter: "blur(16px)",
+              zIndex: 9999,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
+            <div
+              style={{
+                width: "420px",
+                padding: "32px",
+                borderRadius: "20px",
+                background: "rgba(13, 16, 27, 0.95)",
+                border: "1px solid rgba(168, 85, 247, 0.3)",
+                boxShadow: "0 25px 50px rgba(0,0,0,0.6)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                textAlign: "center",
+                gap: "20px",
+              }}
+            >
+              <div
+                style={{
+                  width: "56px",
+                  height: "56px",
+                  borderRadius: "50%",
+                  border: "3px solid rgba(168, 85, 247, 0.2)",
+                  borderTopColor: "#c084fc",
+                  animation: "spin 1s linear infinite",
+                }}
+              />
+              <div>
+                <h3 style={{ margin: "0 0 6px", fontSize: "18px", fontWeight: "800", color: "#f8fafc" }}>
+                  Finalizing Monitoring Session...
+                </h3>
+                <p style={{ margin: 0, fontSize: "13px", color: "#94a3b8", fontFamily: "monospace" }}>
+                  {stoppingStep}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -191,19 +191,14 @@ export const POST = safeApiHandler(async (request: Request) => {
       return createApiErrorResponse("Monitoring Session not found or access forbidden", "FORBIDDEN", 403);
     }
 
-    // Stop background daemon
-    LiveDetectionPoller.stopPolling(sessionId);
-
-    // Update status to completed in DB
-    const now = new Date().toISOString();
-    await db.collection("monitoring_sessions").updateOne(
-      { id: sessionId, userId: authUser.email },
-      { $set: { status: "completed", endedAt: now, updatedAt: now } }
-    );
+    // Trigger multi-step graceful session finalization
+    const { SessionFinalizer } = await import("@/lib/session/finalizer");
+    const summary = await SessionFinalizer.finalizeSession(sessionId);
 
     return NextResponse.json({
       success: true,
       status: "completed",
+      summary,
     });
   }
 
