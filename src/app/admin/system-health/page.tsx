@@ -92,7 +92,7 @@ export default function SystemHealthPage() {
               </div>
 
               <p style={{ margin: 0, fontSize: "12px", fontFamily: "'JetBrains Mono', monospace", color: "#94a3b8", lineHeight: "1.4" }}>
-                {sub.details}
+                {sub.details || (sub.metrics ? Object.entries(sub.metrics).map(([k, v]) => `${k}: ${v}`).join(" | ") : "Operational")}
               </p>
 
               <div style={{
@@ -100,8 +100,8 @@ export default function SystemHealthPage() {
                 fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b",
                 paddingTop: "14px", borderTop: "1px solid rgba(255,255,255,0.06)"
               }}>
-                <span>Latency: <strong style={{ color: "#c084fc" }}>{sub.latencyMs} ms</strong></span>
-                <span>Uptime: <strong style={{ color: "#34d399" }}>{sub.uptime}</strong></span>
+                <span>Last Activity: <strong style={{ color: "#c084fc" }} suppressHydrationWarning>{sub.lastActivity ? new Date(sub.lastActivity).toLocaleTimeString() : "Now"}</strong></span>
+                <span>Status: <strong style={{ color: "#34d399" }}>{sub.status || "healthy"}</strong></span>
               </div>
             </div>
           ))}

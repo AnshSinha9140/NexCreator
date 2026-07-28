@@ -4,6 +4,8 @@ import { KickChatCollector } from "./kickCollector";
 import { RollingSessionBuffer } from "./buffer";
 import { LiveMetricsAccumulator } from "./accumulator";
 import { DiagnosticsState } from "@/lib/diagnostics/state";
+import { CollectorFactory } from "@/lib/collectors/base/collectorFactory";
+import { CollectorManager } from "@/lib/collectors/base/collectorManager";
 
 export interface IngestionPipeline {
   sessionId: string;
@@ -51,14 +53,9 @@ export class IngestionManager {
     const buffer = new RollingSessionBuffer(sessionId);
     const accumulator = new LiveMetricsAccumulator(sessionId);
 
-    // 2. Instantiate Platform Collector
-    let collector: ChatCollector;
-    if (platform === "kick") {
-      collector = new KickChatCollector(sessionId, { channelHandle, chatroomId });
-    } else {
-      console.warn(`[IngestionManager] Unsupported chat platform '${platform}'. Defaulting to Kick engine.`);
-      collector = new KickChatCollector(sessionId, { channelHandle, chatroomId });
-    }
+    // 2. Instantiate Platform Collector via CollectorFactory
+    const collector: ChatCollector = CollectorFactory.create(platform, sessionId, { channelHandle, chatroomId });
+    CollectorManager.register(sessionId, collector as any);
 
     // 3. Connect Pipeline: Collector ➔ Buffer + Accumulator
     const unsubscribe = collector.onMessage((msg: LiveChatMessage) => {
@@ -114,6 +111,7 @@ export class IngestionManager {
     pipeline.accumulator.reset();
 
     // 4. Remove from active registry
+    CollectorManager.unregister(sessionId);
     globalWithIngestion._activeIngestions!.delete(sessionId);
     console.log(`[IngestionManager] Cleared ingestion pipeline memory for session '${sessionId}' ✅`);
   }

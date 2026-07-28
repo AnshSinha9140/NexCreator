@@ -1,8 +1,10 @@
 import { PlatformDetector } from "./types";
 import { KickPlatformDetector } from "./kickDetector";
+import { YouTubePlatformDetector } from "./youtubeDetector";
 
 const detectors: Record<string, PlatformDetector> = {
   kick: new KickPlatformDetector(),
+  youtube: new YouTubePlatformDetector(),
 };
 
 /**

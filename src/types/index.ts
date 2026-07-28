@@ -35,6 +35,14 @@ export interface MonitoringSession {
   lastActivity: Date | string;
   lastError?: string | null;
 
+  // Multi-platform collector status fields
+  collectorType?: "websocket" | "polling" | string;
+  chatId?: string;
+  collectorHealth?: string;
+  lastCollectorHeartbeat?: Date | string | null;
+  pollCount?: number;
+  messageCount?: number;
+
   // Flexible metadata object for future module extensions
   metadata?: Record<string, any>;
 }
