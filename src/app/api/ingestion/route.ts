@@ -35,7 +35,7 @@ export const GET = safeApiHandler(async (request: Request) => {
     );
   }
 
-  const telemetry = IngestionManager.getTelemetry(sessionId);
+  const telemetry = IngestionManager.getTelemetry(sessionId) || {};
   const pipeline = IngestionManager.getPipeline(sessionId);
   let liveMessages = pipeline ? pipeline.buffer.getMessages().slice(-100) : [];
 
@@ -68,17 +68,17 @@ export const GET = safeApiHandler(async (request: Request) => {
   return NextResponse.json({
     success: true,
     telemetry: {
-      sessionId: telemetry.sessionId,
-      isIngesting: telemetry.isIngesting,
+      sessionId: telemetry.sessionId || sessionId,
+      isIngesting: Boolean(telemetry.isIngesting),
       platform: telemetry.platform || "kick",
-      status: telemetry.status,
-      health: telemetry.health,
-      connectionState: telemetry.connectionState,
-      bufferSize: telemetry.bufferSize,
+      status: telemetry.status || "stopped",
+      health: telemetry.health || "offline",
+      connectionState: telemetry.connectionState || "disconnected",
+      bufferSize: telemetry.bufferSize || 0,
       bufferCapacity: telemetry.bufferCapacity || 5000,
-      messagesPerMinute: telemetry.messagesPerMinute,
-      stats: telemetry.stats,
-      metricsSummary: telemetry.metricsSummary,
+      messagesPerMinute: telemetry.messagesPerMinute || 0,
+      stats: telemetry.stats || {},
+      metricsSummary: telemetry.metricsSummary || {},
       startedAt: telemetry.startedAt || null,
     },
     messages: liveMessages,

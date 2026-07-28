@@ -240,7 +240,9 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
 
   // ─── PART 2: REAL-TIME WORKSPACE DATA POLLING ──────────────────────────────
   useEffect(() => {
-    if (!activeSession?.id) return;
+    if (!activeSession?.id || !["waiting", "starting", "live", "paused"].includes(activeSession.status)) {
+      return;
+    }
 
     let isMounted = true;
     const sessionId = activeSession.id;
@@ -307,7 +309,7 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
       clearInterval(snapshotsTimer);
       clearInterval(insightsTimer);
     };
-  }, [activeSession?.id]);
+  }, [activeSession?.id, activeSession?.status]);
 
   const handleUpdateInsight = useCallback(async (id: string, updates: any) => {
     try {
