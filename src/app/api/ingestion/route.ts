@@ -36,6 +36,34 @@ export const GET = safeApiHandler(async (request: Request) => {
   }
 
   const telemetry = IngestionManager.getTelemetry(sessionId);
+  const pipeline = IngestionManager.getPipeline(sessionId);
+  let liveMessages = pipeline ? pipeline.buffer.getMessages().slice(-100) : [];
+
+  if (liveMessages.length === 0) {
+    // Fallback: Query representativeMessages collection from DB
+    const dbMessages = await db
+      .collection("representativeMessages")
+      .find({ sessionId })
+      .sort({ timestamp: -1 })
+      .limit(50)
+      .toArray();
+
+    liveMessages = dbMessages.map((m: any) => ({
+      id: m.id || m._id?.toString() || Math.random().toString(36).substring(2, 9),
+      sessionId: m.sessionId || sessionId,
+      platform: m.platform || telemetry.platform || "kick",
+      timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+      author: {
+        id: m.authorId || m.userId,
+        username: m.author || m.username || "Viewer",
+        displayName: m.author || m.username || "Viewer",
+        badges: [],
+      },
+      message: m.content || m.message || "",
+      emotes: [],
+      raw: m,
+    }));
+  }
 
   return NextResponse.json({
     success: true,
@@ -53,5 +81,6 @@ export const GET = safeApiHandler(async (request: Request) => {
       metricsSummary: telemetry.metricsSummary,
       startedAt: telemetry.startedAt || null,
     },
+    messages: liveMessages,
   });
 });

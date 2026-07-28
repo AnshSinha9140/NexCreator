@@ -4,6 +4,11 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MonitoringSession, ConnectedPlatformAccount } from "@/types";
 
+import { LivePulseTab } from "./dashboard/LivePulseTab";
+import { AIProducerTab } from "./dashboard/AIProducerTab";
+import { TimelineTab } from "./dashboard/TimelineTab";
+import { LiveChatTab } from "./dashboard/LiveChatTab";
+
 type LiveModuleTab = "pulse" | "producer" | "timeline" | "chat" | "highlights";
 
 const LIVE_NAV: { id: LiveModuleTab; name: string; icon: string; desc: string }[] = [
@@ -65,6 +70,12 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
   const [isSelectModalOpen, setIsSelectModalOpen] = useState(false);
   const [selectedPlatformChoice, setSelectedPlatformChoice] = useState<string>("auto");
   const [detectionMetadata, setDetectionMetadata] = useState<any>(null);
+
+  // Real Backend Pipeline Data
+  const [snapshots, setSnapshots] = useState<any[]>([]);
+  const [insights, setInsights] = useState<any[]>([]);
+  const [liveMessages, setLiveMessages] = useState<any[]>([]);
+  const [telemetryData, setTelemetryData] = useState<any>(null);
 
   // Loading & Transition States
   const [isLoading, setIsLoading] = useState(true);
@@ -226,6 +237,92 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
       }
     };
   }, [activeSession?.id, activeSession?.status]);
+
+  // ─── PART 2: REAL-TIME WORKSPACE DATA POLLING ──────────────────────────────
+  useEffect(() => {
+    if (!activeSession?.id) return;
+
+    let isMounted = true;
+    const sessionId = activeSession.id;
+
+    // 1. Ingestion Telemetry & Messages (Every 2s)
+    const fetchIngestion = async () => {
+      try {
+        const res = await fetch(`/api/ingestion?sessionId=${encodeURIComponent(sessionId)}`);
+        if (res.ok && isMounted) {
+          const data = await res.json();
+          if (data.success) {
+            setTelemetryData(data.telemetry);
+            if (data.messages) setLiveMessages(data.messages);
+          }
+        }
+      } catch (e) {
+        console.warn("[Dashboard] Ingestion fetch error:", e);
+      }
+    };
+
+    // 2. Pulse Snapshots (Every 10s)
+    const fetchSnapshots = async () => {
+      try {
+        const res = await fetch(`/api/snapshots?sessionId=${encodeURIComponent(sessionId)}`);
+        if (res.ok && isMounted) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.snapshots)) {
+            setSnapshots(data.snapshots);
+          }
+        }
+      } catch (e) {
+        console.warn("[Dashboard] Snapshots fetch error:", e);
+      }
+    };
+
+    // 3. AI Insights (Every 10s)
+    const fetchInsights = async () => {
+      try {
+        const res = await fetch(`/api/ai/insights?sessionId=${encodeURIComponent(sessionId)}`);
+        if (res.ok && isMounted) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.insights)) {
+            setInsights(data.insights);
+          }
+        }
+      } catch (e) {
+        console.warn("[Dashboard] Insights fetch error:", e);
+      }
+    };
+
+    // Initial fetch
+    fetchIngestion();
+    fetchSnapshots();
+    fetchInsights();
+
+    // Setup polling timers
+    const ingestionTimer = setInterval(fetchIngestion, 2000);
+    const snapshotsTimer = setInterval(fetchSnapshots, 10000);
+    const insightsTimer = setInterval(fetchInsights, 10000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(ingestionTimer);
+      clearInterval(snapshotsTimer);
+      clearInterval(insightsTimer);
+    };
+  }, [activeSession?.id]);
+
+  const handleUpdateInsight = useCallback(async (id: string, updates: any) => {
+    try {
+      setInsights((prev) =>
+        prev.map((item) => (item.id === id || item._id?.toString() === id ? { ...item, ...updates } : item))
+      );
+      await fetch("/api/ai/insights", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...updates }),
+      });
+    } catch (e) {
+      console.warn("[Dashboard] Failed to update insight:", e);
+    }
+  }, []);
 
   // ─── PART 5: LOCAL BROWSER COUNTDOWN TICKER (0 NETWORK REQUESTS) ─────────────
   useEffect(() => {
@@ -1140,33 +1237,43 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
         </div>
 
         {/* Module Content Container */}
-        <div
-          style={{
-            flex: 1,
-            borderRadius: "14px",
-            border: "1px dashed rgba(255,255,255,0.08)",
-            background: "rgba(255,255,255,0.01)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "36px",
-            textAlign: "center",
-          }}
-        >
-          <span style={{ fontSize: "36px", marginBottom: "16px" }}>
-            {LIVE_NAV.find((m) => m.id === activeModule)?.icon}
-          </span>
-          <h3 style={{ fontSize: "16px", fontWeight: "700", color: "#e2e8f0", marginBottom: "8px" }}>
-            {LIVE_NAV.find((m) => m.id === activeModule)?.name} Engine
-          </h3>
-          <p style={{ fontSize: "13px", color: "#64748b", maxWidth: "420px", lineHeight: 1.5 }}>
-            {activeModule === "pulse" && "Real-time audience sentiment velocity, CPM chat rate, and live hype scores will render dynamically here when chat streams are connected."}
-            {activeModule === "producer" && "Automated real-time recommendations, topic prompts, and retention warnings will display here during live broadcasts."}
-            {activeModule === "timeline" && "Key stream markers, peak hype spikes, laughter clusters, and clip candidates will populate on an interactive live scrubber."}
-            {activeModule === "chat" && "Aggregated live stream chat messages with sentiment tags and toxicity flags will stream here in real time."}
-            {activeModule === "highlights" && "AI-detected 15-60s clip candidates for Shorts, TikToks, and Reels will be automatically queued here."}
-          </p>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+          {activeModule === "pulse" && (
+            <LivePulseTab snapshots={snapshots} currentSession={activeSession} isLoading={isLoading} />
+          )}
+          {activeModule === "producer" && (
+            <AIProducerTab insights={insights} isLoading={isLoading} onUpdateInsight={handleUpdateInsight} />
+          )}
+          {activeModule === "timeline" && (
+            <TimelineTab session={activeSession} snapshots={snapshots} insights={insights} isLoading={isLoading} />
+          )}
+          {activeModule === "chat" && (
+            <LiveChatTab messages={liveMessages} telemetry={telemetryData} isLoading={isLoading} />
+          )}
+          {activeModule === "highlights" && (
+            <div
+              style={{
+                flex: 1,
+                borderRadius: "14px",
+                border: "1px dashed rgba(255,255,255,0.08)",
+                background: "rgba(255,255,255,0.01)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "36px",
+                textAlign: "center",
+              }}
+            >
+              <span style={{ fontSize: "36px", marginBottom: "16px" }}>🚀</span>
+              <h3 style={{ fontSize: "16px", fontWeight: "700", color: "#e2e8f0", marginBottom: "8px" }}>
+                Highlights & Clip Candidates
+              </h3>
+              <p style={{ fontSize: "13px", color: "#64748b", maxWidth: "420px", lineHeight: 1.5 }}>
+                AI-detected 15-60s clip candidates for Shorts, TikToks, and Reels will be automatically queued here as live snapshots evaluate hype spikes.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
