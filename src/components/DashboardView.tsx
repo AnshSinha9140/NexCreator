@@ -239,18 +239,20 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
   }, [activeSession?.id, activeSession?.status]);
 
   // ─── PART 2: REAL-TIME WORKSPACE DATA POLLING ──────────────────────────────
+  const activeSessionId = activeSession?.id;
+  const activeSessionStatus = activeSession?.status;
+
   useEffect(() => {
-    if (!activeSession?.id || !["waiting", "starting", "live", "paused"].includes(activeSession.status)) {
+    if (!activeSessionId || !activeSessionStatus || !["waiting", "starting", "live", "paused"].includes(activeSessionStatus)) {
       return;
     }
 
     let isMounted = true;
-    const sessionId = activeSession.id;
 
     // 1. Ingestion Telemetry & Messages (Every 2s)
     const fetchIngestion = async () => {
       try {
-        const res = await fetch(`/api/ingestion?sessionId=${encodeURIComponent(sessionId)}`);
+        const res = await fetch(`/api/ingestion?sessionId=${encodeURIComponent(activeSessionId)}`);
         if (res.ok && isMounted) {
           const data = await res.json();
           if (data.success) {
@@ -266,7 +268,7 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
     // 2. Pulse Snapshots (Every 10s)
     const fetchSnapshots = async () => {
       try {
-        const res = await fetch(`/api/snapshots?sessionId=${encodeURIComponent(sessionId)}`);
+        const res = await fetch(`/api/snapshots?sessionId=${encodeURIComponent(activeSessionId)}`);
         if (res.ok && isMounted) {
           const data = await res.json();
           if (data.success && Array.isArray(data.snapshots)) {
@@ -281,7 +283,7 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
     // 3. AI Insights (Every 10s)
     const fetchInsights = async () => {
       try {
-        const res = await fetch(`/api/ai/insights?sessionId=${encodeURIComponent(sessionId)}`);
+        const res = await fetch(`/api/ai/insights?sessionId=${encodeURIComponent(activeSessionId)}`);
         if (res.ok && isMounted) {
           const data = await res.json();
           if (data.success && Array.isArray(data.insights)) {
@@ -309,7 +311,7 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
       clearInterval(snapshotsTimer);
       clearInterval(insightsTimer);
     };
-  }, [activeSession?.id, activeSession?.status]);
+  }, [activeSessionId, activeSessionStatus]);
 
   const handleUpdateInsight = useCallback(async (id: string, updates: any) => {
     try {
