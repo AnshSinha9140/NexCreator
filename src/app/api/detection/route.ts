@@ -100,17 +100,14 @@ export const POST = safeApiHandler(async (request: Request) => {
 
   // Action A: Start Monitoring Session & Detection Daemon
   if (action === "start") {
-    const connectedPlatformId = String(rawBody.connectedPlatformId || "");
-    const platform = String(rawBody.platform || "kick");
-
-    if (!connectedPlatformId) {
-      return createApiErrorResponse("connectedPlatformId parameter is required to start detection", "MISSING_PLATFORM_ID", 400);
-    }
+    const connectedPlatformId = String(rawBody.connectedPlatformId || "auto");
+    const platform = String(rawBody.platform || "auto");
+    const monitoringMode = platform === "auto" ? "auto" : "single";
+    const platformDisplayName = platform === "auto" ? "Auto Detect" : platform === "kick" ? "Kick" : platform === "youtube" ? "YouTube" : platform;
 
     // Check existing active monitoring session for user
     let session = await db.collection("monitoring_sessions").findOne({
       userId: authUser.email,
-      connectedPlatformId,
       status: { $in: ["waiting", "starting", "live", "paused"] },
     });
 
@@ -121,8 +118,10 @@ export const POST = safeApiHandler(async (request: Request) => {
         userId: authUser.email,
         connectedPlatformId,
         platform,
+        monitoringMode,
+        platformDisplayName,
         status: "waiting",
-        streamTitle: `${platform.toUpperCase()} Live Stream`,
+        streamTitle: `${platformDisplayName} Live Stream`,
         streamCategory: "Gaming",
         streamLanguage: "English",
         viewerCount: 0,

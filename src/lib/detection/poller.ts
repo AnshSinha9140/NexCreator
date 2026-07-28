@@ -146,10 +146,50 @@ export class LiveDetectionPoller {
     }
 
     const { channelHandle, platform } = meta;
-    const detector = getPlatformDetector(platform);
 
-    // Query platform live status and metadata
-    const streamMeta = await detector.getStreamMetadata(channelHandle);
+    let targetPlatform = platform;
+    let targetHandle = channelHandle;
+    let streamMeta: StreamMetadata;
+
+    if (platform === "auto") {
+      // Auto Detect Mode: Check all connected platforms for user
+      const userDoc = await db.collection("users").findOne({ email: sessionDoc.userId });
+      const connectedPlatforms: any[] = userDoc?.connectedPlatforms || [];
+
+      let detectedLiveMeta: StreamMetadata | null = null;
+      let detectedPlatform = "auto";
+      let detectedHandle = channelHandle;
+
+      for (const cp of connectedPlatforms) {
+        const platName = (cp.platform || "").toLowerCase();
+        const platHandle = cp.username || cp.channelUrl || channelHandle;
+        try {
+          const detector = getPlatformDetector(platName);
+          const metaResult = await detector.getStreamMetadata(platHandle);
+          if (metaResult.isLive) {
+            detectedLiveMeta = metaResult;
+            detectedPlatform = platName;
+            detectedHandle = platHandle;
+            break;
+          }
+        } catch (e) {
+          // Ignore platform detector errors during multi-platform search
+        }
+      }
+
+      if (detectedLiveMeta) {
+        targetPlatform = detectedPlatform;
+        targetHandle = detectedHandle;
+        streamMeta = detectedLiveMeta;
+        sessionDoc.platform = detectedPlatform;
+        sessionDoc.platformDisplayName = detectedPlatform === "kick" ? "Kick" : detectedPlatform === "youtube" ? "YouTube" : detectedPlatform;
+      } else {
+        streamMeta = { isLive: false };
+      }
+    } else {
+      const detector = getPlatformDetector(platform);
+      streamMeta = await detector.getStreamMetadata(channelHandle);
+    }
     
     DiagnosticsLogger.log("Detection", "Poll", `Poll completed. Current status: ${sessionDoc.status}. Viewer count: ${streamMeta.viewerCount || 0}`);
     const state = DiagnosticsState.getState();
@@ -200,7 +240,7 @@ export class LiveDetectionPoller {
       // Automatically start Chat Ingestion Engine & Snapshot Engine when stream becomes live
       const chatroomIdForIngestion = meta.storedChatroomId || streamMeta.chatroomId;
       console.log(`[Daemon] 🔴 Session '${sessionId}' is LIVE. Starting ingestion with chatroomId: '${chatroomIdForIngestion || "unknown"}'`);
-      IngestionManager.startIngestion(sessionId, platform, channelHandle, chatroomIdForIngestion).catch((err) => {
+      IngestionManager.startIngestion(sessionId, targetPlatform, targetHandle, chatroomIdForIngestion).catch((err) => {
         console.error(`[Daemon] Failed to auto-start chat ingestion for session '${sessionId}':`, err.message);
       });
       SnapshotManager.startSnapshotEngine(sessionId);

@@ -61,6 +61,9 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
   const [activeModule, setActiveModule] = useState<LiveModuleTab>("pulse");
   const [activeSession, setActiveSession] = useState<MonitoringSession | null>(null);
   const [connectedPlatform, setConnectedPlatform] = useState<ConnectedPlatformAccount | null>(null);
+  const [connectedPlatformsList, setConnectedPlatformsList] = useState<ConnectedPlatformAccount[]>([]);
+  const [isSelectModalOpen, setIsSelectModalOpen] = useState(false);
+  const [selectedPlatformChoice, setSelectedPlatformChoice] = useState<string>("auto");
   const [detectionMetadata, setDetectionMetadata] = useState<any>(null);
 
   // Loading & Transition States
@@ -75,6 +78,48 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
 
   const pollerTimerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Helper: Dynamic Platform Branding & UX Text
+  const getPlatformBranding = (platform?: string) => {
+    const p = (platform || "").toLowerCase().trim();
+    if (p === "kick") {
+      return {
+        name: "Kick",
+        color: "#53FC18",
+        bgGradient: "linear-gradient(135deg, rgba(83,252,24,0.15) 0%, rgba(16,185,129,0.1) 100%)",
+        border: "rgba(83,252,24,0.3)",
+        badgeBg: "rgba(83,252,24,0.1)",
+        badgeText: "#53FC18",
+        icon: "🟢",
+        waitingText: "Waiting for your Kick stream...",
+        collectorName: "Kick Collector (WebSocket)"
+      };
+    }
+    if (p === "youtube") {
+      return {
+        name: "YouTube",
+        color: "#FF0000",
+        bgGradient: "linear-gradient(135deg, rgba(255,0,0,0.15) 0%, rgba(225,29,72,0.1) 100%)",
+        border: "rgba(255,0,0,0.3)",
+        badgeBg: "rgba(255,0,0,0.1)",
+        badgeText: "#ff4d4d",
+        icon: "🔴",
+        waitingText: "Waiting for your YouTube stream...",
+        collectorName: "YouTube Collector (Polling API)"
+      };
+    }
+    return {
+      name: "Auto Detect",
+      color: "#9146FF",
+      bgGradient: "linear-gradient(135deg, rgba(145,70,255,0.15) 0%, rgba(168,85,247,0.1) 100%)",
+      border: "rgba(145,70,255,0.3)",
+      badgeBg: "rgba(145,70,255,0.1)",
+      badgeText: "#c084fc",
+      icon: "📡",
+      waitingText: "Watching Kick & YouTube for live stream...",
+      collectorName: "Multi-Platform Auto Detector"
+    };
+  };
 
   // ─── PART 1: CONSOLIDATED INITIAL TELEMETRY FETCH (ONCE ON MOUNT / RECONNECT) ───
   useEffect(() => {
@@ -94,8 +139,11 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
         // 1. Process Platform Info
         if (platRes.ok) {
           const platData = await platRes.json();
-          if (platData.success && platData.defaultPlatform) {
-            setConnectedPlatform(platData.defaultPlatform);
+          if (platData.success) {
+            const list = platData.platforms || (platData.defaultPlatform ? [platData.defaultPlatform] : []);
+            setConnectedPlatformsList(list);
+            if (platData.defaultPlatform) setConnectedPlatform(platData.defaultPlatform);
+            else if (list.length > 0) setConnectedPlatform(list[0]);
           }
         }
 
@@ -214,30 +262,25 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
     };
   }, [activeSession?.id, activeSession?.status, lastPolledAt]);
 
-  // ─── PART 6: ANIMATED START SESSION WITH STEP TRANSITIONS ─────────────────
-  const handleStartSession = useCallback(async () => {
-    if (!connectedPlatform) {
-      setActiveTab("settings");
-      return;
-    }
-
+  const executeStartSession = useCallback(async (targetPlatformChoice?: string) => {
     setErrorState(null);
     setStartStep("starting");
+    setIsSelectModalOpen(false);
+
+    const platformToUse = targetPlatformChoice || selectedPlatformChoice || "auto";
 
     try {
-      // Step 1 ➔ 2 Transition
       await new Promise((r) => setTimeout(r, 400));
       setStartStep("connecting");
 
-      // Step 2 ➔ 3 Transition
       await new Promise((r) => setTimeout(r, 400));
       setStartStep("initializing");
 
-      // Resolve real Kick chatroom.id BEFORE starting session via our server-side proxy
-      // (kick.com/api/v2 is CORS-blocked from browser; we proxy it server-side)
       let resolvedChatroomId: string | undefined;
-      if (connectedPlatform.platform === "kick") {
-        const kickUsername = connectedPlatform.username || connectedPlatform.channelUrl?.split("kick.com/")[1]?.split("/")[0];
+      const targetPlatformAccount = connectedPlatformsList.find(p => p.platform === platformToUse) || connectedPlatform;
+
+      if (targetPlatformAccount && targetPlatformAccount.platform === "kick") {
+        const kickUsername = targetPlatformAccount.username || targetPlatformAccount.channelUrl?.split("kick.com/")[1]?.split("/")[0];
         if (kickUsername) {
           try {
             const chatroomRes = await fetch(`/api/kick/chatroom?slug=${encodeURIComponent(kickUsername.toLowerCase())}`);
@@ -245,7 +288,6 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
               const chatroomData = await chatroomRes.json();
               if (chatroomData?.chatroomId) {
                 resolvedChatroomId = String(chatroomData.chatroomId);
-                console.log(`[Dashboard] ✅ Resolved Kick chatroom.id for '${kickUsername}': #${resolvedChatroomId} (via ${chatroomData.source})`);
               }
             }
           } catch (e) {
@@ -259,8 +301,8 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "start",
-          connectedPlatformId: connectedPlatform.id,
-          platform: connectedPlatform.platform,
+          connectedPlatformId: targetPlatformAccount?.id || "auto",
+          platform: platformToUse,
           ...(resolvedChatroomId ? { chatroomId: resolvedChatroomId } : {}),
         }),
       });
@@ -277,16 +319,17 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
       setStartStep("active");
       await new Promise((r) => setTimeout(r, 500));
 
-      // PART 1 OPTIMIZATION: Use returned session payload directly (0 extra GET requests)
       if (data.session) {
         setActiveSession(data.session);
       } else {
-        // Construct clean local session state from start response
+        const branding = getPlatformBranding(platformToUse);
         setActiveSession({
           id: data.sessionId,
-          userId: connectedPlatform.username || "creator",
-          platform: connectedPlatform.platform,
-          connectedPlatformId: connectedPlatform.id,
+          userId: targetPlatformAccount?.username || "creator",
+          platform: platformToUse,
+          platformDisplayName: branding.name,
+          monitoringMode: platformToUse === "auto" ? "auto" : "single",
+          connectedPlatformId: targetPlatformAccount?.id || "auto",
           status: data.status || "waiting",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -297,7 +340,7 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
           peakViewerCount: 0,
           monitoringEnabled: true,
           streamCategory: "Gaming",
-          streamTitle: `${connectedPlatform.displayName || connectedPlatform.platform}'s Live Stream`,
+          streamTitle: `${branding.name} Live Stream`,
         });
       }
 
@@ -314,7 +357,21 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
     } finally {
       setStartStep("idle");
     }
-  }, [connectedPlatform, setActiveTab]);
+  }, [connectedPlatform, connectedPlatformsList, selectedPlatformChoice]);
+
+  // ─── PART 6: TRIGGER START SESSION WITH SELECTION CHECK ─────────────────
+  const handleStartSession = useCallback(() => {
+    if (!connectedPlatformsList || connectedPlatformsList.length === 0) {
+      setActiveTab("settings");
+      return;
+    }
+
+    if (connectedPlatformsList.length > 1) {
+      setIsSelectModalOpen(true);
+    } else {
+      executeStartSession(connectedPlatformsList[0].platform);
+    }
+  }, [connectedPlatformsList, executeStartSession, setActiveTab]);
 
   // ─── STOP SESSION HANDLER ──────────────────────────────────────────────────
   const handleStopSession = useCallback(async () => {
@@ -466,6 +523,247 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
       >
         {renderErrorBanner()}
 
+        {/* Multi-Platform Selection Modal */}
+        {isSelectModalOpen && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(6, 8, 16, 0.85)",
+              backdropFilter: "blur(12px)",
+              zIndex: 9999,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "20px",
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              style={{
+                width: "100%",
+                maxWidth: "520px",
+                background: "rgba(15, 18, 32, 0.95)",
+                border: "1px solid rgba(168, 85, 247, 0.3)",
+                borderRadius: "20px",
+                padding: "28px",
+                boxShadow: "0 24px 64px rgba(0, 0, 0, 0.8), 0 0 40px rgba(168, 85, 247, 0.15)",
+                textAlign: "left",
+                fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              {/* Header */}
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "20px", paddingBottom: "16px", borderBottom: "1px solid rgba(255, 255, 255, 0.08)" }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "800", color: "#f8fafc", display: "flex", alignItems: "center", gap: "10px" }}>
+                    <span style={{ fontSize: "22px" }}>📡</span> Select Platform to Monitor
+                  </h3>
+                  <p style={{ margin: "6px 0 0", fontSize: "13px", color: "#94a3b8", lineHeight: 1.4 }}>
+                    Choose a target platform or let NexCreator auto-detect live broadcasts.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsSelectModalOpen(false)}
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "10px",
+                    background: "rgba(255, 255, 255, 0.06)",
+                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    color: "#94a3b8",
+                    fontWeight: "bold",
+                    fontSize: "14px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                  aria-label="Close Modal"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Options List */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "24px" }}>
+                {/* 1. Auto Detect Option */}
+                <div
+                  onClick={() => setSelectedPlatformChoice("auto")}
+                  style={{
+                    padding: "16px",
+                    borderRadius: "14px",
+                    border: selectedPlatformChoice === "auto" ? "1.5px solid #9146FF" : "1px solid rgba(255, 255, 255, 0.08)",
+                    background: selectedPlatformChoice === "auto" ? "rgba(145, 70, 255, 0.12)" : "rgba(255, 255, 255, 0.02)",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "16px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                    <div
+                      style={{
+                        width: "42px",
+                        height: "42px",
+                        borderRadius: "12px",
+                        background: "rgba(145, 70, 255, 0.15)",
+                        border: "1px solid rgba(145, 70, 255, 0.3)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "20px",
+                        flexShrink: 0,
+                      }}
+                    >
+                      📡
+                    </div>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                        <span style={{ fontWeight: "800", fontSize: "15px", color: "#f8fafc" }}>Auto Detect</span>
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            fontWeight: "700",
+                            padding: "2px 8px",
+                            borderRadius: "10px",
+                            background: "rgba(168, 85, 247, 0.2)",
+                            border: "1px solid rgba(168, 85, 247, 0.4)",
+                            color: "#c084fc",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                          }}
+                        >
+                          Recommended
+                        </span>
+                      </div>
+                      <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "3px" }}>
+                        Monitors all connected channels (Kick & YouTube) simultaneously
+                      </div>
+                    </div>
+                  </div>
+                  <input
+                    type="radio"
+                    name="platformChoice"
+                    checked={selectedPlatformChoice === "auto"}
+                    onChange={() => setSelectedPlatformChoice("auto")}
+                    style={{ width: "18px", height: "18px", accentColor: "#9146FF", cursor: "pointer", flexShrink: 0 }}
+                  />
+                </div>
+
+                {/* 2. Connected Platform Cards */}
+                {connectedPlatformsList.map((cp) => {
+                  const platName = cp.platform.toLowerCase();
+                  const isKick = platName === "kick";
+                  const isSelected = selectedPlatformChoice === platName;
+                  const brandColor = isKick ? "#53FC18" : "#FF0000";
+                  const brandBg = isKick ? "rgba(83, 252, 24, 0.12)" : "rgba(255, 0, 0, 0.12)";
+                  const brandBorder = isKick ? "rgba(83, 252, 24, 0.3)" : "rgba(255, 0, 0, 0.3)";
+
+                  return (
+                    <div
+                      key={cp.id}
+                      onClick={() => setSelectedPlatformChoice(platName)}
+                      style={{
+                        padding: "16px",
+                        borderRadius: "14px",
+                        border: isSelected ? `1.5px solid ${brandColor}` : "1px solid rgba(255, 255, 255, 0.08)",
+                        background: isSelected ? brandBg : "rgba(255, 255, 255, 0.02)",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "16px",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                        <div
+                          style={{
+                            width: "42px",
+                            height: "42px",
+                            borderRadius: "12px",
+                            background: brandBg,
+                            border: `1px solid ${brandBorder}`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "20px",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {isKick ? "🟢" : "🔴"}
+                        </div>
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span style={{ fontWeight: "800", fontSize: "15px", color: "#f8fafc" }}>
+                              {cp.displayName || cp.username || cp.platform}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: "10px",
+                                fontWeight: "700",
+                                padding: "2px 8px",
+                                borderRadius: "10px",
+                                background: brandBg,
+                                border: `1px solid ${brandBorder}`,
+                                color: isKick ? "#53FC18" : "#ff4d4d",
+                                textTransform: "uppercase",
+                              }}
+                            >
+                              {cp.platform}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "3px", fontFamily: "'JetBrains Mono', monospace" }}>
+                            {cp.username || cp.channelUrl}
+                          </div>
+                        </div>
+                      </div>
+                      <input
+                        type="radio"
+                        name="platformChoice"
+                        checked={isSelected}
+                        onChange={() => setSelectedPlatformChoice(platName)}
+                        style={{ width: "18px", height: "18px", accentColor: brandColor, cursor: "pointer", flexShrink: 0 }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Modal Footer / Action Button */}
+              <div style={{ paddingTop: "8px" }}>
+                <button
+                  onClick={() => executeStartSession(selectedPlatformChoice)}
+                  className="btn btn-primary"
+                  style={{
+                    width: "100%",
+                    padding: "14px 24px",
+                    fontSize: "15px",
+                    fontWeight: "800",
+                    borderRadius: "12px",
+                    background: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)",
+                    color: "#ffffff",
+                    border: "none",
+                    cursor: "pointer",
+                    boxShadow: "0 8px 24px rgba(168, 85, 247, 0.4)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                  }}
+                >
+                  Start Live Monitoring Session →
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
         <div
           style={{
             width: "80px",
@@ -543,6 +841,8 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
 
   // ─── PART 3 & 4: PREMIUM WAITING STATE UX WITH TELEMETRY & TIMELINE ────────
   if (activeSession.status === "waiting") {
+    const branding = getPlatformBranding(activeSession.platform);
+
     return (
       <motion.div
         initial={{ opacity: 0, y: 15 }}
@@ -568,9 +868,9 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
             gap: "8px",
             padding: "6px 14px",
             borderRadius: "20px",
-            background: "rgba(234, 179, 8, 0.1)",
-            border: "1px solid rgba(234, 179, 8, 0.25)",
-            color: "#fde047",
+            background: branding.badgeBg,
+            border: `1px solid ${branding.border}`,
+            color: branding.badgeText,
             fontSize: "12px",
             fontWeight: "700",
             letterSpacing: "0.05em",
@@ -586,19 +886,19 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
               width: "8px",
               height: "8px",
               borderRadius: "50%",
-              background: "#eab308",
-              boxShadow: "0 0 10px #eab308",
+              background: branding.color,
+              boxShadow: `0 0 10px ${branding.color}`,
               animation: "pulse 1.8s infinite",
             }}
           />
-          🟡 Waiting for Stream
+          {branding.icon} {branding.name} Monitoring Active
         </div>
 
         <h2 style={{ fontSize: "28px", fontWeight: "800", color: "#f8fafc", marginBottom: "8px" }}>
-          Monitoring is Active
+          Live Stream Monitor
         </h2>
         <p style={{ fontSize: "14px", color: "#94a3b8", maxWidth: "520px", lineHeight: 1.6, marginBottom: "32px" }}>
-          We'll automatically detect when you go live on <strong style={{ color: "#34d399", textTransform: "uppercase" }}>{activeSession.platform}</strong> and activate your Live Workspace.
+          {branding.waitingText} We'll automatically activate your Live Workspace as soon as broadcast begins.
         </p>
 
         {/* PART 3 & 4: TELEMETRY GRID CARD */}
@@ -607,7 +907,7 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
             width: "100%",
             background: "rgba(13,16,27,0.7)",
             backdropFilter: "blur(16px)",
-            border: "1px solid rgba(255,255,255,0.08)",
+            border: `1px solid ${branding.border}`,
             borderRadius: "16px",
             padding: "24px",
             marginBottom: "28px",
@@ -619,16 +919,16 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
           }}
         >
           <div>
-            <div style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: "600" }}>Monitoring Status</div>
-            <div style={{ fontSize: "14px", fontWeight: "700", color: "#34d399", marginTop: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ fontSize: "10px" }}>●</span> Active
+            <div style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: "600" }}>Monitoring Mode</div>
+            <div style={{ fontSize: "14px", fontWeight: "700", color: branding.badgeText, marginTop: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
+              <span>{branding.icon}</span> {activeSession.monitoringMode === "auto" || activeSession.platform === "auto" ? "Auto Detect" : "Single Platform"}
             </div>
           </div>
 
           <div>
             <div style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: "600" }}>Platform</div>
-            <div style={{ fontSize: "14px", fontWeight: "700", color: "#f8fafc", marginTop: "4px", textTransform: "uppercase" }}>
-              {activeSession.platform}
+            <div style={{ fontSize: "14px", fontWeight: "700", color: "#f8fafc", marginTop: "4px" }}>
+              {branding.name}
             </div>
           </div>
 

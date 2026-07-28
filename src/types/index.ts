@@ -43,6 +43,12 @@ export interface MonitoringSession {
   pollCount?: number;
   messageCount?: number;
 
+  // Multi-Platform UX & Intent Fields
+  monitoringMode?: "single" | "auto" | string;
+  platformDisplayName?: string;
+  channelId?: string;
+  channelName?: string;
+
   // Flexible metadata object for future module extensions
   metadata?: Record<string, any>;
 }

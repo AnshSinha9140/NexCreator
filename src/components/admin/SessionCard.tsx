@@ -57,9 +57,42 @@ export default function SessionCard({ session, onSelect }: SessionCardProps) {
             <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#f1f5f9" }}>
               {session?.creatorName || session?.creatorEmail || "Unknown Creator"}
             </h4>
-            <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b", textTransform: "capitalize", marginTop: "2px", display: "block" }}>
-              {session?.platform || "Platform"} • Session #{(session?.id || "000000").slice(-6)}
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "2px" }}>
+              <span
+                style={{
+                  fontSize: "10px",
+                  fontWeight: "700",
+                  fontFamily: "'JetBrains Mono', monospace",
+                  padding: "2px 6px",
+                  borderRadius: "4px",
+                  textTransform: "uppercase",
+                  background:
+                    (session?.platform || "").toLowerCase() === "kick"
+                      ? "rgba(83, 252, 24, 0.15)"
+                      : (session?.platform || "").toLowerCase() === "youtube"
+                      ? "rgba(255, 0, 0, 0.15)"
+                      : "rgba(145, 70, 255, 0.15)",
+                  color:
+                    (session?.platform || "").toLowerCase() === "kick"
+                      ? "#53FC18"
+                      : (session?.platform || "").toLowerCase() === "youtube"
+                      ? "#ff4d4d"
+                      : "#c084fc",
+                  border: `1px solid ${
+                    (session?.platform || "").toLowerCase() === "kick"
+                      ? "rgba(83, 252, 24, 0.3)"
+                      : (session?.platform || "").toLowerCase() === "youtube"
+                      ? "rgba(255, 0, 0, 0.3)"
+                      : "rgba(145, 70, 255, 0.3)"
+                  }`,
+                }}
+              >
+                {session?.platform || "Platform"}
+              </span>
+              <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b" }}>
+                Session #{(session?.id || "000000").slice(-6)}
+              </span>
+            </div>
           </div>
         </div>
 
