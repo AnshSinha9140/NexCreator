@@ -167,6 +167,18 @@ export class AIProducer {
 
       console.log(`[AIProducer] Persisted insight '${finalInsight.type}' for session '${sessionId}' [Badge: ${finalInsight.sourceBadge}, Provider: ${usedProvider}]`);
 
+      // Publish Timeline Event
+      const { TimelinePublisher } = await import("@/lib/timeline/publisher");
+      TimelinePublisher.publish(
+        sessionId,
+        currentSnapshot.platform as any,
+        "AI_INSIGHT_GENERATED",
+        `🤖 AI Producer Insight: ${finalInsight.type.toUpperCase()}`,
+        finalInsight.recommendation || finalInsight.summary || "Generated real-time AI recommendation.",
+        "success",
+        { insightId: finalInsight.id, provider: usedProvider }
+      ).catch(() => {});
+
       const state = DiagnosticsState.getState();
       DiagnosticsLogger.log("AIProducer", "Persist", `Persisted insight '${finalInsight.type}' using provider ${usedProvider}`);
       DiagnosticsState.updateSubsystem("ai", {

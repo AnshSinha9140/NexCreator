@@ -8,6 +8,7 @@ import { LivePulseTab } from "./dashboard/LivePulseTab";
 import { AIProducerTab } from "./dashboard/AIProducerTab";
 import { TimelineTab } from "./dashboard/TimelineTab";
 import { LiveChatTab } from "./dashboard/LiveChatTab";
+import { HighlightsTab } from "./dashboard/HighlightsTab";
 
 type LiveModuleTab = "pulse" | "producer" | "timeline" | "chat" | "highlights";
 
@@ -1255,28 +1256,7 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
             <LiveChatTab messages={liveMessages} telemetry={telemetryData} isLoading={isLoading} />
           )}
           {activeModule === "highlights" && (
-            <div
-              style={{
-                flex: 1,
-                borderRadius: "14px",
-                border: "1px dashed rgba(255,255,255,0.08)",
-                background: "rgba(255,255,255,0.01)",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "36px",
-                textAlign: "center",
-              }}
-            >
-              <span style={{ fontSize: "36px", marginBottom: "16px" }}>🚀</span>
-              <h3 style={{ fontSize: "16px", fontWeight: "700", color: "#e2e8f0", marginBottom: "8px" }}>
-                Highlights & Clip Candidates
-              </h3>
-              <p style={{ fontSize: "13px", color: "#64748b", maxWidth: "420px", lineHeight: 1.5 }}>
-                AI-detected 15-60s clip candidates for Shorts, TikToks, and Reels will be automatically queued here as live snapshots evaluate hype spikes.
-              </p>
-            </div>
+            <HighlightsTab sessionId={activeSession?.id} />
           )}
         </div>
       </div>

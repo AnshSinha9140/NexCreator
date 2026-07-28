@@ -16,8 +16,26 @@ export async function GET(request: Request) {
     const creatorEmail = authUser.email;
     console.log(`[Auth] Authenticated User: ${creatorEmail} | Creator ID: ${authUser.userId} | Session Valid | Route: GET /api/events`);
 
+    const { searchParams } = new URL(request.url);
+    const sessionId = searchParams.get("sessionId");
+
     const client = await clientPromise;
     const db = client.db("nexcreator");
+
+    if (sessionId) {
+      const timelineEvents = await db
+        .collection("timeline_events")
+        .find({ sessionId })
+        .sort({ timestamp: -1 })
+        .limit(100)
+        .toArray();
+
+      return NextResponse.json({
+        success: true,
+        sessionId,
+        events: timelineEvents,
+      });
+    }
 
     let events = await db.collection("events").find({ creatorEmail: creatorEmail.toLowerCase() }).toArray();
 

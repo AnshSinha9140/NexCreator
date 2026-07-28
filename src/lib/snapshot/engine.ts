@@ -160,6 +160,21 @@ export class SnapshotEngine {
       AIProducer.processSnapshot(snapshotDoc).catch((aiErr) => {
         console.warn(`[SnapshotEngine] AI Producer background trigger warning for session '${sessionId}': ${aiErr.message}`);
       });
+
+      // Trigger Highlight Generator and Timeline Event Publisher
+      const { HighlightGenerator } = await import("@/lib/highlights/generator");
+      const { TimelinePublisher } = await import("@/lib/timeline/publisher");
+
+      HighlightGenerator.evaluateSnapshot(snapshotDoc).catch((e) => {});
+      TimelinePublisher.publish(
+        sessionId,
+        platform as any,
+        "SNAPSHOT_GENERATED",
+        "📸 Pulse Snapshot Generated",
+        `Aggregated ${snapshotMetrics.totalMessages} chat messages (${snapshotMetrics.messagesPerMinute} msgs/min)`,
+        "info",
+        { snapshotId, mpm: snapshotMetrics.totalMessages }
+      ).catch((e) => {});
     } catch (err: any) {
       console.error(`[SnapshotEngine] MongoDB persist error for session '${sessionId}':`, err.message);
       DiagnosticsLogger.error("Snapshot", "Persist", `MongoDB persist error for session '${sessionId}'`, err.message);

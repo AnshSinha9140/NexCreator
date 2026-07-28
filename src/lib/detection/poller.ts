@@ -245,6 +245,27 @@ export class LiveDetectionPoller {
       });
       SnapshotManager.startSnapshotEngine(sessionId);
 
+      // Publish Timeline Events
+      const { TimelinePublisher } = await import("@/lib/timeline/publisher");
+      TimelinePublisher.publish(
+        sessionId,
+        targetPlatform as any,
+        "LIVE_STREAM_DETECTED",
+        `🔴 ${targetPlatform.toUpperCase()} Live Broadcast Detected`,
+        `Stream "${streamMeta.streamTitle || "Live Stream"}" is active with ${streamMeta.viewerCount || 0} live viewers.`,
+        "success",
+        { viewerCount: streamMeta.viewerCount }
+      ).catch(() => {});
+
+      TimelinePublisher.publish(
+        sessionId,
+        targetPlatform as any,
+        "COLLECTOR_CONNECTED",
+        `⚡ ${targetPlatform.toUpperCase()} Chat Collector Connected`,
+        `Ingestion pipeline and Pulse Snapshot Engine enabled for session '${sessionId}'.`,
+        "info"
+      ).catch(() => {});
+
       console.log(`[Daemon] Session '${sessionId}' transitioned to LIVE! Enabled chat ingestion & snapshot engines. ✅`);
       DiagnosticsState.updateSubsystem("detection", { sessionStartTime: new Date().toISOString() });
 
