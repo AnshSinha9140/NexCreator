@@ -160,7 +160,6 @@ export class YouTubeCollector extends BaseCollector {
   }
 
   public getHealthScore(): CollectorHealthScore {
-    const diag = this.stats();
     let score = 100;
 
     const heartbeatAgeSec = this.lastHeartbeatAt
@@ -170,9 +169,13 @@ export class YouTubeCollector extends BaseCollector {
     if (heartbeatAgeSec > 90) score -= 30;
     if (heartbeatAgeSec > 180) score -= 40;
 
-    if (diag.errorsCount > 0) score -= Math.min(diag.errorsCount * 5, 25);
-    if ((diag.quotaUsagePct || 0) > 80) score -= 15;
-    if (diag.backoffState === "EXPONENTIAL_RETRY") score -= 20;
+    const ps = this.pollingEngine?.getStats();
+
+    if (ps) {
+      if (ps.errorsCount > 0) score -= Math.min(ps.errorsCount * 5, 25);
+      if ((ps.quotaTelemetry?.quotaUsagePct || 0) > 80) score -= 15;
+      if (ps.backoffState === "EXPONENTIAL_RETRY") score -= 20;
+    }
 
     score = Math.max(0, Math.min(100, score));
     let category: "Healthy" | "Warning" | "Critical" | "Failed" = "Healthy";
@@ -187,10 +190,10 @@ export class YouTubeCollector extends BaseCollector {
       factors: {
         heartbeatStatus: heartbeatAgeSec > 180 ? "STALE_FAILED" : heartbeatAgeSec > 90 ? "STALE_WARN" : "HEALTHY",
         recoveryCount: this.recoveryCount,
-        latencyMs: diag.apiLatencyMs || 0,
-        errorRate: diag.errorsCount,
-        quotaUsagePct: diag.quotaUsagePct || 0,
-        duplicatePct: diag.duplicatePct || 0,
+        latencyMs: ps?.apiLatencyMs || 0,
+        errorRate: ps?.errorsCount || 0,
+        quotaUsagePct: ps?.quotaTelemetry?.quotaUsagePct || 0,
+        duplicatePct: ps?.cacheStats?.duplicatePct || 0,
       },
     };
   }
