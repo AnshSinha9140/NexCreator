@@ -188,7 +188,7 @@ export class LiveDetectionPoller {
       }
     } else {
       const detector = getPlatformDetector(platform);
-      streamMeta = await detector.getStreamMetadata(channelHandle);
+      streamMeta = await detector.getStreamMetadata(channelHandle, sessionId);
     }
     
     DiagnosticsLogger.log("Detection", "Poll", `Poll completed. Current status: ${sessionDoc.status}. Viewer count: ${streamMeta.viewerCount || 0}`);

@@ -14,6 +14,6 @@ export interface StreamMetadata {
 export interface PlatformDetector {
   platform: SupportedPlatform;
   checkLiveStatus(usernameOrUrl: string): Promise<boolean>;
-  getStreamMetadata(usernameOrUrl: string): Promise<StreamMetadata>;
+  getStreamMetadata(usernameOrUrl: string, sessionId?: string): Promise<StreamMetadata>;
   getViewerCount(usernameOrUrl: string): Promise<number>;
 }

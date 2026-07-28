@@ -282,3 +282,55 @@ export async function getVideoDetailsAndComments(url: string) {
     comments
   };
 }
+
+const channelIdCache = new Map<string, string>();
+
+export async function resolveYoutubeChannelId(usernameOrUrl: string): Promise<string | null> {
+  const trimmed = (usernameOrUrl || "").trim();
+  if (!trimmed) return null;
+
+  if (channelIdCache.has(trimmed)) {
+    return channelIdCache.get(trimmed)!;
+  }
+
+  // Case 1: Direct channel ID format
+  if (trimmed.includes("youtube.com/channel/")) {
+    const channelId = trimmed.split("youtube.com/channel/")[1]?.split("/")[0]?.split("?")[0];
+    if (channelId) {
+      channelIdCache.set(trimmed, channelId);
+      return channelId;
+    }
+  }
+
+  // Case 2: Already a raw UC channel ID (e.g. UCxxxxxxxx)
+  if (trimmed.startsWith("UC") && trimmed.length >= 20 && !trimmed.includes("/")) {
+    channelIdCache.set(trimmed, trimmed);
+    return trimmed;
+  }
+
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    let handle = trimmed;
+    if (trimmed.includes("youtube.com/@")) {
+      handle = "@" + trimmed.split("youtube.com/@")[1]?.split("/")[0]?.split("?")[0];
+    } else if (!handle.startsWith("@") && !handle.includes("/")) {
+      handle = "@" + handle;
+    }
+
+    const apiUrl = `https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${encodeURIComponent(handle)}&key=${apiKey}`;
+    const res = await fetch(apiUrl);
+    const data = await res.json();
+
+    const resolvedId = data.items?.[0]?.id || null;
+    if (resolvedId) {
+      channelIdCache.set(trimmed, resolvedId);
+      channelIdCache.set(handle, resolvedId);
+    }
+    return resolvedId;
+  } catch (err) {
+    console.warn(`[resolveYoutubeChannelId] Resolution failed for '${usernameOrUrl}':`, err);
+    return null;
+  }
+}
