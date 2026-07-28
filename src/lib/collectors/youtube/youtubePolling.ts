@@ -36,7 +36,7 @@ export class YouTubePollingEngine {
   private pollTimeoutId?: NodeJS.Timeout;
 
   // Adaptive Timing & Recovery State
-  private currentIntervalMs: number = 5000;
+  private currentIntervalMs: number = 10000;
   private consecutiveErrors: number = 0;
   private consecutiveEmptyPolls: number = 0;
   private isWarmUpPhase: boolean = true;
@@ -145,7 +145,7 @@ export class YouTubePollingEngine {
     this.stats.lastHeartbeatAt = nowIso;
 
     try {
-      let url = `https://www.googleapis.com/youtube/v3/liveChat/messages?part=snippet,authorDetails&liveChatId=${encodeURIComponent(
+      let url = `https://www.googleapis.com/youtube/v3/liveChat/messages?part=snippet,authorDetails&maxResults=200&liveChatId=${encodeURIComponent(
         this.activeLiveChatId
       )}&key=${encodeURIComponent(this.apiKey)}`;
 
@@ -218,8 +218,8 @@ export class YouTubePollingEngine {
         nextDelay = rawRecommendedInterval;
       }
 
-      // Clamp target interval: Min 5,000 ms, Max 60,000 ms
-      nextDelay = Math.max(5000, Math.min(nextDelay, 60000));
+      // Clamp target interval: Min 10,000 ms (10s), Max 60,000 ms (60s)
+      nextDelay = Math.max(10000, Math.min(nextDelay, 60000));
       this.currentIntervalMs = nextDelay;
 
       // Deduplication & Parsing Loop
