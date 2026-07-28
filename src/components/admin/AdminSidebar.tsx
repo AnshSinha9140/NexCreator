@@ -82,6 +82,16 @@ const navItems: NavItem[] = [
     ),
   },
   {
+    name: "Quota & Capacity",
+    href: "/admin/quota",
+    badge: { text: "PREDICTIVE", cls: "admin-nav-badge admin-nav-badge-realtime" },
+    icon: (a) => (
+      <svg className={ICON_CLS} fill="none" viewBox="0 0 24 24" stroke={a ? "#c084fc" : "currentColor"} strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+    ),
+  },
+  {
     name: "Feature Flags",
     href: "/admin/feature-flags",
     icon: (a) => (

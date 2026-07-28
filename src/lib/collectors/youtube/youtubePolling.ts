@@ -218,8 +218,9 @@ export class YouTubePollingEngine {
         nextDelay = rawRecommendedInterval;
       }
 
-      // Clamp target interval: Min 10,000 ms (10s), Max 60,000 ms (60s)
-      nextDelay = Math.max(10000, Math.min(nextDelay, 60000));
+      // Adaptive Quota Clamping: Dynamic min delay based on daily quota usage tiers (10s, 15s, 30s, 60s)
+      const adaptiveMinInterval = this.quotaManager.getAdaptiveTargetInterval();
+      nextDelay = Math.max(adaptiveMinInterval, Math.min(nextDelay, 60000));
       this.currentIntervalMs = nextDelay;
 
       // Deduplication & Parsing Loop

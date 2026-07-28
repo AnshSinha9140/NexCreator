@@ -105,6 +105,14 @@ export const POST = safeApiHandler(async (request: Request) => {
     const monitoringMode = platform === "auto" ? "auto" : "single";
     const platformDisplayName = platform === "auto" ? "Auto Detect" : platform === "kick" ? "Kick" : platform === "youtube" ? "YouTube" : platform;
 
+    // PART 3 — Admission Control Check
+    const { AdmissionController } = await import("@/lib/collectors/youtube/admissionController");
+    const admission = await AdmissionController.evaluateSessionAdmission(platform);
+
+    if (!admission.allowed) {
+      return createApiErrorResponse(admission.reason, "QUOTA_BLOCKED", 429);
+    }
+
     // Check existing active monitoring session for user
     let session = await db.collection("monitoring_sessions").findOne({
       userId: authUser.email,

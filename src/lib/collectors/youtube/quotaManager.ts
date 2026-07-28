@@ -112,6 +112,23 @@ export class QuotaManager {
     };
   }
 
+  /**
+   * PART 4 — Adaptive Quota Protection:
+   * Returns target polling interval in ms based on daily quota consumption tier:
+   * - Quota < 70%: 10,000 ms (Normal)
+   * - Quota 70-85%: 15,000 ms (Slightly Slower)
+   * - Quota 85-95%: 30,000 ms (Aggressive Conservation)
+   * - Quota > 95%: 60,000 ms (Emergency Mode)
+   */
+  public getAdaptiveTargetInterval(): number {
+    this.checkDailyReset();
+    const usagePct = (this.dailyRequestsCount / this.dailyQuotaLimit) * 100;
+    if (usagePct >= 95) return 60000;
+    if (usagePct >= 85) return 30000;
+    if (usagePct >= 70) return 15000;
+    return 10000;
+  }
+
   private checkDailyReset(): void {
     const todayUTC = new Date().getUTCDate();
     if (todayUTC !== this.lastResetDay) {
