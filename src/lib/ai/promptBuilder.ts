@@ -19,6 +19,13 @@ export class PromptBuilder {
         topEmojis: currentSnapshot.metrics.topEmojis.slice(0, 5),
         topWords: currentSnapshot.metrics.topWords.slice(0, 5),
       },
+      analytics: currentSnapshot.analytics || {
+        velocity: currentSnapshot.metrics.messagesPerMinute,
+        sentiment: 50,
+        engagement: 0,
+        momentum: 50,
+        hypeScore: 0,
+      },
       viewerMetrics: currentSnapshot.viewerMetrics,
       engagementSignals: currentSnapshot.engagementSignals,
       representativeMessages: currentSnapshot.representativeMessages.map(m => ({

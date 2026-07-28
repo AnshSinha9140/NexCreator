@@ -112,6 +112,25 @@ export class SnapshotEngine {
       SNAPSHOT_CONFIG.MAX_REPRESENTATIVE_MESSAGES
     );
 
+    // Query previous snapshot for deltas/momentum
+    let previousSnapshot: PulseSnapshot | null = null;
+    try {
+      const client = await clientPromise;
+      const db = client.db("nexcreator");
+      previousSnapshot = (await db
+        .collection("pulse_snapshots")
+        .findOne({ sessionId }, { sort: { createdAt: -1 } })) as any;
+    } catch (e) {}
+
+    // PART 2 — Calculate Canonical Analytics Engine metrics
+    const { CanonicalAnalyticsEngine } = await import("@/lib/analytics/engine");
+    const analytics = CanonicalAnalyticsEngine.compute({
+      messages,
+      viewers: currentViewerCount || 0,
+      streamDurationSeconds: durationSeconds,
+      previousAnalytics: previousSnapshot?.analytics || null,
+    });
+
     // Compute rule-based engagement signals
     const engagementSignals = SNAPSHOT_CONFIG.ENABLE_RULE_SIGNALS
       ? computeEngagementSignals(snapshotMetrics, durationSeconds)
@@ -134,6 +153,7 @@ export class SnapshotEngine {
       metrics: snapshotMetrics,
       representativeMessages,
       engagementSignals,
+      analytics,
       isFinalPartial,
       createdAt: now.toISOString(),
     };

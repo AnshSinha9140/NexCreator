@@ -62,17 +62,17 @@ export const LivePulseTab: React.FC<LivePulseTabProps> = ({
   }
 
   const latest = snapshots[snapshots.length - 1];
+  const analytics = latest.analytics;
   const metrics = latest.metrics || {};
-  const viewerMetrics = latest.viewerMetrics || {};
-  const mAny = metrics as any;
+  const viewerMetrics = (latest.viewerMetrics || {}) as any;
 
-  // Formatted Scores
-  const viewerCount = currentSession?.viewerCount || (viewerMetrics as any).averageViewerCount || mAny.viewerCount || 0;
-  const velocity = mAny.chatVelocity || metrics.messagesPerMinute || 0;
-  const engagementScore = Math.round((mAny.engagementScore || mAny.engagementVelocity || 0) * 100);
-  const sentimentScore = Math.round(((mAny.sentimentScore || mAny.overallSentiment || 0) + 1) * 50);
-  const momentumScore = Math.round((mAny.momentumScore || 0) * 100);
-  const hypeScore = Math.round((mAny.hypeScore || mAny.hypeIndex || 0) * 100);
+  // Formatted Scores from Canonical Analytics Engine (Single Source of Truth)
+  const viewerCount = currentSession?.viewerCount || analytics?.viewers || viewerMetrics.averageViewerCount || 0;
+  const velocity = analytics?.velocity ?? (metrics.messagesPerMinute || 0);
+  const engagementScore = analytics?.engagement ?? 0;
+  const sentimentScore = analytics?.sentiment ?? 50;
+  const momentumScore = analytics?.momentum ?? 50;
+  const hypeScore = analytics?.hypeScore ?? 0;
 
   const snapshotTime = latest.windowEnd
     ? new Date(latest.windowEnd).toLocaleTimeString()

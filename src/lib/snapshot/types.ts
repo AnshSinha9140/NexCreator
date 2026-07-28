@@ -1,4 +1,5 @@
 import { SupportedPlatform } from "@/types";
+import { CanonicalAnalytics } from "@/lib/analytics/engine";
 
 export type RepresentativeMessageCategory =
   | "question"
@@ -75,6 +76,7 @@ export interface PulseSnapshot {
   metrics: PulseSnapshotMetrics;
   representativeMessages: RepresentativeMessage[];
   engagementSignals: EngagementSignal[];
+  analytics?: CanonicalAnalytics;
   isFinalPartial: boolean;
   createdAt: Date | string;
 }

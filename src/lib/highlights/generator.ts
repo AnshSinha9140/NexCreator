@@ -24,41 +24,54 @@ export interface HighlightCandidate {
 
 export class HighlightGenerator {
   public static async evaluateSnapshot(snapshot: PulseSnapshot): Promise<HighlightCandidate | null> {
-    const { sessionId, creatorId, platform, metrics, viewerMetrics, representativeMessages, windowStart, windowEnd } = snapshot;
+    const { sessionId, creatorId, platform, metrics, viewerMetrics, representativeMessages, windowStart, windowEnd, analytics } = snapshot;
 
     let isSpike = false;
     let triggerReason = "";
     let type: HighlightCandidate["type"] = "velocity_spike";
     let score = 75;
 
-    const mpm = metrics.messagesPerMinute || 0;
-    const viewers = viewerMetrics?.averageViewerCount || 0;
-    const questions = metrics.questionCount || 0;
+    const mpm = analytics?.velocity ?? (metrics.messagesPerMinute || 0);
+    const momentum = analytics?.momentum ?? 50;
+    const engagement = analytics?.engagement ?? 0;
+    const hypeScore = analytics?.hypeScore ?? 0;
+    const viewers = analytics?.viewers || viewerMetrics?.averageViewerCount || 0;
+    const questions = analytics?.questionCount ?? (metrics.questionCount || 0);
 
-    if (mpm > 20) {
+    if (mpm >= 15) {
       isSpike = true;
       type = "velocity_spike";
-      triggerReason = `Chat Velocity Spike: High activity at ${mpm} messages/min.`;
-      score = Math.min(98, 80 + Math.floor(mpm / 5));
-    } else if (questions >= 5) {
+      triggerReason = `Chat Velocity Spike: High activity at ${mpm} msgs/min.`;
+      score = Math.min(98, 80 + Math.floor(mpm / 4));
+    } else if (momentum >= 65) {
+      isSpike = true;
+      type = "momentum_spike";
+      triggerReason = `Audience Momentum Spike: Dynamic acceleration at ${momentum}/100.`;
+      score = Math.min(95, 75 + Math.floor(momentum / 5));
+    } else if (questions >= 3) {
       isSpike = true;
       type = "question_surge";
       triggerReason = `Audience Curiosity Surge: ${questions} questions asked in window.`;
       score = 85;
-    } else if (viewers > 500 && mpm > 10) {
+    } else if (hypeScore >= 50) {
       isSpike = true;
-      type = "viewer_spike";
-      triggerReason = `High Engagement: ${viewers.toLocaleString()} live viewers active in chat.`;
-      score = 88;
-    } else if (metrics.totalMessages >= 10) {
-      // Baseline candidate for demonstration during test streams
+      type = "hype_spike";
+      triggerReason = `Hype Surge Detected: Hype Score reached ${hypeScore}%.`;
+      score = Math.min(98, 82 + Math.floor(hypeScore / 6));
+    } else if (metrics.totalMessages >= 5) {
+      // Baseline candidate for demonstration
       isSpike = true;
       type = "momentum_spike";
       triggerReason = `Stream Momentum Building: ${metrics.totalMessages} chat messages processed.`;
       score = 78;
     }
 
-    if (!isSpike) return null;
+    if (!isSpike) {
+      console.log(`[HighlightGenerator] ⏭️ Snapshot '${snapshot.snapshotId}' evaluated: REJECTED (Velocity: ${mpm}, Momentum: ${momentum}, Hype: ${hypeScore})`);
+      return null;
+    }
+
+    console.log(`[HighlightGenerator] ✅ Snapshot '${snapshot.snapshotId}' evaluated: ACCEPTED (${triggerReason})`);
 
     const highlightDoc: HighlightCandidate = {
       id: `hl_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,

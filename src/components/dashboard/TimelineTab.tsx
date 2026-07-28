@@ -69,13 +69,15 @@ export const TimelineTab: React.FC<TimelineTabProps> = ({
   // 2. Pulse Snapshots Events
   snapshots.forEach((snap, idx) => {
     const time = snap.windowEnd || snap.windowStart || snap.createdAt;
-    const isSpike = (snap.metrics?.chatVelocity || 0) > 20 || (snap.metrics?.momentumScore || 0) > 0.7;
+    const velocity = snap.analytics?.velocity ?? snap.metrics?.messagesPerMinute ?? 0;
+    const momentum = snap.analytics?.momentum ?? 50;
+    const isSpike = velocity > 20 || momentum > 70;
 
     events.push({
       id: snap.id || `snap-${idx}`,
       timestamp: time || new Date().toISOString(),
       title: isSpike ? "Viewer & Momentum Spike" : "Pulse Snapshot Generated",
-      description: `Velocity: ${snap.metrics?.chatVelocity || 0} msg/min | Viewers: ${snap.metrics?.viewerCount || session?.viewerCount || 0}`,
+      description: `Velocity: ${velocity} msgs/min | Viewers: ${snap.analytics?.viewers || snap.viewerMetrics?.averageViewerCount || session?.viewerCount || 0}`,
       category: isSpike ? "alert" : "snapshot",
       icon: isSpike ? "⚡" : "📈",
       color: isSpike ? "#fde047" : "#60a5fa",
