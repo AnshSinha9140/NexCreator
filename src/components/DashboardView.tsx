@@ -10,6 +10,9 @@ import { TimelineTab } from "./dashboard/TimelineTab";
 import { LiveChatTab } from "./dashboard/LiveChatTab";
 import { HighlightsTab } from "./dashboard/HighlightsTab";
 import { CompletedSessionSummaryCard } from "./dashboard/CompletedSessionSummaryCard";
+import { CompletedWorkspace } from "./dashboard/completed/CompletedWorkspace";
+import { LiveWorkspace } from "./dashboard/LiveWorkspace";
+import { LiveSessionProvider } from "@/context/LiveSessionContext";
 
 type LiveModuleTab = "pulse" | "producer" | "timeline" | "chat" | "highlights";
 
@@ -245,81 +248,6 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
     };
   }, [activeSession?.id, activeSession?.status]);
 
-  // ─── PART 2: REAL-TIME WORKSPACE DATA POLLING ──────────────────────────────
-  const activeSessionId = activeSession?.id;
-  const activeSessionStatus = activeSession?.status;
-
-  useEffect(() => {
-    if (!activeSessionId || !activeSessionStatus || !["waiting", "starting", "live", "paused"].includes(activeSessionStatus)) {
-      return;
-    }
-
-    let isMounted = true;
-
-    // 1. Ingestion Telemetry & Messages (Every 2s)
-    const fetchIngestion = async () => {
-      try {
-        const res = await fetch(`/api/ingestion?sessionId=${encodeURIComponent(activeSessionId)}`);
-        if (res.ok && isMounted) {
-          const data = await res.json();
-          if (data.success) {
-            setTelemetryData(data.telemetry);
-            if (data.messages) setLiveMessages(data.messages);
-          }
-        }
-      } catch (e) {
-        console.warn("[Dashboard] Ingestion fetch error:", e);
-      }
-    };
-
-    // 2. Pulse Snapshots (Every 10s)
-    const fetchSnapshots = async () => {
-      try {
-        const res = await fetch(`/api/snapshots?sessionId=${encodeURIComponent(activeSessionId)}`);
-        if (res.ok && isMounted) {
-          const data = await res.json();
-          if (data.success && Array.isArray(data.snapshots)) {
-            setSnapshots(data.snapshots);
-          }
-        }
-      } catch (e) {
-        console.warn("[Dashboard] Snapshots fetch error:", e);
-      }
-    };
-
-    // 3. AI Insights (Every 10s)
-    const fetchInsights = async () => {
-      try {
-        const res = await fetch(`/api/ai/insights?sessionId=${encodeURIComponent(activeSessionId)}`);
-        if (res.ok && isMounted) {
-          const data = await res.json();
-          if (data.success && Array.isArray(data.insights)) {
-            setInsights(data.insights);
-          }
-        }
-      } catch (e) {
-        console.warn("[Dashboard] Insights fetch error:", e);
-      }
-    };
-
-    // Initial fetch
-    fetchIngestion();
-    fetchSnapshots();
-    fetchInsights();
-
-    // Setup polling timers
-    const ingestionTimer = setInterval(fetchIngestion, 2000);
-    const snapshotsTimer = setInterval(fetchSnapshots, 10000);
-    const insightsTimer = setInterval(fetchInsights, 10000);
-
-    return () => {
-      isMounted = false;
-      clearInterval(ingestionTimer);
-      clearInterval(snapshotsTimer);
-      clearInterval(insightsTimer);
-    };
-  }, [activeSessionId, activeSessionStatus]);
-
   const handleUpdateInsight = useCallback(async (id: string, updates: any) => {
     try {
       setInsights((prev) =>
@@ -335,40 +263,7 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
     }
   }, []);
 
-  // ─── PART 5: LOCAL BROWSER COUNTDOWN TICKER (0 NETWORK REQUESTS) ─────────────
-  useEffect(() => {
-    if (activeSession && ["waiting", "starting", "live"].includes(activeSession.status)) {
-      const updateLocalCountdown = () => {
-        if (!lastPolledAt) {
-          setLastCheckedSeconds(0);
-          setNextCheckSeconds(10);
-          return;
-        }
 
-        const now = Date.now();
-        const polledTime = new Date(lastPolledAt).getTime();
-        const elapsedSeconds = Math.max(0, Math.floor((now - polledTime) / 1000));
-        
-        setLastCheckedSeconds(elapsedSeconds);
-        setNextCheckSeconds(Math.max(0, 10 - (elapsedSeconds % 10)));
-      };
-
-      updateLocalCountdown();
-      countdownTimerRef.current = setInterval(updateLocalCountdown, 1000);
-    } else {
-      if (countdownTimerRef.current) {
-        clearInterval(countdownTimerRef.current);
-        countdownTimerRef.current = null;
-      }
-    }
-
-    return () => {
-      if (countdownTimerRef.current) {
-        clearInterval(countdownTimerRef.current);
-        countdownTimerRef.current = null;
-      }
-    };
-  }, [activeSession?.id, activeSession?.status, lastPolledAt]);
 
   const executeStartSession = useCallback(async (targetPlatformChoice?: string) => {
     setErrorState(null);
@@ -586,6 +481,100 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
       </motion.div>
     );
   };
+
+
+  // ─── COMPLETED WORKSPACE RENDER (SPRINT 17.1 ARCHITECTURE) ───────────────────
+  if (activeSession && activeSession.status === "completed") {
+    return (
+      <CompletedWorkspace
+        session={activeSession}
+        sessionSummary={sessionSummary}
+        snapshots={snapshots}
+        insights={insights}
+        messages={liveMessages}
+        onStartNewMonitoring={() => {
+          setActiveSession(null);
+          setSessionSummary(null);
+          setErrorState(null);
+        }}
+      />
+    );
+  }
+
+  // ─── LIVE WORKSPACE RENDER (SPRINT 17.3 SINGLE-SOURCE ARCHITECTURE) ─────────
+  if (activeSession && ["waiting", "starting", "live", "paused", "offline_pending"].includes(activeSession.status)) {
+    return (
+      <LiveSessionProvider sessionId={activeSession.id} pollingIntervalMs={5000}>
+        {renderErrorBanner()}
+        <LiveWorkspace
+          isStopping={isStopping}
+          onStopSession={handleStopSession}
+          onUpdateInsight={handleUpdateInsight}
+        />
+
+        {/* Stopping Progress Overlay */}
+        <AnimatePresence>
+          {isStopping && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: "rgba(10, 14, 26, 0.85)",
+                backdropFilter: "blur(16px)",
+                zIndex: 9999,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              <div
+                style={{
+                  width: "420px",
+                  padding: "32px",
+                  borderRadius: "20px",
+                  background: "rgba(13, 16, 27, 0.95)",
+                  border: "1px solid rgba(168, 85, 247, 0.3)",
+                  boxShadow: "0 25px 50px rgba(0,0,0,0.6)",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  textAlign: "center",
+                  gap: "20px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "56px",
+                    height: "56px",
+                    borderRadius: "50%",
+                    border: "3px solid rgba(168, 85, 247, 0.2)",
+                    borderTopColor: "#c084fc",
+                    animation: "spin 1s linear infinite",
+                  }}
+                />
+                <div>
+                  <h3 style={{ margin: "0 0 6px", fontSize: "18px", fontWeight: "800", color: "#f8fafc" }}>
+                    Finalizing Monitoring Session...
+                  </h3>
+                  <p style={{ margin: 0, fontSize: "13px", color: "#94a3b8", fontFamily: "monospace" }}>
+                    {stoppingStep}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </LiveSessionProvider>
+    );
+  }
 
   // ─── 1. LOADING INITIAL TELEMETRY STATE ────────────────────────────────────
   if (isLoading) {
@@ -1162,374 +1151,79 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
     );
   }
 
-  // ─── PART 4: MULTI-PANEL LIVE WORKSPACE (STREAM ACTIVE STATE) ───────────────────
+  // ─── COMPLETED WORKSPACE RENDER (SPRINT 17.1 ARCHITECTURE) ───────────────────
+  if (activeSession && activeSession.status === "completed") {
+    return (
+      <CompletedWorkspace
+        session={activeSession}
+        sessionSummary={sessionSummary}
+        snapshots={snapshots}
+        insights={insights}
+        messages={liveMessages}
+        onStartNewMonitoring={() => {
+          setActiveSession(null);
+          setSessionSummary(null);
+          setErrorState(null);
+        }}
+      />
+    );
+  }
+
+
+
+  // ─── IDLE WORKSPACE RENDER (START MONITORING PROMPT) ──────────────────────
   return (
     <div
       style={{
-        display: "grid",
-        gridTemplateColumns: "220px 1fr 300px",
-        gap: "16px",
-        height: "calc(100vh - 110px)",
-        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "75vh",
+        gap: "20px",
+        fontFamily: "'Inter', sans-serif",
       }}
     >
-      {/* ─── LEFT PANEL: LIVE MODULE NAVIGATION ─────────────────────────── */}
+      {renderErrorBanner()}
       <div
         style={{
-          background: "rgba(13,16,27,0.7)",
-          backdropFilter: "blur(16px)",
-          border: "1px solid rgba(255,255,255,0.07)",
-          borderRadius: "16px",
-          padding: "16px 12px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "6px",
+          padding: "40px",
+          borderRadius: "24px",
+          background: "rgba(13, 16, 27, 0.85)",
+          backdropFilter: "blur(20px)",
+          border: "1px solid rgba(255, 255, 255, 0.08)",
+          textAlign: "center",
+          maxWidth: "480px",
         }}
       >
-        <div
+        <div style={{ fontSize: "40px", marginBottom: "16px" }}>📡</div>
+        <h2 style={{ fontSize: "22px", fontWeight: "900", color: "#f8fafc", margin: "0 0 8px" }}>
+          Creator Control Workspace
+        </h2>
+        <p style={{ fontSize: "14px", color: "#94a3b8", margin: "0 0 24px" }}>
+          Initialize live telemetry monitoring or view auto-detected stream reports.
+        </p>
+
+        <button
+          onClick={handleStartSession}
+          disabled={startStep !== "idle"}
           style={{
-            padding: "0 8px 8px",
-            fontSize: "10px",
-            fontWeight: "700",
-            color: "#475569",
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-            fontFamily: "'JetBrains Mono', monospace",
+            width: "100%",
+            padding: "14px",
+            borderRadius: "12px",
+            background: "linear-gradient(135deg, #a855f7, #6366f1)",
+            border: "none",
+            color: "#ffffff",
+            fontSize: "14px",
+            fontWeight: "800",
+            cursor: startStep !== "idle" ? "not-allowed" : "pointer",
+            boxShadow: "0 4px 20px rgba(168, 85, 247, 0.3)",
           }}
         >
-          Live Modules
-        </div>
-
-        {LIVE_NAV.map((mod) => {
-          const isActive = activeModule === mod.id;
-          return (
-            <button
-              key={mod.id}
-              onClick={() => setActiveModule(mod.id)}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                borderRadius: "10px",
-                border: isActive ? "1px solid rgba(168,85,247,0.3)" : "1px solid transparent",
-                background: isActive ? "rgba(168,85,247,0.12)" : "transparent",
-                color: isActive ? "#c084fc" : "#64748b",
-                fontSize: "13px",
-                fontWeight: isActive ? "700" : "500",
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                cursor: "pointer",
-                textAlign: "left",
-                transition: "all 0.15s ease",
-              }}
-              aria-label={`Switch to module ${mod.name}`}
-            >
-              <span style={{ fontSize: "14px" }}>{mod.icon}</span>
-              <span>{mod.name}</span>
-            </button>
-          );
-        })}
+          {startStep !== "idle" ? "Initializing Telemetry..." : "🚀 Start Monitoring Session"}
+        </button>
       </div>
-
-      {/* ─── CENTER PANEL: SELECTED MODULE WORKSPACE CONTENT ───────────── */}
-      <div
-        style={{
-          background: "rgba(13,16,27,0.7)",
-          backdropFilter: "blur(16px)",
-          border: "1px solid rgba(255,255,255,0.07)",
-          borderRadius: "16px",
-          padding: "24px",
-          display: "flex",
-          flexDirection: "column",
-          overflowY: "auto",
-        }}
-      >
-        {/* Sprint 17: Post-Stream Session Summary Banner */}
-        {activeSession?.status === "completed" && (
-          <CompletedSessionSummaryCard
-            summary={sessionSummary}
-            session={activeSession}
-            onStartNewMonitoring={() => {
-              setActiveSession(null);
-              setSessionSummary(null);
-            }}
-            onNavigateTab={(tab) => setActiveModule(tab as any)}
-          />
-        )}
-
-        {/* Module Header */}
-        <div style={{ marginBottom: "20px" }}>
-          <h2 style={{ fontSize: "20px", fontWeight: "800", color: "#f8fafc", display: "flex", alignItems: "center", gap: "10px" }}>
-            <span>{LIVE_NAV.find((m) => m.id === activeModule)?.icon}</span>
-            <span>{LIVE_NAV.find((m) => m.id === activeModule)?.name}</span>
-          </h2>
-          <p style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
-            {LIVE_NAV.find((m) => m.id === activeModule)?.desc}
-          </p>
-        </div>
-
-        {/* Module Content Container */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-          {activeModule === "pulse" && (
-            <LivePulseTab snapshots={snapshots} currentSession={activeSession} isLoading={isLoading} />
-          )}
-          {activeModule === "producer" && (
-            <AIProducerTab
-              insights={insights}
-              isLoading={isLoading}
-              onUpdateInsight={handleUpdateInsight}
-              summary={sessionSummary}
-              sessionStatus={activeSession?.status}
-            />
-          )}
-          {activeModule === "timeline" && (
-            <TimelineTab session={activeSession} snapshots={snapshots} insights={insights} isLoading={isLoading} />
-          )}
-          {activeModule === "chat" && (
-            <LiveChatTab messages={liveMessages} telemetry={telemetryData} isLoading={isLoading} />
-          )}
-          {activeModule === "highlights" && (
-            <HighlightsTab sessionId={activeSession?.id} />
-          )}
-        </div>
-      </div>
-
-      {/* ─── RIGHT PANEL: REAL DETECTED SESSION TELEMETRY ─────────────────── */}
-      <div
-        style={{
-          background: "rgba(13,16,27,0.7)",
-          backdropFilter: "blur(16px)",
-          border: "1px solid rgba(255,255,255,0.07)",
-          borderRadius: "16px",
-          padding: "20px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "18px",
-        }}
-      >
-        <div
-          style={{
-            fontSize: "10px",
-            fontWeight: "700",
-            color: "#475569",
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-            fontFamily: "'JetBrains Mono', monospace",
-          }}
-        >
-          Session Telemetry
-        </div>
-
-        {/* Live / Offline Pending Status Badge */}
-        {activeSession?.status === "offline_pending" ? (
-          <div
-            style={{
-              padding: "12px",
-              borderRadius: "12px",
-              background: "rgba(234, 179, 8, 0.1)",
-              border: "1px solid rgba(234, 179, 8, 0.3)",
-              display: "flex",
-              flexDirection: "column",
-              gap: "4px",
-            }}
-            role="status"
-            aria-live="polite"
-          >
-            <div style={{ fontSize: "12px", fontWeight: "700", color: "#fde047", display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#eab308", boxShadow: "0 0 8px #eab308" }} />
-              RECONNECTING (OFFLINE PENDING)
-            </div>
-            <div style={{ fontSize: "11px", color: "#fef08a", lineHeight: 1.4 }}>
-              Stream appears to be offline. Waiting for reconnection before ending monitoring ({activeSession.metadata?.remainingGraceSeconds ? `${Math.floor(activeSession.metadata.remainingGraceSeconds / 60)}m ${activeSession.metadata.remainingGraceSeconds % 60}s` : "5m 00s"} remaining).
-            </div>
-          </div>
-        ) : (
-          <div
-            style={{
-              padding: "12px",
-              borderRadius: "12px",
-              background: "rgba(16,185,129,0.08)",
-              border: "1px solid rgba(16,185,129,0.2)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-            role="status"
-            aria-live="polite"
-          >
-            <span style={{ fontSize: "12px", fontWeight: "700", color: "#34d399", display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#10b981", boxShadow: "0 0 8px #10b981" }} />
-              LIVE STREAM DETECTED
-            </span>
-            <span style={{ fontSize: "10px", color: "#10b981", fontFamily: "monospace" }}>
-              {activeSession?.status.toUpperCase() || "LIVE"}
-            </span>
-          </div>
-        )}
-
-        {/* Stream Title */}
-        {activeSession?.streamTitle && (
-          <div>
-            <div style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase", fontFamily: "monospace" }}>Stream Title</div>
-            <div style={{ fontSize: "13px", fontWeight: "700", color: "#f8fafc", marginTop: "2px" }}>{activeSession.streamTitle}</div>
-          </div>
-        )}
-
-        {/* PART 4: TELEMETRY METRICS LIST */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "12px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ color: "#64748b" }}>Detection Engine:</span>
-            <span style={{ color: "#34d399", fontWeight: "600" }}>Running</span>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ color: "#64748b" }}>Backend Poller:</span>
-            <span style={{ color: "#34d399", fontWeight: "600" }}>Connected</span>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ color: "#64748b" }}>Monitoring Session:</span>
-            <span style={{ color: activeSession?.status === "offline_pending" ? "#eab308" : "#34d399", fontWeight: "600" }}>
-              {activeSession?.status === "offline_pending" ? "Offline Pending 🟡" : "Healthy ●"}
-            </span>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ color: "#64748b" }}>Platform:</span>
-            <span style={{ color: "#f8fafc", fontWeight: "600", textTransform: "uppercase" }}>
-              {activeSession?.platform || "KICK"}
-            </span>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ color: "#64748b" }}>Category:</span>
-            <span style={{ color: "#c084fc", fontWeight: "600" }}>
-              {activeSession?.streamCategory || "Gaming"}
-            </span>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ color: "#64748b" }}>Live Viewers:</span>
-            <span style={{ color: typeof activeSession?.viewerCount === "number" && activeSession.viewerCount > 0 ? "#34d399" : "#94a3b8", fontWeight: "bold", fontFamily: "monospace" }}>
-              {typeof activeSession?.viewerCount === "number" && activeSession.viewerCount > 0
-                ? activeSession.viewerCount.toLocaleString()
-                : "—"}
-            </span>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ color: "#64748b" }}>Peak Viewers:</span>
-            <span style={{ color: typeof activeSession?.peakViewerCount === "number" && activeSession.peakViewerCount > 0 ? "#c084fc" : "#94a3b8", fontWeight: "bold", fontFamily: "monospace" }}>
-              {typeof activeSession?.peakViewerCount === "number" && activeSession.peakViewerCount > 0
-                ? activeSession.peakViewerCount.toLocaleString()
-                : "—"}
-            </span>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ color: "#64748b" }}>Duration:</span>
-            <span style={{ color: "#f8fafc", fontWeight: "600", fontFamily: "monospace" }}>
-              {formatDuration(activeSession)}
-            </span>
-          </div>
-
-          {/* PART 5: LOCAL COUNTDOWN TICKER DISPLAY */}
-          <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "10px", marginTop: "4px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}>
-              <span style={{ color: "#64748b" }}>Last Checked:</span>
-              <span style={{ color: "#cbd5e1", fontFamily: "monospace" }}>{lastCheckedSeconds}s ago</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", marginTop: "4px" }}>
-              <span style={{ color: "#64748b" }}>Next Check:</span>
-              <span style={{ color: "#60a5fa", fontFamily: "monospace" }}>in {nextCheckSeconds}s</span>
-            </div>
-          </div>
-        </div>
-
-        {activeSession?.status !== "completed" && (
-          <button
-            onClick={handleStopSession}
-            disabled={isStopping}
-            style={{
-              marginTop: "auto",
-              width: "100%",
-              padding: "10px",
-              borderRadius: "8px",
-              background: isStopping ? "rgba(255,255,255,0.05)" : "rgba(244, 63, 94, 0.1)",
-              border: isStopping ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(244, 63, 94, 0.25)",
-              color: isStopping ? "#64748b" : "#fb7185",
-              fontSize: "12px",
-              fontWeight: "600",
-              cursor: isStopping ? "not-allowed" : "pointer",
-              transition: "all 0.15s ease",
-            }}
-            aria-label="Stop Monitoring Session"
-          >
-            {isStopping ? "Finalizing Session..." : "Stop Monitoring"}
-          </button>
-        )}
-      </div>
-
-      {/* Sprint 17: Stopping Progress Overlay */}
-      <AnimatePresence>
-        {isStopping && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "rgba(10, 14, 26, 0.85)",
-              backdropFilter: "blur(16px)",
-              zIndex: 9999,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              fontFamily: "'Inter', sans-serif",
-            }}
-          >
-            <div
-              style={{
-                width: "420px",
-                padding: "32px",
-                borderRadius: "20px",
-                background: "rgba(13, 16, 27, 0.95)",
-                border: "1px solid rgba(168, 85, 247, 0.3)",
-                boxShadow: "0 25px 50px rgba(0,0,0,0.6)",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                textAlign: "center",
-                gap: "20px",
-              }}
-            >
-              <div
-                style={{
-                  width: "56px",
-                  height: "56px",
-                  borderRadius: "50%",
-                  border: "3px solid rgba(168, 85, 247, 0.2)",
-                  borderTopColor: "#c084fc",
-                  animation: "spin 1s linear infinite",
-                }}
-              />
-              <div>
-                <h3 style={{ margin: "0 0 6px", fontSize: "18px", fontWeight: "800", color: "#f8fafc" }}>
-                  Finalizing Monitoring Session...
-                </h3>
-                <p style={{ margin: 0, fontSize: "13px", color: "#94a3b8", fontFamily: "monospace" }}>
-                  {stoppingStep}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };
+

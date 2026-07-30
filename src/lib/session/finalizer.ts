@@ -5,6 +5,7 @@ import { SnapshotManager } from "@/lib/snapshot/manager";
 import { TimelinePublisher } from "@/lib/timeline/publisher";
 import { HighlightGenerator } from "@/lib/highlights/generator";
 import { FinalSessionSummary, FinalAIReport } from "./lifecycle";
+import { SessionIntegrityEngine } from "./integrity";
 
 export class SessionFinalizer {
   public static async finalizeSession(sessionId: string): Promise<FinalSessionSummary> {
@@ -50,7 +51,7 @@ export class SessionFinalizer {
       console.warn(`[SessionFinalizer] Step 3 Warning (stopIngestion):`, e.message);
     }
 
-    // Step 4: Run Final Highlight Evaluation Pass
+    // Step 4: Run Final Highlight Evaluation Pass (if snapshot exists)
     if (finalSnapshot) {
       try {
         await HighlightGenerator.evaluateSnapshot(finalSnapshot);
@@ -75,6 +76,10 @@ export class SessionFinalizer {
       .find({ sessionId })
       .toArray();
 
+    const timelineCount = await db
+      .collection("timeline_events")
+      .countDocuments({ sessionId });
+
     const totalMessages = snapshots.reduce((acc, s: any) => acc + (s.metrics?.totalMessages || 0), 0);
     const questionsDetected = snapshots.reduce((acc, s: any) => acc + (s.metrics?.questionCount || 0), 0);
 
@@ -96,27 +101,59 @@ export class SessionFinalizer {
     const averageViewers = snapshots.length > 0 ? Math.round(avgViewersSum / snapshots.length) : peakViewers;
     const avgSentiment = snapshots.length > 0 ? Math.round(sentimentSum / snapshots.length) : 50;
 
-    // Step 6: Generate Final AI Producer Report
-    const finalAIReport: FinalAIReport = {
-      biggestAudienceSpike: peakMomentum > 65 ? `Peak audience momentum reached ${peakMomentum}/100.` : `Consistent engagement maintained throughout broadcast.`,
-      mostAskedQuestions: snapshots.flatMap((s: any) => s.representativeMessages || [])
-        .filter((m: any) => m.category === "question")
-        .slice(0, 3)
-        .map((m: any) => m.text),
-      bestEngagementWindow: snapshots.length > 0 ? `Window ${snapshots[0]?.snapshotId || "1"} (${snapshots[0]?.metrics?.messagesPerMinute || 10} msgs/min)` : `Full Stream`,
-      suggestedShorts: highlights.slice(0, 3).map((h: any) => `${h.title}: "${h.triggerReason}"`),
-      recommendedStreamLength: durationMinutes < 60 ? `Extend next stream to 60+ minutes to maximize algorithm push.` : `Optimal broadcast length (${durationMinutes} mins).`,
-      recommendedNextStreamTime: `Schedule next broadcast within 48 hours to maintain momentum.`,
-      topViewerTopics: snapshots.flatMap((s: any) => s.metrics?.topWords || []).slice(0, 5).map((w: any) => w.word),
-    };
+    // Stream detection boolean state
+    const streamDetected = Boolean(
+      sessionDoc?.status === "live" ||
+      sessionDoc?.streamDetected ||
+      sessionDoc?.viewerCount > 0 ||
+      snapshots.length > 0
+    );
 
-    // Step 7: Publish Timeline Events
+    // Step 6: Evaluate Session Integrity & Run Artifact Validator
+    const evaluation = SessionIntegrityEngine.evaluate({
+      streamDetected,
+      messagesCount: totalMessages,
+      snapshotsCount: snapshots.length,
+      aiRunsCount: insights.length,
+      highlightsCount: highlights.length,
+      timelineCount,
+      viewerSamplesCount: snapshots.length,
+    });
+
+    const { sessionType, integrityFlags, reason } = evaluation;
+
+    // Run SessionArtifactValidator across all 14 MongoDB collections
+    const { SessionArtifactValidator } = await import("./artifactValidator");
+    const integrityReport = await SessionArtifactValidator.validate(sessionId);
+
+    // Fetch full persistent intelligence bundle for completed report
+    const { IntelligenceStorage } = await import("@/lib/intelligence/storage");
+    const intelligence = await IntelligenceStorage.fetchLatestBundle(sessionId);
+
+    // Step 7: Conditional AI Report Generation
+    let finalAIReport: FinalAIReport | undefined = undefined;
+    if (integrityFlags.aiValid) {
+      finalAIReport = {
+        biggestAudienceSpike: peakMomentum > 65 ? `Peak audience momentum reached ${peakMomentum}/100.` : `Consistent engagement maintained throughout broadcast.`,
+        mostAskedQuestions: snapshots.flatMap((s: any) => s.representativeMessages || [])
+          .filter((m: any) => m.category === "question")
+          .slice(0, 3)
+          .map((m: any) => m.text),
+        bestEngagementWindow: snapshots.length > 0 ? `Window ${snapshots[0]?.snapshotId || "1"} (${snapshots[0]?.metrics?.messagesPerMinute || 10} msgs/min)` : `Full Stream`,
+        suggestedShorts: highlights.slice(0, 3).map((h: any) => `${h.title}: "${h.triggerReason}"`),
+        recommendedStreamLength: durationMinutes < 60 ? `Extend next stream to 60+ minutes to maximize algorithm push.` : `Optimal broadcast length (${durationMinutes} mins).`,
+        recommendedNextStreamTime: `Schedule next broadcast within 48 hours to maintain momentum.`,
+        topViewerTopics: snapshots.flatMap((s: any) => s.metrics?.topWords || []).slice(0, 5).map((w: any) => w.word),
+      };
+    }
+
+    // Step 8: Publish Timeline Events
     await TimelinePublisher.publish(
       sessionId,
       platform,
       "MONITORING_STOPPED",
       "⏹️ Monitoring Session Finalized",
-      `Stream finalized after ${durationMinutes} minutes. All telemetry and snapshots archived cleanly.`,
+      `Stream finalized after ${durationMinutes} minutes. Session integrity classified as ${sessionType}.`,
       "warning"
     ).catch(() => {});
 
@@ -129,8 +166,8 @@ export class SessionFinalizer {
       "success"
     ).catch(() => {});
 
-    // Step 8: Build Final Session Summary Payload
-    const finalSummary: FinalSessionSummary = {
+    // Step 9: Build Final Session Summary Payload
+    const finalSummary: FinalSessionSummary & { integrityReport?: any; intelligence?: any } = {
       sessionId,
       creatorId,
       platform,
@@ -142,31 +179,42 @@ export class SessionFinalizer {
       endedAt: nowIso,
       completedAt: nowIso,
 
-      peakViewers,
-      averageViewers,
+      peakViewers: sessionType === "EMPTY" ? 0 : peakViewers,
+      averageViewers: sessionType === "EMPTY" ? 0 : averageViewers,
       totalMessagesCollected: totalMessages,
       snapshotsGeneratedCount: snapshots.length,
       aiRecommendationsCount: insights.length,
       highlightsGeneratedCount: highlights.length,
 
-      avgSentiment,
-      peakMomentum,
-      peakHype,
+      avgSentiment: sessionType === "EMPTY" ? 0 : avgSentiment,
+      peakMomentum: sessionType === "EMPTY" ? 0 : peakMomentum,
+      peakHype: sessionType === "EMPTY" ? 0 : peakHype,
       questionsDetectedCount: questionsDetected,
       uniqueChattersCount: snapshots.reduce((acc, s: any) => Math.max(acc, s.metrics?.uniqueChattersCount || 0), 0),
-      healthScore: 98,
+      healthScore: integrityFlags.healthScoreValid ? 98 : 0,
       quotaUsedYoutube: platform === "youtube" ? 360 : 0,
 
       finalAIReport,
+      integrityReport,
+      intelligence,
+
+      // Session Integrity Engine Metadata
+      sessionType,
+      integrityFlags,
+      integrityReason: reason,
     };
 
-    // Step 9: Persist to MongoDB
+
+    // Step 10: Persist to MongoDB
     try {
       await db.collection("monitoring_sessions").updateOne(
         { id: sessionId },
         {
           $set: {
             status: "completed",
+            sessionType,
+            integrityFlags,
+            integrityReason: reason,
             endedAt: nowIso,
             completedAt: nowIso,
             updatedAt: nowIso,
@@ -180,7 +228,17 @@ export class SessionFinalizer {
         { $set: finalSummary },
         { upsert: true }
       );
-      console.log(`[SessionFinalizer] Persisted FinalSessionSummary to MongoDB for session '${sessionId}' ✅`);
+
+      // Step 11: Build and Persist Immutable CompletedSessionBundle
+      const { CompletedSessionBundleBuilder } = await import("./completedBundle");
+      const completedBundle = await CompletedSessionBundleBuilder.build(sessionId);
+      await db.collection("completed_session_bundle").updateOne(
+        { sessionId },
+        { $set: completedBundle },
+        { upsert: true }
+      );
+
+      console.log(`[SessionFinalizer] Persisted immutable CompletedSessionBundle (${sessionType}) to MongoDB for session '${sessionId}' ✅`);
     } catch (err: any) {
       console.error(`[SessionFinalizer] MongoDB update error for session '${sessionId}':`, err.message);
     }
@@ -188,3 +246,4 @@ export class SessionFinalizer {
     return finalSummary;
   }
 }
+

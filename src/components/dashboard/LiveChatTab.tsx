@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect } from "react";
+import { RichChatMessage } from "./chat/RichChatMessage";
 
 interface LiveChatTabProps {
   messages: any[];
@@ -15,12 +16,14 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({
 }) => {
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll inside chat container ONLY (never scroll the window/page)
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [messages.length]);
+  }, [messages]);
+
+
 
   if (isLoading && messages.length === 0) {
     return (
@@ -109,80 +112,13 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({
           maxHeight: "420px",
         }}
       >
-        {messages.map((msg, idx) => {
-          const isKick = (msg.platform || "").toLowerCase() === "kick";
-          const platformColor = isKick ? "#53FC18" : "#ff4d4d";
-          const platformBg = isKick ? "rgba(83, 252, 24, 0.15)" : "rgba(255, 0, 0, 0.15)";
-          const author = typeof msg.author === "string" ? msg.author : msg.author?.displayName || msg.author?.username || msg.username || "Viewer";
-          const content = msg.message || msg.content || "";
-          const timeStr = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : "";
-
-          return (
-            <div
-              key={msg.id || idx}
-              style={{
-                padding: "10px 14px",
-                borderRadius: "10px",
-                background: "rgba(255,255,255,0.02)",
-                border: "1px solid rgba(255,255,255,0.05)",
-                display: "flex",
-                alignItems: "flex-start",
-                gap: "10px",
-              }}
-            >
-              {/* Avatar / Platform Dot */}
-              <div
-                style={{
-                  width: "28px",
-                  height: "28px",
-                  borderRadius: "50%",
-                  background: platformBg,
-                  border: `1px solid ${platformColor}40`,
-                  color: platformColor,
-                  fontWeight: "800",
-                  fontSize: "12px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                {author.charAt(0).toUpperCase()}
-              </div>
-
-              {/* Message Details */}
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ fontWeight: "700", fontSize: "13px", color: "#f8fafc" }}>
-                    {author}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "9px",
-                      fontWeight: "700",
-                      padding: "1px 5px",
-                      borderRadius: "4px",
-                      background: platformBg,
-                      color: platformColor,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {msg.platform || "CHAT"}
-                  </span>
-                  {timeStr && (
-                    <span style={{ fontSize: "10px", color: "#64748b", marginLeft: "auto", fontFamily: "monospace" }}>
-                      {timeStr}
-                    </span>
-                  )}
-                </div>
-                <div style={{ fontSize: "13px", color: "#cbd5e1", marginTop: "3px", lineHeight: 1.4, wordBreak: "break-word" }}>
-                  {content}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        {messages.map((msg, idx) => (
+          <RichChatMessage key={msg.id || idx} message={msg} />
+        ))}
       </div>
+
     </div>
   );
 };
+
+

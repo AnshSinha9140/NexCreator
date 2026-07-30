@@ -23,9 +23,10 @@ export function selectRepresentativeMessages(
       displayName: msg.author.displayName,
       badges: msg.author.badges || [],
     },
-    text: msg.message,
+    text: (msg as any).semanticText || msg.message,
     category,
   });
+
 
   // 1. Identify Questions (up to 4)
   const questions = messages.filter((m) => {

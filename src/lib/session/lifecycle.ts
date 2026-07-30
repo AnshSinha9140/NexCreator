@@ -50,4 +50,17 @@ export interface FinalSessionSummary {
   quotaUsedYoutube?: number;
 
   finalAIReport?: FinalAIReport;
+
+  // Session Integrity Engine Attributes
+  sessionType?: "EMPTY" | "PARTIAL" | "COMPLETE";
+  integrityFlags?: {
+    analyticsValid: boolean;
+    aiValid: boolean;
+    highlightsValid: boolean;
+    timelineValid: boolean;
+    reportValid: boolean;
+    healthScoreValid: boolean;
+  };
+  integrityReason?: string;
 }
+

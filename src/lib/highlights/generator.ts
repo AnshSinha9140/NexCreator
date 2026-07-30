@@ -38,7 +38,27 @@ export class HighlightGenerator {
     const viewers = analytics?.viewers || viewerMetrics?.averageViewerCount || 0;
     const questions = analytics?.questionCount ?? (metrics.questionCount || 0);
 
-    if (mpm >= 15) {
+    const sampleTexts = representativeMessages.map((m) => m.text.toUpperCase());
+    const hasLaughWave = sampleTexts.some((t) => t.includes("KEKW") || t.includes("LAUGH") || t.includes("😂") || t.includes("💀"));
+    const hasGGSpike = sampleTexts.some((t) => t.includes("GG") || t.includes("🎉") || t.includes("W"));
+    const hasFireExplosion = sampleTexts.some((t) => t.includes("FIRE") || t.includes("🔥") || t.includes("🚀"));
+
+    if (hasLaughWave) {
+      isSpike = true;
+      type = "hype_spike";
+      triggerReason = `Community Laugh Wave: Massive outbreak of laughter detected.`;
+      score = 92;
+    } else if (hasGGSpike) {
+      isSpike = true;
+      type = "hype_spike";
+      triggerReason = `Massive GG Celebration: Victory surge across chat.`;
+      score = 90;
+    } else if (hasFireExplosion) {
+      isSpike = true;
+      type = "hype_spike";
+      triggerReason = `Fire Emoji Explosion: High-energy crowd hype spike.`;
+      score = 95;
+    } else if (mpm >= 15) {
       isSpike = true;
       type = "velocity_spike";
       triggerReason = `Chat Velocity Spike: High activity at ${mpm} msgs/min.`;
@@ -59,12 +79,12 @@ export class HighlightGenerator {
       triggerReason = `Hype Surge Detected: Hype Score reached ${hypeScore}%.`;
       score = Math.min(98, 82 + Math.floor(hypeScore / 6));
     } else if (metrics.totalMessages >= 5) {
-      // Baseline candidate for demonstration
       isSpike = true;
       type = "momentum_spike";
       triggerReason = `Stream Momentum Building: ${metrics.totalMessages} chat messages processed.`;
       score = 78;
     }
+
 
     if (!isSpike) {
       console.log(`[HighlightGenerator] ⏭️ Snapshot '${snapshot.snapshotId}' evaluated: REJECTED (Velocity: ${mpm}, Momentum: ${momentum}, Hype: ${hypeScore})`);

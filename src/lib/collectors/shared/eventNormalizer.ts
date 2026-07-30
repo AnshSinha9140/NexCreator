@@ -1,6 +1,9 @@
 import { SupportedPlatform } from "@/types";
 import { LiveChatMessage } from "@/lib/ingestion/types";
+import { MessageNormalizer } from "@/lib/chat/normalizer";
 import { MessageValidator } from "./messageValidator";
+import { SessionArtifactRegistry } from "@/lib/session/artifactRegistry";
+
 
 export interface UnifiedEventInput {
   id?: string;
@@ -24,20 +27,29 @@ export class EventNormalizer {
     const id = input.id || `msg_${input.platform}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const username = input.username || input.displayName.toLowerCase().replace(/\s+/g, "");
 
-    const normalizedMsg: LiveChatMessage = {
-      id,
-      sessionId: input.sessionId,
-      platform: input.platform,
-      timestamp: isNaN(timestamp.getTime()) ? new Date() : timestamp,
-      author: {
-        id: input.channelId || input.creatorId || username,
-        username,
-        displayName: input.displayName || username,
-        badges: input.badges || [],
+    const canonical = MessageNormalizer.normalize(
+      {
+        id,
+        platform: input.platform,
+        timestamp,
+        author: {
+          id: input.channelId || input.creatorId || username,
+          username,
+          displayName: input.displayName || username,
+          badges: input.badges || [],
+          avatarUrl: input.metadata?.profileImageUrl,
+        },
+        message: input.message || "",
+        raw: input.raw || { metadata: input.metadata },
       },
-      message: input.message || "",
-      emotes: input.emotes || [],
-      raw: input.raw || { metadata: input.metadata },
+      input.sessionId
+    );
+
+    const normalizedMsg: LiveChatMessage = {
+      ...canonical,
+      message: canonical.displayText,
+      timestamp: isNaN(timestamp.getTime()) ? new Date() : timestamp,
+      emotes: canonical.emotes.map((e) => e.name),
     };
 
     if (!MessageValidator.isValid(normalizedMsg)) {
@@ -45,6 +57,10 @@ export class EventNormalizer {
       return null;
     }
 
+    SessionArtifactRegistry.saveChatMessage(input.sessionId, normalizedMsg).catch(() => {});
+
     return normalizedMsg;
   }
+
+
 }

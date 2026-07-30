@@ -161,11 +161,18 @@ export class SnapshotEngine {
     // Persist EXACTLY ONE MongoDB Document to pulse_snapshots collection
     try {
       const client = await clientPromise;
+
       const db = client.db("nexcreator");
       await db.collection("pulse_snapshots").insertOne(snapshotDoc);
+
+      // Persist viewer sample to `viewer_samples` collection via SessionArtifactRegistry
+      const { SessionArtifactRegistry } = await import("@/lib/session/artifactRegistry");
+      SessionArtifactRegistry.saveViewerSample(sessionId, platform, currentViewerCount || 0).catch(() => {});
+
       console.log(
         `[SnapshotEngine] Persisted 1 Enriched PulseSnapshot (v1) document for session '${sessionId}' (${snapshotMetrics.totalMessages} msgs, ${representativeMessages.length} samples) ✅`
       );
+
       DiagnosticsLogger.log("Snapshot", "Persist", `Persisted snapshot for session '${sessionId}'`);
       const state = DiagnosticsState.getState();
       DiagnosticsState.updateSubsystem("snapshot", {
@@ -181,8 +188,15 @@ export class SnapshotEngine {
         console.warn(`[SnapshotEngine] AI Producer background trigger warning for session '${sessionId}': ${aiErr.message}`);
       });
 
+      // Asynchronously trigger Creator Intelligence Engine (The AI Creator Manager)
+      const { CreatorIntelligenceEngine } = await import("@/lib/intelligence/engine");
+      CreatorIntelligenceEngine.processSnapshot(snapshotDoc).catch((intelErr) => {
+        console.warn(`[SnapshotEngine] Creator Intelligence Engine background trigger warning for session '${sessionId}': ${intelErr.message}`);
+      });
+
       // Trigger Highlight Generator and Timeline Event Publisher
       const { HighlightGenerator } = await import("@/lib/highlights/generator");
+
       const { TimelinePublisher } = await import("@/lib/timeline/publisher");
 
       HighlightGenerator.evaluateSnapshot(snapshotDoc).catch((e) => {});

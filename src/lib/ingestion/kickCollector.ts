@@ -1,9 +1,12 @@
 import WebSocket from "ws";
 import { ChatCollector, CollectorHealth, CollectorStatus, CollectorStats, LiveChatMessage } from "./types";
+import { MessageNormalizer } from "@/lib/chat/normalizer";
 import { INGESTION_CONFIG } from "./config";
 import { getKickChatroomId } from "@/lib/kick";
 import { DiagnosticsLogger } from "@/lib/diagnostics/logger";
 import { DiagnosticsState } from "@/lib/diagnostics/state";
+import { SessionArtifactRegistry } from "@/lib/session/artifactRegistry";
+
 
 const KICK_PUSHER_APP_KEY = "32cbd69e4b950bf97679";
 const KICK_PUSHER_WS_URL = `wss://ws-us2.pusher.com/app/${KICK_PUSHER_APP_KEY}?protocol=7&client=js&version=8.4.0&flash=false`;
@@ -406,6 +409,12 @@ Decision: Attempting to parse anyway because it contains ChatMessage or similar`
                 console.error("[KickCollector] Handler error:", hErr);
               }
             }
+
+            // Persist message to canonical `chat_messages` collection asynchronously
+            SessionArtifactRegistry.saveChatMessage(this.sessionId, normalized).catch((pErr) => {
+              console.warn(`[KickCollector] Artifact Registry save warning for session '${this.sessionId}': ${pErr.message}`);
+            });
+
           } else {
              DiagnosticsState.incrementCounter("collector", "unknownEvents");
              DiagnosticsState.addRawEvent({
@@ -481,21 +490,29 @@ Decision: Rejected (Normalization Failed)`);
       `kick_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
     );
 
-    return {
-      id: msgId,
-      sessionId: this.sessionId,
-      platform: "kick",
-      timestamp: data.created_at ? new Date(data.created_at) : new Date(),
-      author: {
-        id: sender.id ? String(sender.id) : undefined,
-        username,
-        displayName,
-        badges,
+    const canonical = MessageNormalizer.normalize(
+      {
+        id: msgId,
+        platform: "kick",
+        timestamp: data.created_at || new Date().toISOString(),
+        author: {
+          id: sender.id ? String(sender.id) : undefined,
+          username,
+          displayName,
+          badges,
+        },
+        message: messageText,
+        raw: INGESTION_CONFIG.DEBUG_MODE ? data : undefined,
       },
-      message: messageText,
-      emotes: [],
-      // Omit raw payload in production mode to save ~70% RAM
-      raw: INGESTION_CONFIG.DEBUG_MODE ? data : undefined,
+      this.sessionId
+    );
+
+    return {
+      ...canonical,
+      message: canonical.displayText,
+      timestamp: new Date(canonical.timestamp),
+      emotes: canonical.emotes.map((e) => e.name),
     };
   }
+
 }

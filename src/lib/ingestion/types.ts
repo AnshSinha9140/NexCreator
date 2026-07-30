@@ -9,12 +9,13 @@ export interface LiveChatMessage {
     id?: string;
     username: string;
     displayName: string;
-    badges: string[];
+    badges: any[];
   };
   message: string;
   emotes: string[];
   raw?: unknown;
 }
+
 
 export type CollectorStatus =
   | "disconnected"
