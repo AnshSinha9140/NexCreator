@@ -18,17 +18,28 @@ export interface CanonicalAnalytics {
 }
 
 const POSITIVE_WORDS = [
+  // English gaming / streaming
   "love", "gg", "w", "hyped", "pog", "fire", "great", "awesome", "goat", "yes",
   "super", "omg", "insane", "nice", "king", "win", "good", "lol", "lmao", "haha",
-  "best", "legend", "hype", "clutch", "clean", "letsgo", "epic"
+  "best", "legend", "hype", "clutch", "clean", "letsgo", "epic", "gz", "poggers",
+  "based", "dope", "lit", "banger", "go", "lets", "yoo", "yooo", "yo",
+  // Hinglish / Hindi positive words (common in Indian streams)
+  "bhai", "bro", "yaar", "accha", "bdhiya", "badhiya", "mast", "zabardast",
+  "sahi", "ekdum", "behtareen", "wah", "maja", "maza", "khushi", "jeet",
+  "op", "solid", "bhai", "arrey", "arre", "bilkul", "pakka", "bindass"
 ];
 
 const NEGATIVE_WORDS = [
-  "l", "bad", "boring", "trash", "fake", "stop", "worst", "lag", "no", "hate",
-  "cringe", "rip", "sad", "fail", "terrible", "slow", "boo", "scam"
+  // NOTE: Removed 'l' (too common as neutral letter in non-English chat)
+  // NOTE: Removed 'no' (too common and context-dependent)
+  "bad", "boring", "trash", "fake", "worst", "lag", "hate",
+  "cringe", "rip", "sad", "fail", "terrible", "slow", "boo", "scam",
+  "stop", "wtf", "bored", "dead", "skip"
 ];
 
-const POSITIVE_EMOJIS = ["🔥", "❤️", "👑", "🐐", "😂", "🙌", "🚀", "💯", "👏", "😍", "🎉", "⭐"];
+// Kick-style text emote pattern: :emoteName: — treated as engagement signal
+const KICK_EMOTE_REGEX = /:[a-zA-Z0-9_]+:/g;
+
 
 export class CanonicalAnalyticsEngine {
   public static compute(params: {
@@ -81,7 +92,7 @@ export class CanonicalAnalyticsEngine {
       const lower = text.toLowerCase();
 
       // Question detection
-      if (text.includes("?") || lower.startsWith("why") || lower.startsWith("how") || lower.startsWith("what") || lower.startsWith("can")) {
+      if (text.includes("?") || lower.startsWith("why") || lower.startsWith("how") || lower.startsWith("what") || lower.startsWith("can") || lower.startsWith("kya")) {
         questionCount++;
       }
 
@@ -91,7 +102,8 @@ export class CanonicalAnalyticsEngine {
         excitementScoreSum += 2;
       }
 
-      // Emoji detection & scoring
+      // Unicode emoji detection
+      const POSITIVE_EMOJIS = ["🔥", "❤️", "👑", "🐐", "😂", "🙌", "🚀", "💯", "👏", "😍", "🎉", "⭐"];
       let hasEmoji = false;
       for (const emoji of POSITIVE_EMOJIS) {
         if (text.includes(emoji)) {
@@ -100,7 +112,17 @@ export class CanonicalAnalyticsEngine {
           excitementScoreSum += 3;
         }
       }
+
+      // Kick custom text emote detection: :emoteName: counts as engagement
+      const kickEmotes = text.match(KICK_EMOTE_REGEX);
+      if (kickEmotes && kickEmotes.length > 0) {
+        hasEmoji = true;
+        positiveScoreSum += Math.min(kickEmotes.length * 2, 6);  // cap at 6 per message
+        excitementScoreSum += Math.min(kickEmotes.length, 3);
+      }
+
       if (hasEmoji) emojiMessageCount++;
+
 
       // Word Lexicon Scoring
       const words = lower.split(/\s+/);
