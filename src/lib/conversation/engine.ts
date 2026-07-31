@@ -1,17 +1,17 @@
 /**
- * Sprint 19 — Creator Manager Conversation Engine
+ * Sprint 19 & 19.1 — Creator Manager Conversation Engine
  * Consumes CreatorIntelligenceBundle + PulseSnapshot → CreatorManagerConversation.
  * Zero additional AI calls. Zero additional DB queries. Pure transformation.
  *
  * Pipeline position:
- *   CreatorIntelligenceEngine → ConversationEngine → UI
+ *   CreatorIntelligenceEngine → ConversationComposer → ConversationEngine → UI
  */
 
 import { CreatorIntelligenceBundle } from "@/lib/intelligence/types";
 import { PulseSnapshot } from "@/lib/snapshot/types";
 import { ConversationFormatter } from "./formatter";
 import { ConversationMemory } from "./memory";
-import { ConfidenceLanguage } from "./confidence";
+import { ConversationComposer } from "./conversationComposer";
 import {
   CreatorManagerConversation,
   ManagerThought,
@@ -38,10 +38,8 @@ export class ConversationEngine {
     const totalMessages = snapshot?.metrics?.totalMessages ?? 0;
     const phase = bundle.story?.currentPhase ?? "beginning";
 
-    // ── 1. Memory context ──────────────────────────────────────────────────
+    // ── 1. Memory Context & Opening Briefing ────────────────────────────────
     const memoryContext = ConversationMemory.buildMemoryContext(sessionId);
-
-    // ── 2. Opening Briefing ────────────────────────────────────────────────
     const briefing = ConversationFormatter.buildBriefing({
       phase,
       moodMood,
@@ -51,54 +49,37 @@ export class ConversationEngine {
       memoryContext,
     });
 
-    // ── 3. Mood Observation ────────────────────────────────────────────────
+    // ── 2. Sprint 19.1: Compose Single Unified Conversation Entry ───────────
+    ConversationComposer.composeEntry(bundle, snapshot, sessionId);
+
+    // Get all compiled unified conversation entries (max 15 visible handled by UI)
+    const entries = ConversationMemory.getEntries(sessionId);
+
+    // ── 3. Component Card Formatting (Backwards compatibility) ─────────────
     const thoughts: ManagerThought[] = [];
-
     if (bundle.mood) {
-      const moodThought = ConversationFormatter.formatMoodObservation(bundle.mood);
-      thoughts.push(moodThought);
-
-      ConversationMemory.addTimelineEntry(sessionId, moodThought.headline, moodThought.tone);
+      thoughts.push(ConversationFormatter.formatMoodObservation(bundle.mood));
     }
 
-    // ── 4. Recommendations → Thoughts ─────────────────────────────────────
     const activeRecs = bundle.coach ?? [];
-
     for (const rec of activeRecs) {
       const intentKey = rec.intentKey ?? rec.id;
       const priorNote = ConversationMemory.getPriorNote(sessionId, intentKey);
       const isRepeat = priorNote !== null;
-
-      const thought = ConversationFormatter.formatRecommendation(rec, priorNote, isRepeat);
-      thoughts.push(thought);
-
-      const timesIssued = ConversationMemory.recordIssued(sessionId, intentKey, thought.headline);
-      ConversationMemory.addTimelineEntry(sessionId, thought.headline, "advising");
+      thoughts.push(ConversationFormatter.formatRecommendation(rec, priorNote, isRepeat));
     }
 
-    // ── 5. Primary Advice (top-priority thought) ──────────────────────────
-    const primaryAdvice =
-      thoughts.find((t) => t.tone === "advising") ?? thoughts[0] ?? null;
+    const primaryAdvice = thoughts.find((t) => t.tone === "advising") ?? thoughts[0] ?? null;
 
-    // ── 6. Praise (opportunities) ─────────────────────────────────────────
     const praise: ManagerPraise[] = [];
-
     if (bundle.opportunities && bundle.opportunities.length > 0) {
-      const topOpp = bundle.opportunities[0];
-      praise.push(ConversationFormatter.formatOpportunity(topOpp));
-      ConversationMemory.addTimelineEntry(sessionId, "There's a clip-worthy moment here.", "praising");
+      praise.push(ConversationFormatter.formatOpportunity(bundle.opportunities[0]));
     }
 
-    // ── 7. Concerns (risks) ───────────────────────────────────────────────
     const concerns: ManagerConcern[] = (bundle.risks ?? []).map((r) =>
       ConversationFormatter.formatRisk(r)
     );
 
-    if (concerns.length > 0) {
-      ConversationMemory.addTimelineEntry(sessionId, concerns[0].headline, "concerned");
-    }
-
-    // ── 8. Conversation Timeline ──────────────────────────────────────────
     const timeline = ConversationMemory.getTimeline(sessionId);
 
     return {
@@ -111,14 +92,12 @@ export class ConversationEngine {
       praise,
       concerns,
       timeline,
+      entries,
     };
   }
 
   // ─── End of Stream Review ─────────────────────────────────────────────────
 
-  /**
-   * Generates the End of Stream Review. Called once when session completes.
-   */
   static generateEndOfStreamReview(
     bundle: CreatorIntelligenceBundle,
     totalMessages: number,
@@ -132,11 +111,8 @@ export class ConversationEngine {
     );
     const opportunities = bundle.opportunities ?? [];
     const story = bundle.story;
-    const phase = story?.currentPhase ?? "growth";
 
-    // ── What impressed me ─────────────────────────────────────────────────
     const whatImpressedMe: string[] = [];
-
     if (totalMessages >= 100) {
       whatImpressedMe.push(
         `The overall chat volume was strong — ${totalMessages} messages across the session is a healthy sign of active community participation.`
@@ -163,9 +139,7 @@ export class ConversationEngine {
       );
     }
 
-    // ── What hurt performance ─────────────────────────────────────────────
     const whatHurtPerformance: string[] = [];
-
     if (score && score.breakdown.consistency < 55) {
       whatHurtPerformance.push(
         `Consistency was below average. There were noticeable dips in energy and chat activity mid-session that broke the momentum.`
@@ -187,9 +161,7 @@ export class ConversationEngine {
       );
     }
 
-    // ── What to repeat ────────────────────────────────────────────────────
     const whatToRepeat: string[] = [];
-
     if (durationMinutes >= 45) {
       whatToRepeat.push(
         `Streaming for ${Math.round(durationMinutes)} minutes gave the audience enough time to warm up and the session enough time to build momentum. Keep the duration consistent.`
@@ -201,9 +173,7 @@ export class ConversationEngine {
       );
     }
 
-    // ── What to never repeat ─────────────────────────────────────────────
     const whatToNeverRepeat: string[] = [];
-
     if (score && score.breakdown.energy < 50) {
       whatToNeverRepeat.push(
         `The energy level dipped significantly at points in this session. Long stretches of low energy without re-engagement strategies are difficult to recover from.`
@@ -215,9 +185,7 @@ export class ConversationEngine {
       );
     }
 
-    // ── One thing to improve ──────────────────────────────────────────────
     let oneThingToImprove: string;
-
     if (score && score.breakdown.responsiveness < 60) {
       oneThingToImprove =
         `Before your next broadcast, make a habit of checking for viewer questions every ten minutes or so and answering a few out loud. It's the single most impactful change you can make for retention.`;
@@ -229,19 +197,16 @@ export class ConversationEngine {
         `The most valuable thing to work on is giving the session a clearer arc. Viewers who join mid-stream should be able to sense whether they're in the opening, the peak, or the wind-down. That sense of structure keeps people from leaving.`;
     }
 
-    // ── Most valuable clip ────────────────────────────────────────────────
     const mostValuableClip =
       opportunities.length > 0
         ? `${opportunities[0].dynamicTitle || opportunities[0].title} — ${opportunities[0].recommendedNextStep || opportunities[0].recommendedAction}`
         : null;
 
-    // ── Biggest missed opportunity ────────────────────────────────────────
     const biggestMissedOpportunity =
       expiredRecs.length > 0
         ? `${expiredRecs[0].title} — this window passed without action and likely affected the session's peak engagement.`
         : null;
 
-    // ── Closing statement ─────────────────────────────────────────────────
     const closingStatement =
       `If you only improve one thing before your next broadcast, make it this: ${oneThingToImprove.split(".")[0].toLowerCase()}.`;
 

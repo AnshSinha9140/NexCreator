@@ -103,10 +103,15 @@ export const CreatorIntelligenceTab: React.FC<CreatorIntelligenceTabProps> = ({
 
       {/* 6. Conversation Timeline */}
       <div style={{ padding: "24px", borderRadius: "20px", background: "rgba(13, 16, 27, 0.85)", border: "1px solid rgba(255, 255, 255, 0.08)", display: "flex", flexDirection: "column", gap: "16px" }}>
-        <div style={{ fontSize: "14px", fontWeight: "800", color: "#f8fafc" }}>
-          Conversation Timeline
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontSize: "14px", fontWeight: "800", color: "#f8fafc" }}>
+            Manager Conversation Timeline
+          </div>
+          <div style={{ fontSize: "11px", color: "#64748b" }}>
+            {conversation.entries?.length || 0} updates recorded
+          </div>
         </div>
-        <ManagerConversationTimeline timeline={conversation.timeline} />
+        <ManagerConversationTimeline entries={conversation.entries} timeline={conversation.timeline} />
       </div>
 
 
