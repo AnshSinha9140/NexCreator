@@ -52,19 +52,8 @@ export class KickChatCollector implements ChatCollector {
 
   /**
    * Resolves Kick Chatroom ID.
-   * 
-   * PRIORITY ORDER:
-   * 1. Use stored chatroomId passed from constructor (resolved in browser via kick.com/api/v2 — preferred)
-   * 2. Try Official Kick API banner_picture URL extraction (works for channels with banners)
-   * 3. Fail with clear diagnostic — broadcaster_user_id is NOT the same as chatroom.id
-   * 
-   * NOTE: Kick's broadcaster_user_id != chatroom.id for most channels.
-   * Subscribing to chatrooms.{broadcaster_user_id}.v2 silently accepts but receives 0 messages.
-   * The correct chatroom.id comes from kick.com/api/v2 (browser-side only, Cloudflare-blocked server-side)
-   * or from the banner_picture URL pattern: /images/channel/{CHATROOM_ID}/
    */
   private async resolveChatroomId(): Promise<string> {
-    // ── Fast Path: Use stored chatroomId (browser-resolved or banner-extracted) ──
     if (this.chatroomId) {
       console.log(`[KickCollector] ✅ Using provided chatroomId #${this.chatroomId} for '${this.channelHandle || "unknown"}'`);
       return this.chatroomId;
@@ -74,7 +63,6 @@ export class KickChatCollector implements ChatCollector {
       throw new Error(`[KickCollector] ❌ Cannot resolve chatroomId: no channelHandle or chatroomId provided for session '${this.sessionId}'`);
     }
 
-    // ── Try Official API (banner extraction or broadcaster_user_id) ──
     console.log(`[KickCollector] ⏳ No chatroomId provided — resolving via Official API for '${this.channelHandle}'...`);
     const kickMeta = await getKickChatroomId(this.channelHandle);
 
@@ -85,17 +73,11 @@ export class KickChatCollector implements ChatCollector {
       return this.chatroomId;
     }
 
-    // ── No chatroom ID available ──
     throw new Error(
       `[KickCollector] ❌ Could not resolve Kick chatroomId for '${this.channelHandle}'.`
     );
   }
 
-
-  /**
-   * Attempts one chatroomId refresh via Official API when WebSocket subscription fails.
-   * Guards against repeated refresh attempts.
-   */
   private async refreshChatroomId(): Promise<boolean> {
     if (this.hasAttemptedRefresh || !this.channelHandle) return false;
     this.hasAttemptedRefresh = true;
@@ -131,23 +113,21 @@ export class KickChatCollector implements ChatCollector {
         this.status = "connected";
         this.health = "healthy";
         this.backoffDelay = 1000;
-        this.hasAttemptedRefresh = false; // Reset refresh guard on successful connection
+        this.hasAttemptedRefresh = false;
 
-        // Subscribe to Kick chatroom channel
-        // Since Cloudflare blocks API v2 and the official API doesn't expose the true chatroom_id,
-        // we use a heuristic subscription window. Kick chatroom IDs are always within a tight
-        // range of the channel_id (typically -3 to +3). We subscribe to all 7 channels.
-        // Since Kick isolates streams, we will only receive messages on the correct channel.
+        // Broadened Subscription Window (±30 range) to guarantee capturing true chatroom ID
         const baseId = parseInt(room, 10);
         if (!isNaN(baseId)) {
-          for (let i = baseId - 3; i <= baseId + 3; i++) {
+          const startId = Math.max(1, baseId - 30);
+          const endId = baseId + 30;
+          for (let i = startId; i <= endId; i++) {
             const subscribePayload = {
               event: "pusher:subscribe",
               data: { auth: "", channel: `chatrooms.${i}.v2` },
             };
             this.ws?.send(JSON.stringify(subscribePayload));
           }
-          console.log(`[KickCollector] 📡 Heuristic subscription: Subscribed to chatrooms ${baseId - 3} through ${baseId + 3}`);
+          console.log(`[KickCollector] 📡 Broadened subscription window: Subscribed to chatrooms ${startId} through ${endId}`);
         } else {
           const subscribePayload = {
             event: "pusher:subscribe",
@@ -195,9 +175,6 @@ export class KickChatCollector implements ChatCollector {
     }
   }
 
-  /**
-   * Disconnect cleanly
-   */
   public async disconnect(): Promise<void> {
     this.isIntentionallyClosed = true;
     this.stopHeartbeat();
@@ -217,9 +194,6 @@ export class KickChatCollector implements ChatCollector {
     console.log(`[KickCollector] 🛑 Disconnected session '${this.sessionId}'`);
   }
 
-  /**
-   * Manual reconnect trigger
-   */
   public async reconnect(): Promise<void> {
     await this.disconnect();
     this.isIntentionallyClosed = false;
@@ -227,9 +201,6 @@ export class KickChatCollector implements ChatCollector {
     await this.connect();
   }
 
-  /**
-   * Subscribe message listener
-   */
   public onMessage(handler: (msg: LiveChatMessage) => void): () => void {
     this.messageHandlers.add(handler);
     return () => this.messageHandlers.delete(handler);
@@ -247,9 +218,6 @@ export class KickChatCollector implements ChatCollector {
     return { ...this.stats };
   }
 
-  /**
-   * Heartbeat handling (Pusher Ping/Pong)
-   */
   private startHeartbeat() {
     this.stopHeartbeat();
     this.pingTimer = setInterval(() => {
@@ -266,10 +234,6 @@ export class KickChatCollector implements ChatCollector {
     }
   }
 
-  /**
-   * Exponential backoff auto-reconnect.
-   * If the previous connection errored, attempt one chatroomId refresh before reconnecting.
-   */
   private scheduleReconnect() {
     if (this.reconnectTimer || this.isIntentionallyClosed) return;
 
@@ -279,9 +243,8 @@ export class KickChatCollector implements ChatCollector {
 
     this.reconnectTimer = setTimeout(async () => {
       this.reconnectTimer = null;
-      this.backoffDelay = Math.min(this.backoffDelay * 2, 30000); // Cap backoff at 30s
+      this.backoffDelay = Math.min(this.backoffDelay * 2, 30000);
 
-      // If we've errored and haven't refreshed yet, try refreshing chatroomId
       if (this.status === "error" && this.channelHandle) {
         const refreshed = await this.refreshChatroomId();
         if (refreshed) {
@@ -293,9 +256,6 @@ export class KickChatCollector implements ChatCollector {
     }, this.backoffDelay);
   }
 
-  /**
-   * Handles raw WebSocket frame data and emits normalized LiveChatMessage
-   */
   private handleRawMessage(raw: WebSocket.Data) {
     try {
       const rawString = raw.toString();
@@ -304,17 +264,6 @@ export class KickChatCollector implements ChatCollector {
       const channel = parsed.channel || "global";
       const payloadPreview = rawString.slice(0, 500);
 
-      // Part 1: Websocket Protocol Audit Logging
-      console.log(`
-Incoming WebSocket Event
-Timestamp: ${new Date().toISOString()}
-Channel: ${channel}
-Event: ${eventName}
-Payload Length: ${rawString.length} bytes
-Payload Preview: ${payloadPreview}
-      `);
-
-      // Handle Pusher Ping
       if (eventName === "pusher:ping") {
         this.ws?.send(JSON.stringify({ event: "pusher:pong", data: {} }));
         return;
@@ -322,31 +271,20 @@ Payload Preview: ${payloadPreview}
 
       if (eventName === "pusher:pong" || eventName === "pusher_internal:subscription_succeeded") {
         if (eventName === "pusher_internal:subscription_succeeded") {
-          console.log(`[KickCollector] ✅ Subscription confirmed for chatrooms.${this.chatroomId}.v2 — Heartbeat active`);
-          DiagnosticsLogger.log("Collector", "Subscription", `Subscription confirmed for chatrooms.${this.chatroomId}.v2`);
+          DiagnosticsLogger.log("Collector", "Subscription", `Subscription confirmed for ${channel}`);
           DiagnosticsState.updateSubsystem("collector", { subscriptionConfirmed: true, status: "healthy", lastSuccess: new Date().toISOString() });
         }
         return;
       }
 
-      // Check if event is ChatMessage
       DiagnosticsState.incrementCounter("collector", "rawEvents");
       
-      const expectedEvent = "App\\Events\\ChatMessageEvent";
       const isChatMessage = eventName.includes("ChatMessageEvent") || 
                             eventName.includes("ChatMessage") || 
                             eventName.toLowerCase().includes("chat.message") ||
                             eventName.toLowerCase().includes("message.new");
 
       if (isChatMessage) {
-        // Log Parser match
-        if (eventName !== expectedEvent) {
-            console.log(`[Parser Audit Mismatch]
-Expected Event: ${expectedEvent}
-Received Event: ${eventName}
-Parser Used: KickChatParserV1
-Decision: Attempting to parse anyway because it contains ChatMessage or similar`);
-        }
         let eventData = parsed.data;
         if (typeof eventData === "string") {
           try {
@@ -357,24 +295,12 @@ Decision: Attempting to parse anyway because it contains ChatMessage or similar`
         if (eventData && typeof eventData === "object") {
           const normalized = this.normalizeMessage(eventData);
           if (normalized) {
-            // Deduplicate by message ID
             if (this.processedMessageIds.has(normalized.id)) {
               DiagnosticsState.incrementCounter("collector", "duplicateMessages");
-              DiagnosticsState.addRawEvent({
-                eventName,
-                channel,
-                payloadSize: rawString.length,
-                timestamp: new Date().toISOString(),
-                ignored: true,
-                parsed: true,
-                reasonIgnored: "Duplicate message ID",
-                payloadPreview
-              });
               return;
             }
 
             this.processedMessageIds.add(normalized.id);
-            // Cap dedup cache to MAX_DUPLICATE_CACHE entries using O(1) Set eviction
             while (this.processedMessageIds.size > INGESTION_CONFIG.MAX_DUPLICATE_CACHE) {
               const oldestId = this.processedMessageIds.values().next().value;
               if (oldestId) this.processedMessageIds.delete(oldestId);
@@ -397,11 +323,8 @@ Decision: Attempting to parse anyway because it contains ChatMessage or similar`
               payloadPreview
             });
 
-            console.log(`[Parser E2E Trace] RAW EVENT RECEIVED -> Parser Selected -> Normalized LiveChatMessage`);
-
             console.log(`[KickCollector] 📨 Message #${this.stats.totalMessagesReceived} from '${normalized.author.username}': "${normalized.message.slice(0, 60)}${normalized.message.length > 60 ? "..." : ""}"`);
 
-            // Notify handlers
             for (const handler of this.messageHandlers) {
               try {
                 handler(normalized);
@@ -410,65 +333,23 @@ Decision: Attempting to parse anyway because it contains ChatMessage or similar`
               }
             }
 
-            // Persist message to canonical `chat_messages` collection asynchronously
             SessionArtifactRegistry.saveChatMessage(this.sessionId, normalized).catch((pErr) => {
               console.warn(`[KickCollector] Artifact Registry save warning for session '${this.sessionId}': ${pErr.message}`);
             });
 
           } else {
              DiagnosticsState.incrementCounter("collector", "unknownEvents");
-             DiagnosticsState.addRawEvent({
-               eventName,
-               channel,
-               payloadSize: rawString.length,
-               timestamp: new Date().toISOString(),
-               ignored: true,
-               parsed: false,
-               reasonIgnored: "Normalization failed",
-               payloadPreview
-             });
-             console.log(`[Parser Audit]
-Expected Event: ${expectedEvent}
-Received Event: ${eventName}
-Parser Used: KickChatParserV1
-Decision: Rejected (Normalization Failed)`);
           }
         }
       } else {
          DiagnosticsState.incrementCounter("collector", "unknownEvents");
-         DiagnosticsState.addRawEvent({
-           eventName,
-           channel,
-           payloadSize: rawString.length,
-           timestamp: new Date().toISOString(),
-           ignored: true,
-           parsed: false,
-           reasonIgnored: "Not a ChatMessage event",
-           payloadPreview
-         });
       }
     } catch (err: any) {
       DiagnosticsState.incrementCounter("collector", "parseFailures");
-      console.warn("[KickCollector] Malformed raw payload warning:", err.message);
-      DiagnosticsLogger.warn("Collector", "Parse", `Malformed raw payload warning: ${err.message}`);
-      DiagnosticsState.incrementCounter("collector", "unknownEvents");
-      DiagnosticsState.addRawEvent({
-        eventName: "unknown",
-        channel: "unknown",
-        payloadSize: raw.toString().length,
-        timestamp: new Date().toISOString(),
-        ignored: true,
-        parsed: false,
-        reasonIgnored: "Malformed raw payload exception",
-        payloadPreview: raw.toString().slice(0, 500)
-      });
       this.stats.errorsCount += 1;
     }
   }
 
-  /**
-   * Normalizes Kick payload into standardized LiveChatMessage format
-   */
   private normalizeMessage(data: any): LiveChatMessage | null {
     const messageText = data.content || data.message || "";
     if (!messageText.trim()) return null;
@@ -514,5 +395,4 @@ Decision: Rejected (Normalization Failed)`);
       emotes: canonical.emotes.map((e) => e.name),
     };
   }
-
 }
