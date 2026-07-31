@@ -52,29 +52,44 @@ export class KickChatCollector implements ChatCollector {
 
   /**
    * Resolves Kick Chatroom ID.
+   *
+   * IMPORTANT: If channelHandle is available, ALWAYS re-verify via the API.
+   * The stored chatroomId may be the broadcaster_user_id (incorrect) — for newer
+   * Kick channels these can differ by millions, making heuristic subscription impossible.
+   * The Python curl_cffi resolver is the only reliable source of the true chatroom.id.
    */
   private async resolveChatroomId(): Promise<string> {
+    // If we have a channelHandle, ALWAYS resolve fresh via API to get true chatroom.id.
+    // Stored IDs can be broadcaster_user_id (wrong); the API is the only source of truth.
+    if (this.channelHandle) {
+      console.log(`[KickCollector] ⏳ Resolving authoritative chatroomId via API for '${this.channelHandle}'...`);
+      const kickMeta = await getKickChatroomId(this.channelHandle);
+      if (kickMeta?.chatroomId) {
+        const previousId = this.chatroomId;
+        this.chatroomId = kickMeta.chatroomId;
+        this.channelId = kickMeta.channelId;
+        if (previousId && previousId !== this.chatroomId) {
+          console.warn(`[KickCollector] ⚠️ Corrected chatroomId for '${this.channelHandle}': stored #${previousId} → actual #${this.chatroomId} (offset: ${Math.abs(Number(previousId) - Number(this.chatroomId))})`);
+        } else {
+          console.log(`[KickCollector] ✅ Resolved chatroomId for '${this.channelHandle}': #${this.chatroomId}`);
+        }
+        return this.chatroomId;
+      }
+      // API failed — fall back to stored ID if available
+      if (this.chatroomId) {
+        console.warn(`[KickCollector] ⚠️ API resolution failed for '${this.channelHandle}'. Falling back to stored chatroomId #${this.chatroomId}.`);
+        return this.chatroomId;
+      }
+    }
+
+    // No channelHandle — use stored ID directly
     if (this.chatroomId) {
-      console.log(`[KickCollector] ✅ Using provided chatroomId #${this.chatroomId} for '${this.channelHandle || "unknown"}'`);
-      return this.chatroomId;
-    }
-
-    if (!this.channelHandle) {
-      throw new Error(`[KickCollector] ❌ Cannot resolve chatroomId: no channelHandle or chatroomId provided for session '${this.sessionId}'`);
-    }
-
-    console.log(`[KickCollector] ⏳ No chatroomId provided — resolving via Official API for '${this.channelHandle}'...`);
-    const kickMeta = await getKickChatroomId(this.channelHandle);
-
-    if (kickMeta?.chatroomId) {
-      this.chatroomId = kickMeta.chatroomId;
-      this.channelId = kickMeta.channelId;
-      console.log(`[KickCollector] ✅ Resolved chatroomId via Official API for '${this.channelHandle}': #${this.chatroomId}`);
+      console.log(`[KickCollector] ✅ Using stored chatroomId #${this.chatroomId} (no channelHandle to verify against)`);
       return this.chatroomId;
     }
 
     throw new Error(
-      `[KickCollector] ❌ Could not resolve Kick chatroomId for '${this.channelHandle}'.`
+      `[KickCollector] ❌ Cannot resolve chatroomId: no channelHandle or chatroomId provided for session '${this.sessionId}'`
     );
   }
 
@@ -115,11 +130,14 @@ export class KickChatCollector implements ChatCollector {
         this.backoffDelay = 1000;
         this.hasAttemptedRefresh = false;
 
-        // Broadened Subscription Window (±30 range) to guarantee capturing true chatroom ID
+        // Precise subscription: subscribe directly to the resolved chatroom ID.
+        // A tight ±5 safety net is kept to handle minor API inconsistencies.
+        // NOTE: The old ±30 heuristic was insufficient — newer Kick channels have chatroom IDs
+        // that differ from broadcaster_user_id by millions (e.g. 8bitheadflicker: offset 1,524,416).
         const baseId = parseInt(room, 10);
         if (!isNaN(baseId)) {
-          const startId = Math.max(1, baseId - 30);
-          const endId = baseId + 30;
+          const startId = Math.max(1, baseId - 5);
+          const endId = baseId + 5;
           for (let i = startId; i <= endId; i++) {
             const subscribePayload = {
               event: "pusher:subscribe",
@@ -127,7 +145,7 @@ export class KickChatCollector implements ChatCollector {
             };
             this.ws?.send(JSON.stringify(subscribePayload));
           }
-          console.log(`[KickCollector] 📡 Broadened subscription window: Subscribed to chatrooms ${startId} through ${endId}`);
+          console.log(`[KickCollector] 📡 Subscribed to chatrooms ${startId}–${endId} (target: chatrooms.${baseId}.v2)`);
         } else {
           const subscribePayload = {
             event: "pusher:subscribe",
