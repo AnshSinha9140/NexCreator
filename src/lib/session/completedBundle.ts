@@ -45,6 +45,11 @@ export interface CompletedSessionBundle {
     categoryExplanations?: any;
   } | null;
   integrityReport: SessionIntegrityReport;
+  // Sprint 18.7 Memory Extensions
+  creatorProfileSnapshot?: any;
+  personalBenchmarks?: any;
+  patternDetections?: any[];
+  playbookSnapshot?: any;
   metadata: {
     platform: string;
     streamTitle: string;
@@ -73,7 +78,7 @@ export class CompletedSessionBundleBuilder {
     const highlights = artifacts?.highlights || [];
     const timelineEvents = artifacts?.timelineEvents || [];
     const insights = artifacts?.insights || [];
-    const intel = artifacts?.intelligence || {
+    const intel: any = artifacts?.intelligence || {
       coach: [],
       mood: null,
       topics: [],
@@ -82,7 +87,12 @@ export class CompletedSessionBundleBuilder {
       score: null,
       story: null,
       actions: [],
+      creatorProfile: null,
+      personalBenchmarks: null,
+      detectedPatterns: [],
+      creatorPlaybook: null,
     };
+
 
     const totalMessagesCount = messages.length;
     const highlightsCount = highlights.length;
@@ -140,12 +150,17 @@ export class CompletedSessionBundleBuilder {
       broadcastScoreBreakdown: broadcastScore.breakdown,
       broadcastScore,
       integrityReport,
+      // Memory Engine Extensions
+      creatorProfileSnapshot: intel.creatorProfile || null,
+      personalBenchmarks: intel.personalBenchmarks || null,
+      patternDetections: intel.detectedPatterns || [],
+      playbookSnapshot: intel.creatorPlaybook || null,
       metadata: {
         platform: sessionDoc?.platform || "kick",
         streamTitle: sessionDoc?.streamTitle || "Live Broadcast",
         streamCategory: sessionDoc?.streamCategory || "Gaming",
         createdAt: new Date().toISOString(),
-        bundleVersion: 2,
+        bundleVersion: 3,
       },
     };
 
@@ -153,6 +168,7 @@ export class CompletedSessionBundleBuilder {
     return bundle;
   }
 }
+
 
 export class CompletedSessionBundleLoader {
   private static cache = new Map<string, CompletedSessionBundle>();

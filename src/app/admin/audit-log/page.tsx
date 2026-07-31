@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import DataTable, { Column } from "@/components/admin/DataTable";
 
@@ -9,7 +9,7 @@ export default function AuditLogPage() {
   const [loading, setLoading] = useState(true);
   const [actionFilter, setActionFilter] = useState("all");
 
-  const fetchAuditLog = async () => {
+  const fetchAuditLog = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/admin/audit-log?action=${actionFilter}`);
@@ -20,18 +20,18 @@ export default function AuditLogPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [actionFilter]);
 
   useEffect(() => {
     fetchAuditLog();
-  }, [actionFilter]);
+  }, [fetchAuditLog]);
 
   const handleExport = (type: "csv" | "json") => {
     const dataStr =
       type === "json"
         ? JSON.stringify(logs, null, 2)
         : "ID,Timestamp,Admin,Action,Target,Reason\n" +
-          logs.map((l) => `"${l.id}","${l.timestamp}","${l.admin}","${l.action}","${l.target}","${l.reason.replace(/"/g, '""')}"`).join("\n");
+          logs.map((l) => `"${l.id}","${l.timestamp}","${l.admin}","${l.action}","${l.target}","${l.reason?.replace(/"/g, '""') || ""}"`).join("\n");
 
     const blob = new Blob([dataStr], { type: type === "json" ? "application/json" : "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -41,7 +41,7 @@ export default function AuditLogPage() {
     a.click();
   };
 
-  if (loading) {
+  if (loading && logs.length === 0) {
     return (
       <>
         <AdminHeader
@@ -61,7 +61,7 @@ export default function AuditLogPage() {
     {
       header: "Timestamp",
       accessorKey: "timestamp",
-      cell: (row) => <span className="font-mono text-slate-400 text-[11px]" suppressHydrationWarning>{new Date(row.timestamp).toLocaleString()}</span>,
+      cell: (row) => <span className="font-mono text-slate-400 text-[11px]" suppressHydrationWarning>{row.timestamp ? new Date(row.timestamp).toLocaleString() : "—"}</span>,
     },
     {
       header: "Admin User",

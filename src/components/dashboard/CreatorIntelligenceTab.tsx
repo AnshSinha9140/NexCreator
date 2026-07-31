@@ -60,7 +60,7 @@ export const CreatorIntelligenceTab: React.FC<CreatorIntelligenceTabProps> = ({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px", fontFamily: "'Inter', sans-serif" }}>
       
-      {/* 1. Conversational Executive AI Summary Banner */}
+      {/* 1. Conversational Executive AI Summary Banner & Primary Manager Decision */}
       <div
         style={{
           padding: "24px",
@@ -69,7 +69,7 @@ export const CreatorIntelligenceTab: React.FC<CreatorIntelligenceTabProps> = ({
           border: "1px solid rgba(168, 85, 247, 0.35)",
           display: "flex",
           flexDirection: "column",
-          gap: "12px",
+          gap: "14px",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -111,7 +111,78 @@ export const CreatorIntelligenceTab: React.FC<CreatorIntelligenceTabProps> = ({
         <p style={{ margin: 0, fontSize: "13px", color: "#cbd5e1", lineHeight: 1.6 }}>
           "{buildExecutiveSummary()}"
         </p>
+
+        {/* Primary Manager Decision Highlight */}
+        {intelligence.primaryDecision && (
+          <div style={{ marginTop: "6px", padding: "14px", borderRadius: "12px", background: "rgba(52, 211, 153, 0.08)", border: "1px solid rgba(52, 211, 153, 0.3)" }}>
+            <div style={{ fontSize: "10px", fontWeight: "800", color: "#34d399", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              🎯 PRIMARY MANAGER DECISION (Decision Score: {intelligence.primaryDecision.decisionScore}/100)
+            </div>
+            <div style={{ fontSize: "15px", fontWeight: "800", color: "#f8fafc", marginTop: "4px" }}>
+              {intelligence.primaryDecision.recommendation.title}
+            </div>
+            <div style={{ fontSize: "12px", color: "#cbd5e1", marginTop: "2px" }}>
+              {intelligence.primaryDecision.rationale}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Sprint 18.7 Personal Benchmarks & Pattern Detection Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+        {/* Personal Benchmarks */}
+        {intelligence.personalBenchmarks && (
+          <div style={{ padding: "20px", borderRadius: "16px", background: "rgba(13, 16, 27, 0.85)", border: "1px solid rgba(96, 165, 250, 0.3)", display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div style={{ fontSize: "11px", fontWeight: "800", color: "#60a5fa", textTransform: "uppercase" }}>
+              📊 Personal Benchmarks vs Creator Average
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", textAlign: "center" }}>
+              <div style={{ padding: "8px", borderRadius: "8px", background: "rgba(255,255,255,0.03)" }}>
+                <div style={{ fontSize: "9px", color: "#94a3b8" }}>Viewers</div>
+                <div style={{ fontSize: "14px", fontWeight: "900", color: intelligence.personalBenchmarks.viewersDeltaPct >= 0 ? "#34d399" : "#fb7185" }}>
+                  {intelligence.personalBenchmarks.viewersDeltaPct >= 0 ? `+${intelligence.personalBenchmarks.viewersDeltaPct}%` : `${intelligence.personalBenchmarks.viewersDeltaPct}%`}
+                </div>
+              </div>
+              <div style={{ padding: "8px", borderRadius: "8px", background: "rgba(255,255,255,0.03)" }}>
+                <div style={{ fontSize: "9px", color: "#94a3b8" }}>Messages</div>
+                <div style={{ fontSize: "14px", fontWeight: "900", color: "#60a5fa" }}>+{intelligence.personalBenchmarks.messagesDeltaPct}%</div>
+              </div>
+              <div style={{ padding: "8px", borderRadius: "8px", background: "rgba(255,255,255,0.03)" }}>
+                <div style={{ fontSize: "9px", color: "#94a3b8" }}>Engagement</div>
+                <div style={{ fontSize: "14px", fontWeight: "900", color: "#c084fc" }}>+{intelligence.personalBenchmarks.engagementDeltaPct}%</div>
+              </div>
+              <div style={{ padding: "8px", borderRadius: "8px", background: "rgba(255,255,255,0.03)" }}>
+                <div style={{ fontSize: "9px", color: "#94a3b8" }}>Score</div>
+                <div style={{ fontSize: "14px", fontWeight: "900", color: "#34d399" }}>+{intelligence.personalBenchmarks.scoreDelta}</div>
+              </div>
+            </div>
+            <div style={{ fontSize: "11px", color: "#cbd5e1" }}>
+              {intelligence.personalBenchmarks.comparisonSummary}
+            </div>
+          </div>
+        )}
+
+        {/* Creator Playbook */}
+        {intelligence.creatorPlaybook && (
+          <div style={{ padding: "20px", borderRadius: "16px", background: "rgba(13, 16, 27, 0.85)", border: "1px solid rgba(168, 85, 247, 0.3)", display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div style={{ fontSize: "11px", fontWeight: "800", color: "#c084fc", textTransform: "uppercase" }}>
+              📘 Evolving Creator Playbook
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              {intelligence.creatorPlaybook.strengths.slice(0, 2).map((s, idx) => (
+                <div key={idx} style={{ fontSize: "11px", display: "flex", justifyContent: "space-between", color: "#cbd5e1" }}>
+                  <span>{s.title}</span>
+                  <span style={{ color: "#eab308" }}>{"★".repeat(s.stars)}{"☆".repeat(5 - s.stars)}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: "11px", color: "#94a3b8", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "6px" }}>
+              Key Playbook Action: {intelligence.creatorPlaybook.recommendedPlaybookActions[0] || "Extend broadcast duration to 60+ mins."}
+            </div>
+          </div>
+        )}
+      </div>
+
 
       {/* Part 11: Explainable AI Health Dashboard (Collapsible) */}
       {showDiagnostics && health && (
@@ -323,24 +394,105 @@ export const CreatorIntelligenceTab: React.FC<CreatorIntelligenceTabProps> = ({
       {/* Part 7 & Part 8: Upgraded Opportunity & System Health Risk Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
         
-        {/* Part 7: Upgraded Opportunity Cards */}
-        <div style={{ padding: "20px", borderRadius: "16px", background: "rgba(13, 16, 27, 0.85)", border: "1px solid rgba(255, 255, 255, 0.08)", display: "flex", flexDirection: "column", gap: "12px" }}>
-          <div style={{ fontSize: "11px", fontWeight: "800", color: "#60a5fa", textTransform: "uppercase" }}>🚀 High-Reach Clip & Content Opportunities ({opps.length})</div>
+        {/* Part 7: Upgraded AI Clip Recommendation Engine (Sprint 18.7.1 Editorial Design) */}
+        <div style={{ padding: "20px", borderRadius: "16px", background: "rgba(13, 16, 27, 0.85)", border: "1px solid rgba(96, 165, 250, 0.3)", display: "flex", flexDirection: "column", gap: "14px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ fontSize: "11px", fontWeight: "800", color: "#60a5fa", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              🎬 AI Clip Recommendations ({opps.length} Top Moments)
+            </div>
+            <span style={{ fontSize: "10px", color: "#94a3b8", fontWeight: "700" }}>Editorial Grouping & Distinct Ranking</span>
+          </div>
+
           {opps.length === 0 ? (
-            <div style={{ fontSize: "12px", color: "#64748b" }}>No active opportunities detected.</div>
+            <div style={{ padding: "16px", borderRadius: "10px", background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.1)", textAlign: "center", color: "#94a3b8", fontSize: "12px", lineHeight: 1.6 }}>
+              "No moments currently stand out as strong short-form content opportunities. We'll continue evaluating future snapshots."
+            </div>
           ) : (
             opps.map((opp) => (
-              <div key={opp.id} style={{ padding: "12px", borderRadius: "10px", background: "rgba(96, 165, 250, 0.08)", border: "1px solid rgba(96, 165, 250, 0.2)", fontSize: "12px", display: "flex", flexDirection: "column", gap: "6px" }}>
-                <div style={{ fontWeight: "700", color: "#60a5fa", display: "flex", justifyContent: "space-between" }}>
-                  <span>{opp.title}</span>
-                  <span style={{ fontSize: "10px", color: "#34d399" }}>Clip Quality: 94%</span>
+              <div key={opp.id} style={{ padding: "16px", borderRadius: "14px", background: "rgba(96, 165, 250, 0.06)", border: "1px solid rgba(96, 165, 250, 0.25)", display: "flex", flexDirection: "column", gap: "12px", fontSize: "12px" }}>
+                
+                {/* Category Icon, Clip Window & Distinct Rank Badge */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ padding: "4px 10px", borderRadius: "8px", background: "rgba(96, 165, 250, 0.2)", color: "#60a5fa", fontSize: "11px", fontWeight: "800", textTransform: "uppercase" }}>
+                      {opp.categoryLabel || "🔥 Moment"}
+                    </span>
+                    <span style={{ fontSize: "12px", fontWeight: "800", color: "#eab308" }}>
+                      {opp.rankTag || "🥇 Best Opportunity"}
+                    </span>
+                  </div>
+
+                  <div style={{ padding: "4px 10px", borderRadius: "8px", background: "rgba(52, 211, 153, 0.15)", color: "#34d399", fontSize: "12px", fontWeight: "900", fontFamily: "monospace" }}>
+                    Overall AI {opp.scores?.overallAiScore || 94}/100
+                  </div>
                 </div>
-                <div style={{ color: "#cbd5e1" }}>Suggested Title: "Epic Community Clutch Moment"</div>
-                <div style={{ fontSize: "11px", color: "#94a3b8" }}>Suggested Clip Duration: 45s | Expected Reach: High (TikTok / Shorts)</div>
+
+                {/* Editorial Dynamic Title */}
+                <h4 style={{ margin: 0, fontSize: "15px", fontWeight: "800", color: "#f8fafc", lineHeight: 1.4 }}>
+                  {opp.dynamicTitle || opp.title}
+                </h4>
+
+                {/* Exact Clip Window (Start -> End & Duration) */}
+                {opp.clipWindow && (
+                  <div style={{ padding: "8px 12px", borderRadius: "8px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.05)", fontSize: "11px", color: "#cbd5e1", display: "flex", justifyContent: "space-between", alignItems: "center", fontFamily: "monospace" }}>
+                    <span>Clip Window: <strong style={{ color: "#60a5fa" }}>{opp.clipWindow.startTime} ➔ {opp.clipWindow.endTime}</strong></span>
+                    <span>Length: <strong style={{ color: "#34d399" }}>{opp.clipWindow.durationSeconds}s</strong></span>
+                  </div>
+                )}
+
+                {/* Why AI Chose This (Verified Snapshot Data Triggers) */}
+                {opp.whyDetected && opp.whyDetected.length > 0 && (
+                  <div style={{ padding: "10px 12px", borderRadius: "8px", background: "rgba(255,255,255,0.03)" }}>
+                    <div style={{ fontSize: "10px", fontWeight: "800", color: "#c084fc", textTransform: "uppercase", marginBottom: "6px" }}>Why AI Selected This:</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px", fontSize: "11px", color: "#cbd5e1" }}>
+                      {opp.whyDetected.map((w, idx) => (
+                        <div key={idx}>{w}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Multi-Dimensional AI Scores Grid */}
+                {opp.scores && (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", padding: "10px", borderRadius: "10px", background: "rgba(0,0,0,0.25)", textAlign: "center", fontSize: "10px" }}>
+                    <div style={{ padding: "4px", borderRadius: "6px", background: "rgba(255,255,255,0.02)" }}>
+                      <span style={{ color: "#94a3b8" }}>Virality</span>
+                      <div style={{ fontSize: "13px", fontWeight: "800", color: "#34d399", marginTop: "2px" }}>{opp.scores.virality}</div>
+                    </div>
+                    <div style={{ padding: "4px", borderRadius: "6px", background: "rgba(255,255,255,0.02)" }}>
+                      <span style={{ color: "#94a3b8" }}>Entertainment</span>
+                      <div style={{ fontSize: "13px", fontWeight: "800", color: "#60a5fa", marginTop: "2px" }}>{opp.scores.entertainment}</div>
+                    </div>
+                    <div style={{ padding: "4px", borderRadius: "6px", background: "rgba(255,255,255,0.02)" }}>
+                      <span style={{ color: "#94a3b8" }}>Replay</span>
+                      <div style={{ fontSize: "13px", fontWeight: "800", color: "#c084fc", marginTop: "2px" }}>{opp.scores.replayValue}</div>
+                    </div>
+                    <div style={{ padding: "4px", borderRadius: "6px", background: "rgba(255,255,255,0.02)" }}>
+                      <span style={{ color: "#94a3b8" }}>Community</span>
+                      <div style={{ fontSize: "13px", fontWeight: "800", color: "#eab308", marginTop: "2px" }}>{opp.scores.communityImpact}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Target Platforms Badges */}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "11px" }}>
+                  <span style={{ color: "#94a3b8", fontWeight: "700" }}>Best Platform:</span>
+                  <span style={{ padding: "3px 8px", borderRadius: "6px", background: "rgba(52, 211, 153, 0.15)", color: "#34d399", fontWeight: "800", fontSize: "10px" }}>
+                    ✓ {opp.bestPlatform || "TikTok + YouTube Shorts"}
+                  </span>
+                </div>
+
+                {/* Actionable Creator Advice */}
+                <div style={{ padding: "10px 12px", borderRadius: "8px", background: "rgba(96, 165, 250, 0.08)", border: "1px solid rgba(96, 165, 250, 0.2)", fontSize: "11px", color: "#cbd5e1" }}>
+                  <span style={{ fontWeight: "800", color: "#60a5fa", display: "block", marginBottom: "2px" }}>💡 Recommended Action:</span>
+                  {opp.recommendedNextStep || opp.recommendedAction}
+                </div>
               </div>
             ))
           )}
         </div>
+
+
 
         {/* Part 8: System Health Risk Card (Replaces Empty Risk) */}
         <div style={{ padding: "20px", borderRadius: "16px", background: "rgba(13, 16, 27, 0.85)", border: "1px solid rgba(255, 255, 255, 0.08)", display: "flex", flexDirection: "column", gap: "12px" }}>

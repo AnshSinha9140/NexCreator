@@ -238,7 +238,11 @@ export class SessionFinalizer {
         { upsert: true }
       );
 
-      console.log(`[SessionFinalizer] Persisted immutable CompletedSessionBundle (${sessionType}) to MongoDB for session '${sessionId}' ✅`);
+      // Step 12: Sprint 18.7 Update Long-Term Creator Memory & Profile
+      const { CreatorMemoryEngine } = await import("../memory/engine");
+      await CreatorMemoryEngine.updateMemoryAfterSession(sessionId);
+
+      console.log(`[SessionFinalizer] Persisted immutable CompletedSessionBundle & Updated Creator Memory for session '${sessionId}' ✅`);
     } catch (err: any) {
       console.error(`[SessionFinalizer] MongoDB update error for session '${sessionId}':`, err.message);
     }
@@ -246,4 +250,5 @@ export class SessionFinalizer {
     return finalSummary;
   }
 }
+
 

@@ -15,13 +15,27 @@ import { RecommendationQualityEngine } from "./quality";
 import { ContinuousSessionLearningEngine } from "./learning";
 import { RecommendationValidator } from "./validator";
 import { IntelligenceHealthEngine } from "./health";
+import { CreatorMemoryEngine } from "../memory/engine";
+import { DecisionEngine } from "../memory/decision";
+import { PatternDetector } from "../memory/patterns";
+import { PlaybookEngine } from "../memory/playbook";
 
 export class CreatorIntelligenceEngine {
   public static async processSnapshot(snapshot: PulseSnapshot): Promise<CreatorIntelligenceBundle> {
-    console.log(`[CreatorIntelligenceEngine] 🧠 Generating Calibrated Intelligence for snapshot '${snapshot.snapshotId}' (Session: '${snapshot.sessionId}')...`);
+    console.log(`[CreatorIntelligenceEngine] 🧠 Generating Calibrated Intelligence with Long-Term Memory for snapshot '${snapshot.snapshotId}' (Session: '${snapshot.sessionId}')...`);
 
     const existingBundle = await IntelligenceStorage.fetchLatestBundle(snapshot.sessionId);
     const memory = RecommendationMemory.getForSession(snapshot.sessionId);
+
+    // Sprint 18.7 Memory Engine Loaders
+    const creatorId = "creator";
+    const profile = await CreatorMemoryEngine.getProfile(creatorId);
+    const history = await CreatorMemoryEngine.getSessionHistory(creatorId);
+
+    // Compute Personal Benchmarks, Detected Patterns & Creator Playbook
+    const personalBenchmarks = CreatorMemoryEngine.calculateBenchmarks(snapshot, profile);
+    const detectedPatterns = PatternDetector.detectPatterns(history);
+    const creatorPlaybook = PlaybookEngine.buildPlaybook(creatorId, history);
 
     // 1. Continuous Session Learning Evaluation
     ContinuousSessionLearningEngine.evaluateSessionOutcomes(snapshot);
@@ -54,6 +68,9 @@ export class CreatorIntelligenceEngine {
     for (const activeRec of active) {
       ContinuousSessionLearningEngine.recordIssuedRecommendation(snapshot, activeRec);
     }
+
+    // Select ONE Primary Manager Decision
+    const primaryDecision = DecisionEngine.selectPrimaryDecision(active, profile);
 
     // 8. Mood Stability & Story Builder
     const mood = AudienceMoodAnalyzer.analyze(snapshot, existingBundle?.mood);
@@ -119,10 +136,17 @@ export class CreatorIntelligenceEngine {
       actions,
       health,
       diagnostics,
+      // Memory Engine additions
+      primaryDecision,
+      personalBenchmarks,
+      detectedPatterns,
+      creatorPlaybook,
+      creatorProfile: profile,
     };
 
     await IntelligenceStorage.saveBundle(snapshot.sessionId, snapshot.snapshotId, bundle);
     return bundle;
   }
 }
+
 

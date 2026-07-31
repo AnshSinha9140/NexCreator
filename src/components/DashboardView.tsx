@@ -13,8 +13,16 @@ import { CompletedSessionSummaryCard } from "./dashboard/CompletedSessionSummary
 import { CompletedWorkspace } from "./dashboard/completed/CompletedWorkspace";
 import { LiveWorkspace } from "./dashboard/LiveWorkspace";
 import { LiveSessionProvider } from "@/context/LiveSessionContext";
+import { HomeDashboard } from "./dashboard/HomeDashboard";
+import { CreatorInbox } from "./dashboard/CreatorInbox";
+import { StreamComparison } from "./dashboard/StreamComparison";
+import { CommandPalette } from "./dashboard/CommandPalette";
+import { NotificationCenterPanel } from "./dashboard/NotificationCenterPanel";
+
+type OsTab = "home" | "inbox" | "live" | "intelligence" | "strategy" | "compare" | "history";
 
 type LiveModuleTab = "pulse" | "producer" | "timeline" | "chat" | "highlights";
+
 
 const LIVE_NAV: { id: LiveModuleTab; name: string; icon: string; desc: string }[] = [
   { id: "pulse",      name: "Live Pulse",   icon: "🔴", desc: "Real-time stream health & sentiment velocity index" },
@@ -67,8 +75,20 @@ const formatDuration = (session: MonitoringSession | null): string => {
 export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = ({
   setActiveTab,
 }) => {
+  // Sprint 18.9 Creator Operating System Navigation & Dialog States
+  const [osTab, setOsTab] = useState<OsTab>("home");
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+
+  useEffect(() => {
+    const handleToggle = () => setIsCommandPaletteOpen((prev) => !prev);
+    window.addEventListener("toggle-command-palette", handleToggle);
+    return () => window.removeEventListener("toggle-command-palette", handleToggle);
+  }, []);
+
   // Navigation & Session State
   const [activeModule, setActiveModule] = useState<LiveModuleTab>("pulse");
+
   const [activeSession, setActiveSession] = useState<MonitoringSession | null>(null);
   const [connectedPlatform, setConnectedPlatform] = useState<ConnectedPlatformAccount | null>(null);
   const [connectedPlatformsList, setConnectedPlatformsList] = useState<ConnectedPlatformAccount[]>([]);
@@ -609,27 +629,130 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
     );
   }
 
-  // ─── 2. NO MONITORING SESSION (OFFLINE / EMPTY STATE) ────────────────
+  // ─── 2. CREATOR OPERATING SYSTEM WORKSPACE (NON-LIVE / DAILY EXPERIENCE) ──────────────
   if (!activeSession) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          minHeight: "75vh",
-          padding: "48px 24px",
-          textAlign: "center",
-        }}
-      >
-        {renderErrorBanner()}
+      <div style={{ display: "flex", flexDirection: "column", gap: "20px", maxWidth: "1400px", margin: "0 auto", padding: "20px", fontFamily: "'Inter', sans-serif" }}>
+        
+        {/* Top OS Navigation & Search Bar */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 20px", borderRadius: "16px", background: "rgba(13, 16, 27, 0.85)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(20px)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {[
+              { id: "home", label: "🏠 Home", desc: "Daily Overview" },
+              { id: "inbox", label: "📬 Inbox", desc: "AI Manager Updates" },
+              { id: "compare", label: "📊 Compare", desc: "Benchmark Workspace" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setOsTab(tab.id as OsTab)}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "10px",
+                  border: "none",
+                  background: osTab === tab.id ? "rgba(52, 211, 153, 0.15)" : "transparent",
+                  color: osTab === tab.id ? "#34d399" : "#94a3b8",
+                  fontSize: "13px",
+                  fontWeight: osTab === tab.id ? "800" : "600",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            {/* Quick Action Ctrl + K Search Trigger */}
+            <button
+              onClick={() => setIsCommandPaletteOpen(true)}
+              style={{
+                padding: "8px 14px",
+                borderRadius: "10px",
+                background: "rgba(255, 255, 255, 0.04)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+                color: "#94a3b8",
+                fontSize: "12px",
+                fontWeight: "600",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <span>🔍 Search Workspace</span>
+              <span style={{ fontSize: "10px", padding: "2px 6px", borderRadius: "4px", background: "rgba(255,255,255,0.08)", color: "#cbd5e1" }}>Ctrl + K</span>
+            </button>
+
+            {/* Notification Bell */}
+            <button
+              onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+              style={{
+                padding: "8px 12px",
+                borderRadius: "10px",
+                background: "rgba(255, 255, 255, 0.04)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+                color: "#f8fafc",
+                fontSize: "14px",
+                cursor: "pointer",
+                position: "relative",
+              }}
+            >
+              🔔
+            </button>
+          </div>
+
+          <NotificationCenterPanel isOpen={isNotificationOpen} onClose={() => setIsNotificationOpen(false)} />
+        </div>
+
+        {/* Global Command Palette */}
+        <CommandPalette
+          isOpen={isCommandPaletteOpen}
+          onClose={() => setIsCommandPaletteOpen(false)}
+          onNavigate={(tab) => setOsTab(tab as OsTab)}
+          onStartMonitoring={() => setIsSelectModalOpen(true)}
+        />
+
+        {/* Main Operating System Active View */}
+        {osTab === "home" && (
+          <HomeDashboard
+            onStartMonitoring={() => setIsSelectModalOpen(true)}
+            onOpenLastReport={() => setActiveTab("history")}
+            onReviewContentStrategy={() => setOsTab("compare")}
+            onCompareStreams={() => setOsTab("compare")}
+          />
+        )}
+
+        {osTab === "inbox" && <CreatorInbox />}
+
+        {osTab === "compare" && <StreamComparison />}
+
+        {/* Floating Quick Action Bar */}
+        <div style={{ position: "fixed", bottom: "24px", right: "24px", display: "flex", gap: "10px", zIndex: 900 }}>
+          <button
+            onClick={() => setIsSelectModalOpen(true)}
+            style={{
+              padding: "12px 20px",
+              borderRadius: "30px",
+              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+              border: "none",
+              color: "#ffffff",
+              fontSize: "13px",
+              fontWeight: "800",
+              cursor: "pointer",
+              boxShadow: "0 10px 25px rgba(16, 185, 129, 0.4)",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <span>📡</span> Start Live Monitoring
+          </button>
+        </div>
 
         {/* Multi-Platform Selection Modal */}
         {isSelectModalOpen && (
+
           <div
             style={{
               position: "fixed",
@@ -940,9 +1063,12 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
             Return to Command Center
           </button>
         </div>
-      </motion.div>
+      </div>
     );
   }
+
+
+
 
   // ─── PART 3 & 4: PREMIUM WAITING STATE UX WITH TELEMETRY & TIMELINE ────────
   if (activeSession.status === "waiting") {

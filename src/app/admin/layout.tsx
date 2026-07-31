@@ -1,5 +1,6 @@
 import "./admin.css";
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import { AdminProvider } from "@/context/AdminContext";
 
 export const metadata = {
   title: "Admin Console — NexCreator Ops",
@@ -8,11 +9,13 @@ export const metadata = {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="admin-root">
-      <AdminSidebar />
-      <div className="admin-main">
-        {children}
+    <AdminProvider>
+      <div className="admin-root">
+        <AdminSidebar />
+        <div className="admin-main">
+          {children}
+        </div>
       </div>
-    </div>
+    </AdminProvider>
   );
 }

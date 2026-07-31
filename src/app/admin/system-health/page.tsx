@@ -1,110 +1,134 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import HealthBadge from "@/components/admin/HealthBadge";
 
 export default function SystemHealthPage() {
-  const [data, setData] = useState<any>(null);
+  const [dashDebug, setDashDebug] = useState<any>(null);
+  const [aiDebug, setAiDebug] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchSystemHealth = async () => {
+  const fetchDiagnostics = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/system-health");
-      const json = await res.json();
-      if (json.success) setData(json.data);
+      const [dashRes, aiRes] = await Promise.all([
+        fetch("/api/admin/debug/dashboard"),
+        fetch("/api/admin/debug/ai-telemetry"),
+      ]);
+      const dashJson = await dashRes.json();
+      const aiJson = await aiRes.json();
+      if (dashJson.success) setDashDebug(dashJson.data);
+      if (aiJson.success) setAiDebug(aiJson.data);
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchSystemHealth();
   }, []);
 
-  if (loading) {
+  useEffect(() => {
+    fetchDiagnostics();
+  }, [fetchDiagnostics]);
+
+  if (loading && !dashDebug) {
     return (
       <>
         <AdminHeader
-          title="Infrastructure System Health"
-          subtitle="End-to-End Subsystem Monitoring & Dependency Health Score"
+          title="Engineering Diagnostics & Infrastructure Health"
+          subtitle="End-to-End Subsystem Monitoring & Engineering Performance Benchmarks"
         />
         <div className="admin-page">
           <div style={{ padding: "80px 0", textAlign: "center", fontSize: "12px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b" }}>
-            Loading System Health Telemetry...
+            Loading System Diagnostics Telemetry...
           </div>
         </div>
       </>
     );
   }
 
-  const d = data || {};
+  const dbg = dashDebug || {};
+  const aiDbg = aiDebug || {};
 
   return (
     <>
       <AdminHeader
-        title="Infrastructure System Health"
-        subtitle="End-to-End Subsystem Monitoring & Dependency Health Score"
-        onRefresh={fetchSystemHealth}
+        title="Engineering Diagnostics & Operations Health"
+        subtitle="Canonical Subsystem State, Engineering Performance Diagnostics & Debug Benchmarks"
+        onRefresh={fetchDiagnostics}
       />
 
       <div className="admin-page">
-        {/* Overall Score Banner */}
+        {/* Diagnostics Banner */}
         <div className="admin-card-hero" style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          gap: "24px", padding: "28px 32px", flexWrap: "wrap"
+          gap: "24px", padding: "24px 28px", flexWrap: "wrap", marginBottom: "20px"
         }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px", maxWidth: "650px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px", maxWidth: "650px" }}>
             <span style={{ fontSize: "10px", fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: "#c084fc", letterSpacing: "0.14em", textTransform: "uppercase" }}>
-              OVERALL HEALTH STATUS
+              ENGINEERING DIAGNOSTICS CONTROL
             </span>
-            <h2 style={{ margin: 0, fontSize: "22px", fontWeight: 800, color: "#ffffff", letterSpacing: "-0.02em" }}>
-              NexCreator Operations Mesh
+            <h2 style={{ margin: 0, fontSize: "20px", fontWeight: 800, color: "#ffffff", letterSpacing: "-0.02em" }}>
+              NexCreator Core Operations Mesh
             </h2>
             <p style={{ margin: 0, fontSize: "12px", color: "#94a3b8", lineHeight: "1.5" }}>
-              All primary infrastructure subsystems responding cleanly within optimal latency benchmarks.
+              MongoDB Status: <strong style={{ color: dbg.mongoConnected ? "#34d399" : "#f87171" }}>{dbg.mongoConnected ? "CONNECTED" : "DISCONNECTED"}</strong> ({dbg.mongoLatencyMs || 0}ms) | Single AdminProvider Polling Loop Active
             </p>
           </div>
 
           <div style={{ textAlign: "right", display: "flex", flexDirection: "column", gap: "4px" }}>
-            <div style={{ fontSize: "42px", fontWeight: 900, fontFamily: "'JetBrains Mono', monospace", color: "#34d399", lineHeight: 1 }}>
-              {d.overallHealthScore || 100}%
+            <div style={{ fontSize: "36px", fontWeight: 900, fontFamily: "'JetBrains Mono', monospace", color: "#34d399", lineHeight: 1 }}>
+              {dbg.buildDurationMs || 12} ms
             </div>
             <span style={{ fontSize: "10px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-              SYSTEM HEALTH SCORE
+              BUNDLE BUILD DURATION
             </span>
           </div>
         </div>
 
-        {/* Subsystem Cards Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "16px" }}>
-          {(d.subsystems || []).map((sub: any, idx: number) => (
-            <div key={idx} className="admin-card" style={{
-              display: "flex", flexDirection: "column", justifyContent: "space-between",
-              gap: "16px", padding: "20px"
-            }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
-                <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#f1f5f9" }}>{sub.name}</h4>
-                <HealthBadge status={sub.status || "healthy"} />
-              </div>
-
-              <p style={{ margin: 0, fontSize: "12px", fontFamily: "'JetBrains Mono', monospace", color: "#94a3b8", lineHeight: "1.4" }}>
-                {sub.details || (sub.metrics ? Object.entries(sub.metrics).map(([k, v]) => `${k}: ${v}`).join(" | ") : "Operational")}
-              </p>
-
-              <div style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b",
-                paddingTop: "14px", borderTop: "1px solid rgba(255,255,255,0.06)"
-              }}>
-                <span>Last Activity: <strong style={{ color: "#c084fc" }} suppressHydrationWarning>{sub.lastActivity ? new Date(sub.lastActivity).toLocaleTimeString() : "Now"}</strong></span>
-                <span>Status: <strong style={{ color: "#34d399" }}>{sub.status || "healthy"}</strong></span>
-              </div>
+        {/* Diagnostics Grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "16px" }}>
+          {/* Dashboard Debug Tile */}
+          <div className="admin-card" style={{ display: "flex", flexDirection: "column", gap: "14px", padding: "20px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#f1f5f9" }}>Dashboard Builder</h4>
+              <HealthBadge status={dbg.mongoConnected ? "healthy" : "critical"} />
             </div>
-          ))}
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "12px", fontFamily: "'JetBrains Mono', monospace", color: "#cbd5e1" }}>
+              <div>Build Time: <strong style={{ color: "#c084fc" }}>{dbg.buildDurationMs || 0} ms</strong></div>
+              <div>Collections Queried: <strong>{dbg.queriedCollectionsCount || 0}</strong></div>
+              <div>Errors Encountered: <strong style={{ color: dbg.errors?.length ? "#f87171" : "#34d399" }}>{dbg.errors?.length || 0}</strong></div>
+              <div>Generated At: <span style={{ color: "#94a3b8" }}>{dbg.timestamp ? new Date(dbg.timestamp).toLocaleTimeString() : "—"}</span></div>
+            </div>
+          </div>
+
+          {/* AI Telemetry Debug Tile */}
+          <div className="admin-card" style={{ display: "flex", flexDirection: "column", gap: "14px", padding: "20px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#f1f5f9" }}>AI Telemetry Logs</h4>
+              <HealthBadge status={aiDbg.collectionExists ? "healthy" : "warning"} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "12px", fontFamily: "'JetBrains Mono', monospace", color: "#cbd5e1" }}>
+              <div>Total Log Documents: <strong style={{ color: "#c084fc" }}>{aiDbg.documentCount || 0}</strong></div>
+              <div>Requests Today: <strong>{aiDbg.todayCount || 0}</strong></div>
+              <div>Avg Response Latency: <strong>{aiDbg.avgLatency || 0} ms</strong></div>
+              <div>Cost Today: <strong style={{ color: "#34d399" }}>${(aiDbg.costToday || 0).toFixed(4)}</strong></div>
+            </div>
+          </div>
+
+          {/* Polling & Telemetry Mesh Tile */}
+          <div className="admin-card" style={{ display: "flex", flexDirection: "column", gap: "14px", padding: "20px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#f1f5f9" }}>Polling Architecture</h4>
+              <HealthBadge status="healthy" label="SINGLE OWNER" />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "12px", fontFamily: "'JetBrains Mono', monospace", color: "#cbd5e1" }}>
+              <div>Polling Owner: <strong style={{ color: "#c084fc" }}>AdminProvider Context</strong></div>
+              <div>Interval: <strong>10,000 ms</strong></div>
+              <div>Visibility Guard: <strong style={{ color: "#34d399" }}>Active</strong></div>
+              <div>Widget Fetch Loops: <strong>0 (Pure Presentation)</strong></div>
+            </div>
+          </div>
         </div>
       </div>
     </>

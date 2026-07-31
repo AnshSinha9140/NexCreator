@@ -14,17 +14,8 @@ export const AdminChatView: React.FC = () => {
 
   useEffect(() => {
     if (!selectedCreatorEmail) return;
-
-    // Load initial messages
     fetchMessagesForCreator(selectedCreatorEmail);
-
-    // Poll for messages
-    const interval = setInterval(() => {
-      fetchMessagesForCreator(selectedCreatorEmail);
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [selectedCreatorEmail]);
+  }, [selectedCreatorEmail, fetchMessagesForCreator]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

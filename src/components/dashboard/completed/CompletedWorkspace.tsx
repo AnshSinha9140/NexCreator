@@ -11,17 +11,21 @@ import { CompletedTimeline } from "./CompletedTimeline";
 import { CompletedChatArchive } from "./CompletedChatArchive";
 import { CompletedHighlights } from "./CompletedHighlights";
 import { CompletedCreatorIntelligence } from "./CompletedCreatorIntelligence";
+import { CompletedContentStrategy } from "./CompletedContentStrategy";
 
-export type CompletedModuleTab = "intelligence" | "overview" | "producer" | "timeline" | "chat" | "highlights";
+
+export type CompletedModuleTab = "intelligence" | "strategy" | "overview" | "producer" | "timeline" | "chat" | "highlights";
 
 const COMPLETED_NAV: { id: CompletedModuleTab; name: string; icon: string; desc: string }[] = [
   { id: "intelligence", name: "Creator Intelligence", icon: "🧠", desc: "Executive Manager report & behaviour score" },
+  { id: "strategy",     name: "Content Strategy",     icon: "📈", desc: "AI post-production strategy & publishing plan" },
   { id: "overview",     name: "Overview",             icon: "📊", desc: "Broadcast performance summary & key metrics" },
   { id: "producer",     name: "Final AI Report",      icon: "🤖", desc: "AI performance analysis & action recommendations" },
   { id: "timeline",     name: "Broadcast Timeline",   icon: "⏱️", desc: "Historical event markers & milestone log" },
   { id: "chat",         name: "Chat Archive",         icon: "💬", desc: "Broadcast chat log & message filtering" },
   { id: "highlights",   name: "Highlights",           icon: "🚀", desc: "Auto-detected highlight candidates & clips" },
 ];
+
 
 interface CompletedWorkspaceProps {
   session: any;
@@ -133,6 +137,11 @@ export const CompletedWorkspace: React.FC<CompletedWorkspaceProps> = ({
           {activeTab === "intelligence" && (
             <CompletedCreatorIntelligence summary={sessionSummary} intelligence={bundle?.creatorIntelligence || (sessionSummary as any)?.intelligence} />
           )}
+
+          {activeTab === "strategy" && (
+            <CompletedContentStrategy bundle={bundle} sessionSummary={sessionSummary} />
+          )}
+
 
           {activeTab === "overview" && (
             <>

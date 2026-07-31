@@ -248,6 +248,7 @@ export default function AdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               className={`admin-nav-item${isActive ? " active" : ""}`}
               title={collapsed ? item.name : undefined}
             >
@@ -263,7 +264,7 @@ export default function AdminSidebar() {
 
       {/* Footer */}
       <div className="admin-sidebar-footer" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-        <Link href="/dashboard" className="admin-nav-item" title={collapsed ? "Exit to Creator App" : undefined}>
+        <Link href="/dashboard" prefetch={false} className="admin-nav-item" title={collapsed ? "Exit to Creator App" : undefined}>
           <svg className={ICON_CLS} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
           </svg>

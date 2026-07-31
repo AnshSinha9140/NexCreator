@@ -1,26 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdminSession } from "@/lib/adminAuth";
-import { AdminAggregationService } from "@/lib/admin/adminAggregation";
+import { AdminDashboardBuilder } from "@/lib/admin/dashboardBuilder";
 
 export async function GET(request: NextRequest) {
   const auth = await verifyAdminSession(request);
   if (!auth.authorized) return auth.errorResponse!;
 
   try {
-    const [kpis, liveSessions, activityFeed] = await Promise.all([
-      AdminAggregationService.getDashboardKPIs(),
-      AdminAggregationService.getLiveSessionsWithMetadata("live"),
-      AdminAggregationService.getDashboardActivityFeed(15),
-    ]);
+    const bundle = await AdminDashboardBuilder.build();
 
-    const dashboardData = {
-      kpis,
-      liveSessions,
-      recentActivity: activityFeed,
-    };
-
-    return NextResponse.json({ success: true, data: dashboardData });
+    return NextResponse.json({
+      success: true,
+      status: bundle.metadata.isPartial ? "degraded" : "healthy",
+      data: bundle,
+    });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    // Graceful error payload - dashboard continues functioning with partial status
+    return NextResponse.json({
+      success: false,
+      status: "unreachable",
+      error: error.message || "Failed to build admin dashboard bundle",
+      data: null,
+    }, { status: 200 }); // Return 200 so UI receives error status gracefully instead of breaking
   }
 }

@@ -1,4 +1,11 @@
 import { IntelligenceEvidence } from "./evidence";
+import {
+  PrimaryManagerDecision,
+  PersonalBenchmarks,
+  PatternDetection,
+  CreatorPlaybook,
+  CreatorProfile,
+} from "../memory/types";
 
 export type MoodType =
   | "Excited"
@@ -91,22 +98,59 @@ export interface TopicDetectionDoc {
   createdAt: string;
 }
 
+export type OpportunityCategory =
+  | "clutch_gameplay"
+  | "funny_reaction"
+  | "question_surge"
+  | "sub_celebration"
+  | "viewer_spike"
+  | "meme_moment"
+  | "unexpected_event"
+  | "perfect_callout"
+  | "victory_moment"
+  | "emotional_moment"
+  | "viewer_growth"
+  | "gameplay_highlight";
+
 export interface OpportunityItem {
   id: string;
   sessionId: string;
   snapshotId: string;
+  category: OpportunityCategory;
+  categoryLabel: string;
+  timestamp: string; // e.g. "14:22"
+  clipWindow: {
+    startTime: string; // e.g. "14:18"
+    endTime: string; // e.g. "14:58"
+    durationSeconds: number; // e.g. 40
+  };
   title: string;
+  dynamicTitle: string;
   reason: string;
+  whyDetected: string[];
   recommendedAction: string;
   expectedBenefit: string;
   priority: PriorityLevel;
   confidence: number;
+  confidenceLabel?: "Very High" | "High" | "Medium";
+  confidenceJustification?: string[];
+  scores: {
+    virality: number; // 0-100
+    entertainment: number; // 0-100
+    communityImpact: number; // 0-100
+    replayValue: number; // 0-100
+    overallAiScore: number; // 0-100
+  };
+  bestPlatform: "TikTok" | "YouTube Shorts" | "Instagram Reels";
+  recommendedNextStep: string;
+  rankTag?: "Top Opportunity" | "Runner Up" | "Additional Opportunity";
   urgencyScore?: number;
   expectedImpactScore?: number;
   rankScore?: number;
   supportingEvidence?: IntelligenceEvidence[];
   createdAt: string;
 }
+
 
 export interface RiskItem {
   id: string;
@@ -230,5 +274,12 @@ export interface CreatorIntelligenceBundle {
   actions: CreatorActionItem[];
   health?: IntelligenceHealthReport | null;
   diagnostics?: DeveloperDiagnostics | null;
+  // Sprint 18.7 Memory Extensions
+  primaryDecision?: PrimaryManagerDecision | null;
+  personalBenchmarks?: PersonalBenchmarks | null;
+  detectedPatterns?: PatternDetection[];
+  creatorPlaybook?: CreatorPlaybook | null;
+  creatorProfile?: CreatorProfile | null;
 }
+
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifySessionToken } from "@/lib/session";
-import { SessionFinalizer } from "@/lib/session/finalizer";
+import { SessionShutdownManager } from "@/lib/session/sessionShutdownManager";
 
 async function getAuthUser() {
   const cookieStore = await cookies();
@@ -25,12 +25,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "sessionId parameter is required" }, { status: 400 });
     }
 
-    const summary = await SessionFinalizer.finalizeSession(sessionId);
+    const result = await SessionShutdownManager.shutdownSession(sessionId, "CreatorRequested");
+
+    if (!result.success) {
+      return NextResponse.json(
+        {
+          error: result.error || "Failed to finalize session",
+          validation: result.validation,
+        },
+        { status: 422 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
       status: "completed",
-      summary,
+      summary: result.summary,
+      validation: result.validation,
     });
   } catch (error: any) {
     console.error("[API] POST /api/sessions/finalize error:", error);

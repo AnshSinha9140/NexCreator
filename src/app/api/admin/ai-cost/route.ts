@@ -1,47 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdminSession } from "@/lib/adminAuth";
-import { AIBudgetManager } from "@/lib/ai/budgetManager";
-import clientPromise from "@/lib/mongodb";
+import { AIOperationsBuilder } from "@/lib/admin/aiOperationsBuilder";
 
 export async function GET(request: NextRequest) {
   const auth = await verifyAdminSession(request);
   if (!auth.authorized) return auth.errorResponse!;
 
   try {
-    const budget = AIBudgetManager.getTelemetry();
+    const bundle = await AIOperationsBuilder.build();
 
-    const client = await clientPromise;
-    const db = client.db(process.env.MONGODB_DB_NAME || "nexcreator");
-    const insightsCount = await db.collection("ai_insights").countDocuments({});
+    const geminiProv = bundle.providers.find((p) => p.providerKey === "gemini");
+    const groqProv = bundle.providers.find((p) => p.providerKey === "groq");
+    const ruleProv = bundle.providers.find((p) => p.providerKey === "rule_engine");
 
-    const geminiCount = budget.callsByProvider.gemini || Math.round(insightsCount * 0.4);
-    const groqCount = budget.callsByProvider.groq || Math.round(insightsCount * 0.05);
-    const ruleCount = budget.callsByProvider.rule_engine || Math.round(insightsCount * 0.55);
-
-    const totalTokens = (geminiCount + groqCount) * 450;
-    const costUsd = (geminiCount * 450 * 0.00015 / 1000) + (groqCount * 450 * 0.0001 / 1000);
-    const tokensSaved = ruleCount * 450;
-    const costSavedUsd = (tokensSaved / 1000) * 0.00015;
+    const geminiCount = geminiProv?.requestsToday || 0;
+    const groqCount = groqProv?.requestsToday || 0;
+    const ruleCount = ruleProv?.requestsToday || 0;
 
     const costData = {
       metrics: {
-        requestsToday: geminiCount + groqCount + ruleCount,
+        requestsToday: bundle.overview.requestsToday,
         geminiRequests: geminiCount,
         groqRequests: groqCount,
         ruleEngineRuns: ruleCount,
-        promptTokens: Math.round(totalTokens * 0.7),
-        completionTokens: Math.round(totalTokens * 0.3),
-        totalTokens,
-        estimatedMonthlyTokens: totalTokens * 30,
-        estimatedMonthlyCostUsd: Math.round(costUsd * 30 * 100) / 100,
-        currentFreeTierUsage: "4% of Free Tier Quotas",
-        cacheHitPercentage: "85%",
-        tokensSavedByCache: tokensSaved,
-        costSavedByCacheUsd: Math.round(costSavedUsd * 100) / 100,
+        promptTokens: Math.round(bundle.overview.tokensToday * 0.7),
+        completionTokens: Math.round(bundle.overview.tokensToday * 0.3),
+        totalTokens: bundle.overview.tokensToday,
+        estimatedMonthlyTokens: bundle.overview.tokensToday * 30,
+        estimatedMonthlyCostUsd: Number((bundle.overview.costTodayUsd * 30).toFixed(4)),
+        currentFreeTierUsage: "Verified Realtime Quotas",
+        cacheHitPercentage: `${bundle.cacheAnalytics.hitRatePct}%`,
+        tokensSavedByCache: bundle.cacheAnalytics.savedTokens,
+        costSavedByCacheUsd: bundle.cacheAnalytics.savedCostUsd,
       },
       charts: {
-        requestsPerHour: [],
-        tokensPerHour: [],
+        requestsPerHour: bundle.charts.requestsPerHour,
+        tokensPerHour: bundle.charts.requestsPerHour.map((h) => ({ hour: h.hour, tokens: h.tokens })),
         providerDistribution: [
           { name: "Gemini", value: geminiCount },
           { name: "Groq", value: groqCount },

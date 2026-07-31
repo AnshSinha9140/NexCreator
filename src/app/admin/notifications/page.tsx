@@ -1,73 +1,108 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
+import { useAdmin } from "@/context/AdminContext";
 
 export default function NotificationCenterPage() {
+  const { refresh } = useAdmin();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterSeverity, setFilterSeverity] = useState("all");
+  const [message, setMessage] = useState("");
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/notifications");
       const json = await res.json();
-      if (json.success) setNotifications(json.data.notifications);
+      if (json.success) setNotifications(json.data.notifications || []);
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchNotifications();
-  }, []);
+  }, [fetchNotifications]);
 
-  const handleMarkAllRead = () => {
-    setNotifications(notifications.map((n) => ({ ...n, read: true })));
+  const handleMarkAllRead = async () => {
+    try {
+      const res = await fetch("/api/admin/operations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          domain: "notification",
+          action: "mark_all_read",
+          targetId: "all",
+          reason: "Admin marked all notifications as read",
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setMessage("All notifications marked as read.");
+        setTimeout(() => setMessage(""), 3000);
+        fetchNotifications();
+        refresh();
+      }
+    } catch (e: any) {
+      setMessage(`Error: ${e.message}`);
+    }
   };
 
-  const handleClearAll = () => {
-    setNotifications([]);
+  const handleDismiss = async (id: string) => {
+    try {
+      const res = await fetch("/api/admin/operations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          domain: "notification",
+          action: "dismiss",
+          targetId: id,
+          reason: `Admin dismissed notification ${id}`,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setNotifications((prev) => prev.filter((n) => n.id !== id));
+        refresh();
+      }
+    } catch (e: any) {
+      setMessage(`Error: ${e.message}`);
+    }
   };
-
-  if (loading) {
-    return (
-      <>
-        <AdminHeader
-          title="Operations Notification Center"
-          subtitle="Centralized Operations Alerts, Provider Status Changes & Operational Escalations"
-        />
-        <div className="admin-page">
-          <div style={{ padding: "80px 0", textAlign: "center", fontSize: "12px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b" }}>
-            Loading Operations Notifications...
-          </div>
-        </div>
-      </>
-    );
-  }
 
   const filtered = notifications.filter(
-    (n) => filterSeverity === "all" || n.severity.toLowerCase() === filterSeverity.toLowerCase()
+    (n) => filterSeverity === "all" || (n.severity || "").toLowerCase() === filterSeverity.toLowerCase()
   );
 
   return (
     <>
       <AdminHeader
-        title="Operations Notification Center"
+        title="Operations Notification Center & Control Inbox"
         subtitle="Centralized Operations Alerts, Provider Status Changes & Operational Escalations"
-        onRefresh={fetchNotifications}
+        onRefresh={() => { fetchNotifications(); refresh(); }}
       />
 
       <div className="admin-page">
+        {message && (
+          <div style={{
+            padding: "12px 16px", borderRadius: "10px",
+            background: "rgba(168, 85, 247, 0.12)", border: "1px solid rgba(168, 85, 247, 0.3)",
+            color: "#e9d5ff", fontSize: "12px", fontFamily: "'JetBrains Mono', monospace", marginBottom: "16px"
+          }}>
+            {message}
+          </div>
+        )}
+
         {/* Actions & Filter Bar */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           flexWrap: "wrap", gap: "12px", padding: "12px 16px",
           background: "#0e1120", border: "1px solid rgba(255,255,255,0.06)",
-          borderRadius: "14px"
+          borderRadius: "14px", marginBottom: "16px"
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
             {["all", "Info", "Warning", "Critical"].map((sev) => (
@@ -102,23 +137,16 @@ export default function NotificationCenterPage() {
             >
               Mark All as Read
             </button>
-            <button
-              onClick={handleClearAll}
-              style={{
-                padding: "8px 14px", borderRadius: "10px",
-                background: "rgba(244,63,94,0.1)", border: "1px solid rgba(244,63,94,0.25)",
-                color: "#f87171", fontSize: "12px", fontFamily: "'JetBrains Mono', monospace",
-                cursor: "pointer", transition: "all 0.15s ease"
-              }}
-            >
-              Clear Notifications
-            </button>
           </div>
         </div>
 
-        {/* Notification Feed with explicit 16px vertical gap */}
-        {filtered.length > 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        {/* Notification Feed */}
+        {loading ? (
+          <div style={{ padding: "80px 0", textAlign: "center", fontSize: "12px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b" }}>
+            Loading Notifications...
+          </div>
+        ) : filtered.length > 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             {filtered.map((n) => {
               const severityStyles = n.severity === "Critical"
                 ? { bg: "rgba(244, 63, 94, 0.08)", border: "rgba(244, 63, 94, 0.3)", color: "#f87171" }
@@ -133,7 +161,7 @@ export default function NotificationCenterPage() {
                   style={{
                     background: !n.read ? "rgba(14, 17, 32, 0.95)" : "rgba(14, 17, 32, 0.6)",
                     border: !n.read ? "1px solid rgba(168, 85, 247, 0.35)" : "1px solid rgba(255, 255, 255, 0.06)",
-                    display: "flex", flexDirection: "column", gap: "10px", padding: "18px 20px"
+                    display: "flex", flexDirection: "column", gap: "10px", padding: "16px 20px"
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
@@ -145,23 +173,32 @@ export default function NotificationCenterPage() {
                         }} />
                       )}
                       <h4 style={{ margin: 0, fontSize: "14px", fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: "#f1f5f9" }}>
-                        {n.title}
+                        {n.title || n.message || "Alert Notification"}
                       </h4>
                       <span style={{
                         padding: "2px 8px", borderRadius: "6px", fontSize: "10px",
                         fontFamily: "'JetBrains Mono', monospace", fontWeight: 800, textTransform: "uppercase",
                         background: severityStyles.bg, color: severityStyles.color, border: `1px solid ${severityStyles.border}`
                       }}>
-                        {n.severity}
+                        {n.severity || "INFO"}
                       </span>
                     </div>
 
-                    <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b" }} suppressHydrationWarning>
-                      {new Date(n.timestamp).toLocaleTimeString()}
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b" }}>
+                        {new Date(n.timestamp || Date.now()).toLocaleTimeString()}
+                      </span>
+                      <button
+                        onClick={() => handleDismiss(n.id)}
+                        style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: "14px" }}
+                        title="Dismiss Notification"
+                      >
+                        ×
+                      </button>
+                    </div>
                   </div>
 
-                  <p style={{ margin: 0, fontSize: "12px", fontFamily: "'JetBrains Mono', monospace", color: "#94a3b8", lineHeight: "1.5", paddingLeft: !n.read ? "18px" : "0" }}>
+                  <p style={{ margin: 0, fontSize: "12px", fontFamily: "'JetBrains Mono', monospace", color: "#94a3b8", lineHeight: "1.5" }}>
                     {n.message}
                   </p>
                 </div>

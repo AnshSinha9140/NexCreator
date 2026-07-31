@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
+import { useAdmin } from "@/context/AdminContext";
 
 export default function FeatureFlagsPage() {
+  const { refresh } = useAdmin();
   const [flags, setFlags] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
 
-  const fetchFlags = async () => {
+  const fetchFlags = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/feature-flags");
@@ -19,25 +21,32 @@ export default function FeatureFlagsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchFlags();
-  }, []);
+  }, [fetchFlags]);
 
   const handleToggle = async (key: string, currentEnabled: boolean, currentRollout: number) => {
-    const newEnabled = !currentEnabled;
+    const action = currentEnabled ? "disable" : "enable";
     try {
-      const res = await fetch("/api/admin/feature-flags", {
+      const res = await fetch("/api/admin/operations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key, enabled: newEnabled, rolloutPercentage: currentRollout }),
+        body: JSON.stringify({
+          domain: "feature_flag",
+          action,
+          targetId: key,
+          options: { enabled: !currentEnabled, rolloutPercentage: currentRollout },
+          reason: `Admin set ${key} to ${!currentEnabled ? "ENABLED" : "DISABLED"}`,
+        }),
       });
       const json = await res.json();
       if (json.success) {
-        setMsg(`Flag '${key}' set to ${newEnabled ? "ENABLED" : "DISABLED"}`);
+        setMsg(`Flag '${key}' set to ${!currentEnabled ? "ENABLED" : "DISABLED"}`);
         setTimeout(() => setMsg(""), 3000);
         fetchFlags();
+        refresh();
       }
     } catch (e: any) {
       setMsg(`Error: ${e.message}`);
@@ -46,39 +55,30 @@ export default function FeatureFlagsPage() {
 
   const handleRolloutChange = async (key: string, enabled: boolean, newRollout: number) => {
     try {
-      await fetch("/api/admin/feature-flags", {
+      await fetch("/api/admin/operations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key, enabled, rolloutPercentage: newRollout }),
+        body: JSON.stringify({
+          domain: "feature_flag",
+          action: "update",
+          targetId: key,
+          options: { enabled, rolloutPercentage: newRollout },
+          reason: `Admin updated ${key} rollout to ${newRollout}%`,
+        }),
       });
       fetchFlags();
+      refresh();
     } catch (e) {
       console.error(e);
     }
   };
 
-  if (loading) {
-    return (
-      <>
-        <AdminHeader
-          title="Internal Feature Flag Management"
-          subtitle="Operational Feature Toggles, Environment Scopes & Progressive Rollout Matrix"
-        />
-        <div className="admin-page">
-          <div style={{ padding: "80px 0", textAlign: "center", fontSize: "12px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b" }}>
-            Loading Feature Flags...
-          </div>
-        </div>
-      </>
-    );
-  }
-
   return (
     <>
       <AdminHeader
-        title="Internal Feature Flag Management"
+        title="Internal Feature Flag Management & Control Plane"
         subtitle="Operational Feature Toggles, Environment Scopes & Progressive Rollout Matrix"
-        onRefresh={fetchFlags}
+        onRefresh={() => { fetchFlags(); refresh(); }}
       />
 
       <div className="admin-page">
@@ -86,13 +86,17 @@ export default function FeatureFlagsPage() {
           <div style={{
             padding: "14px 18px", borderRadius: "12px",
             background: "rgba(168, 85, 247, 0.12)", border: "1px solid rgba(168, 85, 247, 0.3)",
-            color: "#e9d5ff", fontSize: "12px", fontFamily: "'JetBrains Mono', monospace"
+            color: "#e9d5ff", fontSize: "12px", fontFamily: "'JetBrains Mono', monospace", marginBottom: "16px"
           }}>
             {msg}
           </div>
         )}
 
-        {flags.length === 0 ? (
+        {loading ? (
+          <div style={{ padding: "80px 0", textAlign: "center", fontSize: "12px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b" }}>
+            Loading Feature Flags...
+          </div>
+        ) : flags.length === 0 ? (
           <div className="admin-card" style={{ padding: "60px 24px", textAlign: "center" }}>
             <div style={{
               width: "56px", height: "56px", borderRadius: "16px",
@@ -127,7 +131,7 @@ export default function FeatureFlagsPage() {
                         background: "rgba(255,255,255,0.06)", color: "#cbd5e1",
                         border: "1px solid rgba(255,255,255,0.08)", textTransform: "capitalize"
                       }}>
-                        {flag.environment}
+                        {flag.environment || "Production"}
                       </span>
                     </div>
                     <p style={{ margin: 0, fontSize: "12px", color: "#94a3b8", lineHeight: "1.4" }}>{flag.description}</p>
@@ -167,7 +171,7 @@ export default function FeatureFlagsPage() {
                     min="0"
                     max="100"
                     step="5"
-                    value={flag.rolloutPercentage}
+                    value={flag.rolloutPercentage || 100}
                     onChange={(e) => handleRolloutChange(flag.key, flag.enabled, Number(e.target.value))}
                     style={{ width: "180px", accentColor: "#a855f7", cursor: "pointer" }}
                   />
