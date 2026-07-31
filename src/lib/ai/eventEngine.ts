@@ -43,18 +43,26 @@ export class EventEngine {
     const curCategory = current.streamMetadata?.category || "";
 
     if (!previous) {
-      // Initial snapshot evaluation
-      if (curMpM > 40) {
+      // First snapshot: always analyze if any chat activity exists
+      const msgCount = current.metrics?.totalMessages || 0;
+      if (msgCount > 0) {
         events.push({
-          type: "chat_velocity_spike",
-          importance: 60,
-          reason: `High initial chat velocity (${curMpM} msg/min)`,
+          type: "engagement_peak",
+          importance: 30,
+          reason: `First analysis window: ${msgCount} messages collected at ${curMpM} msg/min`,
         });
       }
-      if (curQuestions >= 5) {
+      if (curMpM > 30) {
+        events.push({
+          type: "chat_velocity_spike",
+          importance: 55,
+          reason: `Strong initial chat velocity (${curMpM} msg/min)`,
+        });
+      }
+      if (curQuestions >= 3) {
         events.push({
           type: "question_surge",
-          importance: 50,
+          importance: 45,
           reason: `${curQuestions} questions asked in opening segment`,
         });
       }
@@ -174,7 +182,19 @@ export class EventEngine {
       });
     }
 
+    // 9. Baseline: always analyze steady streams so creators get periodic feedback
+    // A stream with active chat but no dramatic events still deserves AI commentary.
+    const msgCount = current.metrics?.totalMessages || 0;
+    if (events.length === 0 && msgCount >= 5) {
+      events.push({
+        type: "engagement_peak",
+        importance: 25,
+        reason: `Steady stream activity: ${msgCount} messages at ${curMpM} msg/min`,
+      });
+    }
+
     return events;
+
   }
 
   /**
