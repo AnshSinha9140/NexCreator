@@ -36,37 +36,35 @@ export const PendingView: React.FC = () => {
       <div
         style={{
           width: "100%",
-          maxWidth: "520px",
-          background: "rgba(15, 18, 30, 0.75)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          border: "1px solid rgba(255, 255, 255, 0.08)",
-          borderRadius: "24px",
-          padding: "40px 36px",
-          boxShadow: "0 32px 80px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
+          maxWidth: "640px",
+          background: "linear-gradient(135deg, rgba(18, 22, 40, 0.95) 0%, rgba(10, 13, 24, 0.98) 100%)",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          border: "1px solid rgba(255, 255, 255, 0.09)",
+          borderRadius: "28px",
+          padding: "48px 40px",
+          boxShadow: "0 32px 80px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
           textAlign: "center",
         }}
       >
-        {/* Animated Warning / Clock Icon */}
+        {/* Soft Manager Icon */}
         <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
           <div
             style={{
               width: "64px",
               height: "64px",
               borderRadius: "20px",
-              background: "linear-gradient(135deg, rgba(234, 179, 8, 0.15) 0%, rgba(245, 158, 11, 0.05) 100%)",
-              border: "1px solid rgba(234, 179, 8, 0.3)",
+              background: "linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(99, 102, 241, 0.1) 100%)",
+              border: "1px solid rgba(168, 85, 247, 0.35)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: "0 8px 24px rgba(234, 179, 8, 0.2)",
-              color: "#fbbf24",
+              boxShadow: "0 12px 32px rgba(168, 85, 247, 0.25)",
+              color: "#c084fc",
+              fontSize: "28px",
             }}
           >
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="12 6 12 12 16 14" />
-            </svg>
+            🧠
           </div>
         </div>
 
@@ -76,34 +74,66 @@ export const PendingView: React.FC = () => {
             display: "inline-flex",
             alignItems: "center",
             gap: "8px",
-            padding: "5px 14px",
+            padding: "6px 16px",
             borderRadius: "99px",
-            background: "rgba(234, 179, 8, 0.1)",
-            border: "1px solid rgba(234, 179, 8, 0.25)",
-            color: "#fbbf24",
+            background: "rgba(168, 85, 247, 0.1)",
+            border: "1px solid rgba(168, 85, 247, 0.3)",
+            color: "#c084fc",
             fontSize: "11px",
             fontWeight: "700",
             letterSpacing: "0.08em",
             textTransform: "uppercase",
-            marginBottom: "16px",
+            marginBottom: "20px",
           }}
         >
-          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#fbbf24", boxShadow: "0 0 8px #fbbf24" }} />
-          Manual Verification Pending
+          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#10b981", boxShadow: "0 0 8px #10b981" }} />
+          Preparing Workspace
         </div>
 
-        <h2 style={{ fontSize: "26px", fontWeight: "800", color: "#f8fafc", letterSpacing: "-0.5px", marginBottom: "12px" }}>
+        <h2 style={{ fontSize: "28px", fontWeight: "800", color: "#f8fafc", letterSpacing: "-0.5px", marginBottom: "12px" }}>
           Preparing Your Workspace
         </h2>
 
-        <p style={{ color: "#cbd5e1", fontSize: "14px", lineHeight: "1.7", marginBottom: "28px" }}>
-          Thanks. While your account is being verified, I'll prepare your workspace.<br /><br />
-          When you come back, I'll already understand:
-          <br />
-          <span style={{ color: "#c084fc", fontWeight: "600" }}>• your content &nbsp; • your audience &nbsp; • your goals &nbsp; • your growth direction</span>
-          <br /><br />
-          See you soon.
+        <p style={{ color: "#cbd5e1", fontSize: "14px", lineHeight: "1.7", marginBottom: "24px" }}>
+          Thanks. While your account is being verified by our team, I'll prepare your workspace.
         </p>
+
+        {/* Structured Grid Bullet List */}
+        <div
+          style={{
+            background: "rgba(255, 255, 255, 0.02)",
+            border: "1px solid rgba(255, 255, 255, 0.06)",
+            borderRadius: "16px",
+            padding: "20px",
+            marginBottom: "28px",
+            textAlign: "left",
+          }}
+        >
+          <div style={{ fontSize: "12px", fontWeight: "700", color: "#c084fc", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px" }}>
+            When you come back, I'll already understand:
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", fontSize: "13px", color: "#e2e8f0" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "rgba(0,0,0,0.2)", padding: "10px 14px", borderRadius: "10px" }}>
+              <span style={{ color: "#38bdf8" }}>•</span>
+              <span style={{ fontWeight: "600" }}>Your Content Style</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "rgba(0,0,0,0.2)", padding: "10px 14px", borderRadius: "10px" }}>
+              <span style={{ color: "#38bdf8" }}>•</span>
+              <span style={{ fontWeight: "600" }}>Your Audience Culture</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "rgba(0,0,0,0.2)", padding: "10px 14px", borderRadius: "10px" }}>
+              <span style={{ color: "#38bdf8" }}>•</span>
+              <span style={{ fontWeight: "600" }}>Your Personal Goals</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "rgba(0,0,0,0.2)", padding: "10px 14px", borderRadius: "10px" }}>
+              <span style={{ color: "#38bdf8" }}>•</span>
+              <span style={{ fontWeight: "600" }}>Your Growth Direction</span>
+            </div>
+          </div>
+          <div style={{ marginTop: "14px", fontSize: "13px", color: "#94a3b8", fontStyle: "italic", textAlign: "center" }}>
+            See you soon!
+          </div>
+        </div>
 
         {/* Submitted Channels Box */}
         <div
