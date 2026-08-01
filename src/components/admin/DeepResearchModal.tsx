@@ -44,19 +44,31 @@ export const DeepResearchModal: React.FC<DeepResearchModalProps> = ({
   const [parseError, setParseError] = useState("");
   const [evidenceParseError, setEvidenceParseError] = useState("");
 
-  // Load existing research & evidence on mount
+  // Load existing research, evidence & saved audit profile on mount
   useEffect(() => {
     const existingRes = ResearchStorage.getResearch(creator.id);
     const existingEv = ResearchStorage.getEvidence(creator.id);
+    const existingProfile = AuditStorage.getProfile(creator.id);
 
     if (existingRes) {
       setStoredResearch(existingRes);
       setRawResearchText(existingRes.rawMarkdown);
     }
 
+    if (existingProfile && existingProfile.audit) {
+      setParsedAudit(existingProfile.audit);
+      setRawAuditText(JSON.stringify(existingProfile.audit, null, 2));
+    }
+
     if (existingEv) {
       setStoredEvidence(existingEv);
       setRawEvidenceText(JSON.stringify(existingEv, null, 2));
+    }
+
+    // Default active stage based on highest completed artifact
+    if (existingProfile && existingProfile.audit) {
+      setPipelineStage("preview");
+    } else if (existingEv) {
       setPipelineStage("stage3_audit_prompt");
     } else if (existingRes) {
       setPipelineStage("stage2_extract_prompt");
