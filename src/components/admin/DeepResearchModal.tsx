@@ -8,6 +8,7 @@ import { AuditStorage } from "@/lib/creatorAudit/auditStorage";
 import { ResearchStorage } from "@/lib/creatorAudit/researchStorage";
 import { CreatorResearchDocument } from "@/lib/creatorAudit/types";
 import { CreatorVerificationItem } from "./VerificationCard";
+import { CreatorEvidenceJSON, CreatorEvidenceSchema } from "@/lib/creatorAudit/evidenceSchema";
 
 interface DeepResearchModalProps {
   creator: CreatorVerificationItem;
@@ -20,38 +21,49 @@ export const DeepResearchModal: React.FC<DeepResearchModalProps> = ({
   onClose,
   onApproveWithAudit,
 }) => {
-  // Pipeline Stage state
+  // Pipeline Stage state (v2.0 Evidence-First)
   const [pipelineStage, setPipelineStage] = useState<
-    "stage1_prompt" | "stage1_paste" | "stage2_prompt" | "stage2_paste" | "preview"
-  >("stage1_prompt");
+    "stage1_research" | "stage2_extract_prompt" | "stage2_extract_paste" | "stage3_audit_prompt" | "stage3_audit_paste" | "preview"
+  >("stage1_research");
 
   // Clipboard copy flags
   const [copiedResearchPrompt, setCopiedResearchPrompt] = useState(false);
+  const [copiedExtractPrompt, setCopiedExtractPrompt] = useState(false);
   const [copiedAuditPrompt, setCopiedAuditPrompt] = useState(false);
 
   // Raw Input states
   const [rawResearchText, setRawResearchText] = useState("");
+  const [rawEvidenceText, setRawEvidenceText] = useState("");
   const [rawAuditText, setRawAuditText] = useState("");
 
   // Stored / Parsed Entities
   const [storedResearch, setStoredResearch] = useState<CreatorResearchDocument | null>(null);
+  const [storedEvidence, setStoredEvidence] = useState<CreatorEvidenceJSON | null>(null);
   const [parsedAudit, setParsedAudit] = useState<any>(null);
+
   const [parseError, setParseError] = useState("");
+  const [evidenceParseError, setEvidenceParseError] = useState("");
 
-  // Research Viewer Tab
-  const [researchTab, setResearchTab] = useState<"rendered" | "raw" | "sources">("rendered");
-
-  // Load existing research if available on mount
+  // Load existing research & evidence on mount
   useEffect(() => {
     const existingRes = ResearchStorage.getResearch(creator.id);
+    const existingEv = ResearchStorage.getEvidence(creator.id);
+
     if (existingRes) {
       setStoredResearch(existingRes);
       setRawResearchText(existingRes.rawMarkdown);
-      setPipelineStage("stage2_prompt");
+    }
+
+    if (existingEv) {
+      setStoredEvidence(existingEv);
+      setRawEvidenceText(JSON.stringify(existingEv, null, 2));
+      setPipelineStage("stage3_audit_prompt");
+    } else if (existingRes) {
+      setPipelineStage("stage2_extract_prompt");
     }
   }, [creator.id]);
 
-  // Handler: Copy Stage 1 Research Prompt
+  // Handler 1: Copy Stage 1 Research Prompt
   const handleCopyResearchPrompt = () => {
     const prompt = ResearchPromptGenerator.generatePrompt({
       displayName: creator.displayName,
@@ -66,7 +78,7 @@ export const DeepResearchModal: React.FC<DeepResearchModalProps> = ({
     setTimeout(() => setCopiedResearchPrompt(false), 3000);
   };
 
-  // Handler: Save Research Markdown
+  // Handler 2: Save Stage 1 Research Markdown
   const handleSaveResearch = () => {
     if (!rawResearchText.trim()) return;
     const doc = ResearchStorage.saveResearch(
@@ -75,15 +87,50 @@ export const DeepResearchModal: React.FC<DeepResearchModalProps> = ({
       rawResearchText.trim()
     );
     setStoredResearch(doc);
-    setPipelineStage("stage2_prompt");
+    setPipelineStage("stage2_extract_prompt");
   };
 
-  // Handler: Copy Stage 2 Audit Prompt (preloaded with research)
+  // Handler 3: Copy Stage 2 Evidence Extraction Prompt
+  const handleCopyExtractPrompt = () => {
+    if (!rawResearchText.trim()) return;
+    const prompt = ResearchPromptGenerator.generateEvidenceExtractionPrompt(
+      creator.displayName || creator.email,
+      rawResearchText.trim()
+    );
+
+    navigator.clipboard.writeText(prompt);
+    setCopiedExtractPrompt(true);
+    setTimeout(() => setCopiedExtractPrompt(false), 3000);
+  };
+
+  // Handler 4: Parse & Validate Evidence JSON v2.0 with Zod
+  const handleParseEvidence = () => {
+    setEvidenceParseError("");
+    try {
+      let cleanJsonText = rawEvidenceText.trim();
+      if (cleanJsonText.includes("```json")) {
+        cleanJsonText = cleanJsonText.split("```json")[1].split("```")[0].trim();
+      } else if (cleanJsonText.includes("```")) {
+        cleanJsonText = cleanJsonText.split("```")[1].split("```")[0].trim();
+      }
+
+      const parsedObj = JSON.parse(cleanJsonText);
+      const validated = ResearchStorage.saveEvidence(creator.id, parsedObj);
+
+      setStoredEvidence(validated);
+      setPipelineStage("stage3_audit_prompt");
+    } catch (err: any) {
+      console.error("Evidence Zod validation error:", err);
+      setEvidenceParseError(err.message || "Failed Zod schema validation for Evidence JSON v2.0.");
+    }
+  };
+
+  // Handler 5: Copy Stage 3 Audit Prompt (preloaded with compact Evidence JSON ONLY)
   const handleCopyAuditPrompt = () => {
-    if (!storedResearch) return;
-    const prompt = MasterPromptGenerator.generateAuditFromResearchPrompt(
+    if (!storedEvidence) return;
+    const prompt = MasterPromptGenerator.generateAuditFromEvidencePrompt(
       { displayName: creator.displayName, email: creator.email },
-      storedResearch.rawMarkdown
+      storedEvidence
     );
 
     navigator.clipboard.writeText(prompt);
@@ -168,7 +215,7 @@ export const DeepResearchModal: React.FC<DeepResearchModalProps> = ({
           </button>
         </div>
 
-        {/* Pipeline Progress Timeline Bar */}
+        {/* Pipeline Progress Timeline Bar (v2.0 Evidence-First) */}
         <div
           style={{
             display: "flex",
@@ -180,15 +227,18 @@ export const DeepResearchModal: React.FC<DeepResearchModalProps> = ({
             border: "1px solid rgba(255,255,255,0.08)",
             fontSize: "12px",
             fontWeight: "700",
+            flexWrap: "wrap",
+            gap: "8px",
           }}
         >
           {[
-            { key: "stage1_prompt", label: "1. Research Prompt" },
-            { key: "stage1_paste", label: "2. Import Research" },
-            { key: "stage2_prompt", label: "3. Audit Prompt" },
-            { key: "stage2_paste", label: "4. Parse Audit" },
-            { key: "preview", label: "5. Review & Approve" },
-          ].map((s, idx) => {
+            { key: "stage1_research", label: "1. Web Research" },
+            { key: "stage2_extract_prompt", label: "2. Extract Evidence Prompt" },
+            { key: "stage2_extract_paste", label: "3. Parse Evidence JSON v2.0" },
+            { key: "stage3_audit_prompt", label: "4. Audit Prompt" },
+            { key: "stage3_audit_paste", label: "5. Parse Audit JSON" },
+            { key: "preview", label: "6. Review & Approve" },
+          ].map((s) => {
             const isActive = pipelineStage === s.key;
             return (
               <div
@@ -216,25 +266,25 @@ export const DeepResearchModal: React.FC<DeepResearchModalProps> = ({
           })}
         </div>
 
-        {/* STAGE 1: Research Prompt Generator */}
-        {pipelineStage === "stage1_prompt" && (
+        {/* STAGE 1: Web Research Prompt & Markdown Import */}
+        {pipelineStage === "stage1_research" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
             <div style={{ padding: "20px", borderRadius: "16px", background: "rgba(147, 51, 234, 0.1)", border: "1px solid rgba(147, 51, 234, 0.3)", display: "flex", flexDirection: "column", gap: "12px" }}>
               <div style={{ fontSize: "14px", fontWeight: "800", color: "#e9d5ff" }}>
-                Stage 1: Generate & Copy Deep Research Prompt
+                Stage 1: Deep Web Research & Markdown Report
               </div>
               <p style={{ margin: 0, fontSize: "13px", color: "#cbd5e1", lineHeight: 1.6 }}>
-                Copy this prompt into ChatGPT Pro or Gemini Advanced. It instructs the AI model to search public web sources, stream titles, Kick/YouTube clips, and viewer comments to produce a comprehensive Markdown Research Report.
+                Copy the Stage 1 Research Prompt into ChatGPT Pro / Gemini Advanced. Paste the resulting Markdown Research Report below for human reading & archive storage.
               </p>
               <button
                 onClick={handleCopyResearchPrompt}
                 style={{
-                  padding: "12px 20px",
+                  padding: "10px 18px",
                   borderRadius: "10px",
                   background: copiedResearchPrompt ? "#10b981" : "linear-gradient(90deg, #9333ea, #6366f1)",
                   color: "#fff",
                   border: "none",
-                  fontSize: "13px",
+                  fontSize: "12px",
                   fontWeight: "800",
                   cursor: "pointer",
                   width: "fit-content",
@@ -243,28 +293,14 @@ export const DeepResearchModal: React.FC<DeepResearchModalProps> = ({
                 {copiedResearchPrompt ? "✓ Research Prompt Copied!" : "📋 Copy Stage 1 Research Prompt"}
               </button>
             </div>
-            <button
-              onClick={() => setPipelineStage("stage1_paste")}
-              style={{ padding: "12px", borderRadius: "10px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#f8fafc", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}
-            >
-              Next Step: Paste Markdown Research Output ➔
-            </button>
-          </div>
-        )}
 
-        {/* STAGE 1: Paste & Import Markdown Research */}
-        {pipelineStage === "stage1_paste" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <div style={{ fontSize: "14px", fontWeight: "800", color: "#f8fafc" }}>
-              Stage 1: Paste Completed Markdown Research Document
-            </div>
             <textarea
               value={rawResearchText}
               onChange={(e) => setRawResearchText(e.target.value)}
-              placeholder="Paste the markdown research document returned by ChatGPT/Gemini here..."
+              placeholder="Paste raw Markdown Research Report here..."
               style={{
                 width: "100%",
-                height: "220px",
+                height: "180px",
                 padding: "14px",
                 borderRadius: "12px",
                 background: "rgba(0,0,0,0.5)",
@@ -276,6 +312,7 @@ export const DeepResearchModal: React.FC<DeepResearchModalProps> = ({
                 resize: "vertical",
               }}
             />
+
             <button
               onClick={handleSaveResearch}
               disabled={!rawResearchText.trim()}
@@ -290,46 +327,27 @@ export const DeepResearchModal: React.FC<DeepResearchModalProps> = ({
                 cursor: rawResearchText.trim() ? "pointer" : "not-allowed",
               }}
             >
-              📥 Import Research Document & Continue to Stage 2
+              📥 Save Markdown Report & Continue to Stage 2 Evidence Extraction
             </button>
           </div>
         )}
 
-        {/* STAGE 2: Generate Audit Prompt from Imported Research */}
-        {pipelineStage === "stage2_prompt" && storedResearch && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-            {/* Research Summary Banner */}
-            <div style={{ padding: "16px 20px", borderRadius: "14px", background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.3)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <span style={{ fontSize: "11px", fontWeight: "800", color: "#34d399", textTransform: "uppercase", display: "block" }}>
-                  Research Document Imported
-                </span>
-                <span style={{ fontSize: "14px", fontWeight: "800", color: "#f8fafc" }}>
-                  Confidence Score: {storedResearch.confidenceScore}% · Sources: {storedResearch.evidenceSourcesCount}
-                </span>
-              </div>
-              <button
-                onClick={() => setPipelineStage("stage1_paste")}
-                style={{ padding: "6px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.06)", border: "none", color: "#cbd5e1", fontSize: "11px", cursor: "pointer" }}
-              >
-                ✏️ Edit Research
-              </button>
-            </div>
-
-            {/* Stage 2 Audit Prompt Box */}
+        {/* STAGE 2: Evidence Extraction Prompt */}
+        {pipelineStage === "stage2_extract_prompt" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
             <div style={{ padding: "20px", borderRadius: "16px", background: "rgba(59, 130, 246, 0.1)", border: "1px solid rgba(59, 130, 246, 0.3)", display: "flex", flexDirection: "column", gap: "12px" }}>
               <div style={{ fontSize: "14px", fontWeight: "800", color: "#93c5fd" }}>
-                Stage 2: Generate Creator Intelligence Audit Prompt
+                Stage 2: Copy Evidence Extraction Prompt (Schema v2.0)
               </div>
               <p style={{ margin: 0, fontSize: "13px", color: "#cbd5e1", lineHeight: 1.6 }}>
-                Click below to copy the Stage 2 Prompt. It embeds your imported Stage 1 Research Document and instructs the LLM: <em>"Using ONLY the research document below, synthesize the final Creator Intelligence Audit JSON."</em>
+                Click to copy the Stage 2 Evidence Extraction Prompt. It embeds your Stage 1 Markdown Report and instructs the LLM to extract a compact, machine-readable Evidence JSON object (70%+ token reduction).
               </p>
               <button
-                onClick={handleCopyAuditPrompt}
+                onClick={handleCopyExtractPrompt}
                 style={{
                   padding: "12px 20px",
                   borderRadius: "10px",
-                  background: copiedAuditPrompt ? "#10b981" : "linear-gradient(90deg, #3b82f6, #9333ea)",
+                  background: copiedExtractPrompt ? "#10b981" : "linear-gradient(90deg, #3b82f6, #9333ea)",
                   color: "#fff",
                   border: "none",
                   fontSize: "13px",
@@ -338,29 +356,127 @@ export const DeepResearchModal: React.FC<DeepResearchModalProps> = ({
                   width: "fit-content",
                 }}
               >
-                {copiedAuditPrompt ? "✓ Stage 2 Audit Prompt Copied!" : "📋 Copy Stage 2 Audit Prompt"}
+                {copiedExtractPrompt ? "✓ Evidence Prompt Copied!" : "📋 Copy Stage 2 Evidence Extraction Prompt"}
               </button>
             </div>
 
             <button
-              onClick={() => setPipelineStage("stage2_paste")}
+              onClick={() => setPipelineStage("stage2_extract_paste")}
               style={{ padding: "12px", borderRadius: "10px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#f8fafc", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}
             >
-              Next Step: Paste & Parse Final Audit JSON ➔
+              Next Step: Paste & Validate Evidence JSON v2.0 ➔
             </button>
           </div>
         )}
 
-        {/* STAGE 2: Paste Audit JSON */}
-        {pipelineStage === "stage2_paste" && (
+        {/* STAGE 2: Paste & Validate Evidence JSON v2.0 */}
+        {pipelineStage === "stage2_extract_paste" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <div style={{ fontSize: "14px", fontWeight: "800", color: "#f8fafc" }}>
-              Stage 2: Paste Completed Creator Intelligence Audit JSON
+              Stage 2: Paste Evidence JSON v2.0 (Zod Validated)
+            </div>
+            <textarea
+              value={rawEvidenceText}
+              onChange={(e) => setRawEvidenceText(e.target.value)}
+              placeholder="Paste Evidence JSON v2.0 returned by ChatGPT/Gemini here..."
+              style={{
+                width: "100%",
+                height: "200px",
+                padding: "14px",
+                borderRadius: "12px",
+                background: "rgba(0,0,0,0.5)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                color: "#34d399",
+                fontSize: "12px",
+                fontFamily: "monospace",
+                outline: "none",
+                resize: "vertical",
+              }}
+            />
+            <button
+              onClick={handleParseEvidence}
+              disabled={!rawEvidenceText.trim()}
+              style={{
+                padding: "12px",
+                borderRadius: "10px",
+                background: "linear-gradient(90deg, #10b981, #059669)",
+                border: "none",
+                color: "#fff",
+                fontSize: "13px",
+                fontWeight: "800",
+                cursor: rawEvidenceText.trim() ? "pointer" : "not-allowed",
+              }}
+            >
+              ⚡ Validate Zod Schema & Save Evidence JSON v2.0
+            </button>
+            {evidenceParseError && <div style={{ color: "#f87171", fontSize: "12px" }}>{evidenceParseError}</div>}
+          </div>
+        )}
+
+        {/* STAGE 3: Copy Audit Prompt preloaded with Evidence JSON ONLY */}
+        {pipelineStage === "stage3_audit_prompt" && storedEvidence && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            <div style={{ padding: "16px 20px", borderRadius: "14px", background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.3)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <span style={{ fontSize: "11px", fontWeight: "800", color: "#34d399", textTransform: "uppercase", display: "block" }}>
+                  Evidence JSON v2.0 Active (70%+ Token Reduction)
+                </span>
+                <span style={{ fontSize: "14px", fontWeight: "800", color: "#f8fafc" }}>
+                  Overall Confidence: {storedEvidence.researchConfidence.overall}% · Strengths: {storedEvidence.strengths.length} · Weaknesses: {storedEvidence.weaknesses.length}
+                </span>
+              </div>
+              <button
+                onClick={() => setPipelineStage("stage2_extract_paste")}
+                style={{ padding: "6px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.06)", border: "none", color: "#cbd5e1", fontSize: "11px", cursor: "pointer" }}
+              >
+                ✏️ Edit Evidence
+              </button>
+            </div>
+
+            <div style={{ padding: "20px", borderRadius: "16px", background: "rgba(147, 51, 234, 0.1)", border: "1px solid rgba(147, 51, 234, 0.3)", display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div style={{ fontSize: "14px", fontWeight: "800", color: "#e9d5ff" }}>
+                Stage 3: Generate Creator Intelligence Audit Prompt
+              </div>
+              <p style={{ margin: 0, fontSize: "13px", color: "#cbd5e1", lineHeight: 1.6 }}>
+                Click to copy Stage 3 Audit Prompt. It embeds ONLY your compact Evidence JSON (no raw Markdown) for fast, lightweight synthesis.
+              </p>
+              <button
+                onClick={handleCopyAuditPrompt}
+                style={{
+                  padding: "12px 20px",
+                  borderRadius: "10px",
+                  background: copiedAuditPrompt ? "#10b981" : "linear-gradient(90deg, #9333ea, #6366f1)",
+                  color: "#fff",
+                  border: "none",
+                  fontSize: "13px",
+                  fontWeight: "800",
+                  cursor: "pointer",
+                  width: "fit-content",
+                }}
+              >
+                {copiedAuditPrompt ? "✓ Audit Prompt Copied!" : "📋 Copy Stage 3 Audit Prompt"}
+              </button>
+            </div>
+
+            <button
+              onClick={() => setPipelineStage("stage3_audit_paste")}
+              style={{ padding: "12px", borderRadius: "10px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#f8fafc", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}
+            >
+              Next Step: Paste Final Audit JSON ➔
+            </button>
+          </div>
+        )}
+
+        {/* STAGE 3: Paste Audit JSON */}
+        {pipelineStage === "stage3_audit_paste" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div style={{ fontSize: "14px", fontWeight: "800", color: "#f8fafc" }}>
+              Stage 3: Paste Completed Creator Intelligence Audit JSON
             </div>
             <textarea
               value={rawAuditText}
               onChange={(e) => setRawAuditText(e.target.value)}
-              placeholder="Paste the final JSON object returned by ChatGPT/Gemini here..."
+              placeholder="Paste final Creator Audit JSON returned by ChatGPT/Gemini here..."
               style={{
                 width: "100%",
                 height: "200px",
@@ -395,12 +511,12 @@ export const DeepResearchModal: React.FC<DeepResearchModalProps> = ({
           </div>
         )}
 
-        {/* STAGE 3: Review & Save Approval */}
+        {/* STAGE 4: Review & Approve */}
         {pipelineStage === "preview" && parsedAudit && (
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             <div style={{ padding: "20px", borderRadius: "16px", background: "rgba(16, 185, 129, 0.12)", border: "1px solid rgba(16, 185, 129, 0.4)", display: "flex", flexDirection: "column", gap: "12px" }}>
               <div style={{ fontSize: "14px", fontWeight: "800", color: "#34d399", display: "flex", alignItems: "center", gap: "6px" }}>
-                <span>✓</span> Deep Research Pipeline Complete — Executive Briefing Ready
+                <span>✓</span> Evidence-First Deep Research Pipeline v2.0 Complete
               </div>
 
               <div style={{ fontSize: "13px", color: "#cbd5e1", background: "rgba(0,0,0,0.4)", padding: "14px", borderRadius: "10px", fontStyle: "italic", whiteSpace: "pre-wrap" }}>

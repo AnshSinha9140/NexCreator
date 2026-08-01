@@ -94,4 +94,109 @@ REQUIRED MARKDOWN OUTPUT FORMAT
 Return ONLY the complete Markdown document starting with '# Deep Research Document: ${name}'.
 `;
   }
+
+  static generateEvidenceExtractionPrompt(creatorName: string, markdownReport: string): string {
+    return `You are a Senior Data Engineer and Creator Intelligence Parser.
+
+==================================================
+STAGE 2: EVIDENCE EXTRACTION (SCHEMA v2.0)
+==================================================
+
+Your task is to extract a compact, machine-readable Evidence JSON object from the Stage 1 Research Report below for creator "${creatorName}".
+
+RULES:
+1. Extract facts, evidence, reasoning, and classifications ONLY.
+2. Do NOT generate action plans, recommendations, or strategy.
+3. Every strength/weakness MUST contain explicit evidence and reasoning.
+4. Output ONLY valid JSON matching the exact schema below.
+
+==================================================
+ORIGINAL RESEARCH REPORT:
+==================================================
+${markdownReport}
+==================================================
+
+REQUIRED OUTPUT JSON SCHEMA (version: "2.0"):
+
+{
+  "version": "2.0",
+  "creatorId": "usr_extracted",
+  "extractedAt": "${new Date().toISOString()}",
+  "creator": {
+    "name": "${creatorName}",
+    "platforms": ["kick", "youtube"],
+    "category": "Gaming & Variety",
+    "identity": "Authentic gaming reactor with high-energy chat banter",
+    "brandTone": "Relatable, witty, supportive"
+  },
+  "content": {
+    "primaryFormats": ["Live Gameplay", "Interactive Q&A", "Reaction vods"],
+    "uploadCadence": "3 streams / week",
+    "streamLength": "4-6 hours",
+    "titlePatterns": ["Clutch moments", "Unfiltered reactions"],
+    "thumbnailPatterns": ["Bold face expressions", "High-contrast action"],
+    "historicalChanges": ["Evolved from quiet gaming to active chat Q&A"]
+  },
+  "audience": {
+    "demographics": "Core gaming audience 18-28",
+    "motivations": ["Recognition", "Community banter", "Clutch moments"],
+    "expectations": ["Immediate chat responses", "Consistent energy"],
+    "communityCulture": "High emote usage, friendly trolling, protective",
+    "chatPatterns": ["High velocity during Q&A", "Emote bursts on wins"],
+    "viewerFeedback": {
+      "positive": ["Authentic commentary", "Great chat engagement"],
+      "negative": ["Unanswered questions during clutch gameplay"]
+    }
+  },
+  "strengths": [
+    {
+      "title": "Natural Unscripted Charisma",
+      "classification": "Performance",
+      "evidence": "Observed high chat velocity during unscripted Q&A commentary",
+      "reasoning": "Viewers connect emotionally with spontaneous reactions rather than gameplay mechanics"
+    }
+  ],
+  "weaknesses": [
+    {
+      "title": "Unanswered Chat Bursts",
+      "classification": "Engagement",
+      "evidence": "Questions pile up unanswered during intense 10-minute gameplay sequences",
+      "reasoning": "Pacing drop-off occurs when high-tier chatters feel unacknowledged"
+    }
+  ],
+  "opportunities": [
+    {
+      "title": "Short-Form Clip Repurposing",
+      "reasoning": "High density of 30-second hilarious reaction spikes ideal for TikTok/Shorts"
+    }
+  ],
+  "risks": [
+    {
+      "title": "Single-Game Burnout",
+      "reasoning": "Heavy reliance on single main title creates audience drop-off risks during meta shifts"
+    }
+  ],
+  "competitors": [
+    {
+      "name": "Ludwig",
+      "difference": "Higher chat-driven Q&A focus and community interactive events"
+    }
+  ],
+  "unknowns": [
+    "Sponsor deliverable performance metrics",
+    "Secondary social media conversion rate"
+  ],
+  "questionsForCreator": [
+    "What game categories do you enjoy outside your main title?",
+    "How much time can you dedicate to short-form video editing each week?"
+  ],
+  "researchConfidence": {
+    "overall": 85,
+    "notes": "Solid stream titles, comment sections, and public channel metrics analyzed."
+  }
+}
+
+Respond ONLY with valid JSON matching the schema above.
+`;
+  }
 }

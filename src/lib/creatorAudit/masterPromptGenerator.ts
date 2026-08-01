@@ -128,33 +128,31 @@ REQUIRED OUTPUT STRUCTURE (Return VALID JSON matching this exact structure):
 Respond ONLY with valid JSON matching the above structure.`;
   }
 
-  static generateAuditFromResearchPrompt(
-    creator: {
-      displayName?: string;
-      email?: string;
-    },
-    researchMarkdown: string
+  static generateAuditFromEvidencePrompt(
+    creator: { displayName?: string; email?: string },
+    evidenceJson: any
   ): string {
     const name = creator.displayName || creator.email || "Creator";
+    const evidenceString = JSON.stringify(evidenceJson, null, 2);
 
     return `You are a Senior Creator Growth Consultant and Senior Video Executive Producer acting as the long-term AI Creator Manager for ${name}.
 
 ==================================================
-STAGE 2: CREATOR INTELLIGENCE AUDIT GENERATION
+STAGE 3: CREATOR INTELLIGENCE AUDIT GENERATION (EVIDENCE-FIRST)
 ==================================================
 
-Using ONLY the research document provided below, synthesize a high-empathy, personalized "Creator Intelligence Audit" JSON object.
+Using ONLY the compact Evidence JSON (v2.0) provided below, synthesize a high-empathy, personalized "Creator Intelligence Audit" JSON object.
 
 CRITICAL INSTRUCTIONS:
-1. Base all statements strictly on the evidence in the Research Document below.
-2. Do NOT invent new facts not present in the research document.
+1. Base all statements strictly on the evidence & reasoning in the Evidence JSON below.
+2. Do NOT invent new facts not present in the Evidence JSON.
 3. Every opinion MUST explain why ("The reason I say that is...").
 4. Sound like an experienced creator manager speaking to a valued partner.
 
 ==================================================
-RESEARCH DOCUMENT FOR ${name}:
+COMPACT EVIDENCE JSON FOR ${name}:
 ==================================================
-${researchMarkdown}
+${evidenceString}
 ==================================================
 
 REQUIRED OUTPUT JSON STRUCTURE (Return VALID JSON ONLY):
@@ -171,12 +169,12 @@ REQUIRED OUTPUT JSON STRUCTURE (Return VALID JSON ONLY):
   },
   "creatorIdentity": {
     "category": "Gaming & Variety Live Broadcasts",
-    "coreStyle": "Core style extracted from research",
-    "primaryHook": "Primary hook extracted from research",
-    "brandTone": "Brand tone extracted from research"
+    "coreStyle": "Core style extracted from evidence",
+    "primaryHook": "Primary hook extracted from evidence",
+    "brandTone": "Brand tone extracted from evidence"
   },
   "audiencePsychology": {
-    "demographicsSummary": "Summary of audience demographics from research",
+    "demographicsSummary": "Summary of audience demographics from evidence",
     "primaryMotivations": [
       "Motivation 1",
       "Motivation 2"
@@ -185,37 +183,37 @@ REQUIRED OUTPUT JSON STRUCTURE (Return VALID JSON ONLY):
       "Expectation 1",
       "Expectation 2"
     ],
-    "communityCulture": "Community culture summary from research",
-    "sentimentSummary": "Sentiment summary from research"
+    "communityCulture": "Community culture summary from evidence",
+    "sentimentSummary": "Sentiment summary from evidence"
   },
   "strengthsAndWeaknesses": {
     "strengths": [
       {
         "title": "Strength Title 1",
-        "reasoning": "Reasoning based on research evidence..."
+        "reasoning": "Reasoning based on evidence..."
       }
     ],
     "weaknesses": [
       {
         "title": "Weakness Title 1",
-        "reasoning": "Reasoning based on research evidence..."
+        "reasoning": "Reasoning based on evidence..."
       }
     ],
     "uniqueAdvantages": [
-      "Advantage 1 from research"
+      "Advantage 1 from evidence"
     ],
     "biggestRisks": [
-      "Risk 1 from research"
+      "Risk 1 from evidence"
     ]
   },
   "contentStrategy": {
-    "evolutionPastVsPresent": "Content evolution summary from research",
+    "evolutionPastVsPresent": "Content evolution summary from evidence",
     "communityWishes": [
-      "Community wish 1 from research"
+      "Community wish 1 from evidence"
     ],
     "similarCreators": ["Creator A", "Creator B"],
     "monetizationOpportunities": [
-      "Opportunity 1 from research"
+      "Opportunity 1 from evidence"
     ]
   },
   "growthRoadmap": {
@@ -223,10 +221,10 @@ REQUIRED OUTPUT JSON STRUCTURE (Return VALID JSON ONLY):
       "Plan step 1",
       "Plan step 2"
     ],
-    "oneYearVision": "One year vision statement synthesized from research"
+    "oneYearVision": "One year vision statement synthesized from evidence"
   },
   "managerImpression": {
-    "firstImpression": "First impression derived from research",
+    "firstImpression": "First impression derived from evidence",
     "nextConversationTopics": [
       "Topic 1",
       "Topic 2"
