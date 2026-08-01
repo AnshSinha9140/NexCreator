@@ -423,7 +423,13 @@ export const CreatorOnboardingView: React.FC<CreatorOnboardingViewProps> = ({
             <div>
               <textarea
                 placeholder="Type your reflection here... take your time."
-                id={`reflect-${currentQuestionIdx}`}
+                value={reflectionAnswers[currentQuestionIdx] || ""}
+                onChange={(e) => {
+                  setReflectionAnswers({
+                    ...reflectionAnswers,
+                    [currentQuestionIdx]: e.target.value,
+                  });
+                }}
                 style={{
                   width: "100%",
                   height: "120px",
@@ -443,19 +449,19 @@ export const CreatorOnboardingView: React.FC<CreatorOnboardingViewProps> = ({
 
             <button
               onClick={() => {
-                const el = document.getElementById(`reflect-${currentQuestionIdx}`) as HTMLTextAreaElement;
-                handleReflectionAnswer(el?.value || "");
+                const currentAnswer = reflectionAnswers[currentQuestionIdx] || "";
+                handleReflectionAnswer(currentAnswer);
               }}
               style={{
                 width: "100%",
                 padding: "14px",
                 borderRadius: "10px",
-                background: "rgba(255,255,255,0.08)",
-                border: "1px solid rgba(255,255,255,0.1)",
+                background: "linear-gradient(135deg, #a855f7, #6366f1)",
                 color: "#ffffff",
                 fontSize: "13px",
                 fontWeight: "700",
                 cursor: "pointer",
+                border: "none",
               }}
             >
               Continue
