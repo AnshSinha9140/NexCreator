@@ -38,6 +38,10 @@ export async function POST(request: Request) {
         }
       }
 
+      const youtubeUrl = connectedPlatforms?.youtubeUrl || platformsList.find((p: any) => p.platform === "youtube")?.channelUrl || "";
+      const kickUrl = connectedPlatforms?.kickUrl || platformsList.find((p: any) => p.platform === "kick")?.channelUrl || "";
+      const twitchUrl = connectedPlatforms?.twitchUrl || platformsList.find((p: any) => p.platform === "twitch")?.channelUrl || "";
+
       await db.collection("users").updateOne(
         { email: payload.email },
         {
@@ -45,6 +49,9 @@ export async function POST(request: Request) {
             name: creatorProfile?.displayName || user?.name || payload.email.split("@")[0],
             onboardingCompleted: true,
             connectedPlatforms: mergedPlatforms,
+            ...(youtubeUrl ? { youtubeLink: youtubeUrl } : {}),
+            ...(kickUrl ? { kickLink: kickUrl } : {}),
+            ...(twitchUrl ? { twitchLink: twitchUrl } : {}),
             updatedAt: new Date(),
           },
         }

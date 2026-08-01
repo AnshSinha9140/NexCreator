@@ -14,6 +14,11 @@ export const PendingView: React.FC = () => {
     }, 600);
   };
 
+  const userPlatforms = (currentUser as any)?.connectedPlatforms || [];
+  const ytUrl = currentUser?.youtubeLink || userPlatforms.find((p: any) => p.platform === "youtube")?.channelUrl || "";
+  const twUrl = currentUser?.twitchLink || userPlatforms.find((p: any) => p.platform === "twitch")?.channelUrl || "";
+  const kcUrl = currentUser?.kickLink || userPlatforms.find((p: any) => p.platform === "kick")?.channelUrl || "";
+
   return (
     <div
       style={{
@@ -159,8 +164,8 @@ export const PendingView: React.FC = () => {
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <span style={{ color: "#ef4444", fontWeight: "700" }}>YouTube</span>
               </div>
-              {currentUser?.youtubeLink ? (
-                <a href={currentUser.youtubeLink} target="_blank" rel="noreferrer" style={{ color: "#60a5fa", textDecoration: "none", fontSize: "12px" }}>
+              {ytUrl ? (
+                <a href={ytUrl} target="_blank" rel="noreferrer" style={{ color: "#60a5fa", textDecoration: "none", fontSize: "12px" }}>
                   View Link ↗
                 </a>
               ) : (
@@ -173,8 +178,8 @@ export const PendingView: React.FC = () => {
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <span style={{ color: "#a855f7", fontWeight: "700" }}>Twitch</span>
               </div>
-              {currentUser?.twitchLink ? (
-                <a href={currentUser.twitchLink} target="_blank" rel="noreferrer" style={{ color: "#60a5fa", textDecoration: "none", fontSize: "12px" }}>
+              {twUrl ? (
+                <a href={twUrl} target="_blank" rel="noreferrer" style={{ color: "#60a5fa", textDecoration: "none", fontSize: "12px" }}>
                   View Link ↗
                 </a>
               ) : (
@@ -187,8 +192,8 @@ export const PendingView: React.FC = () => {
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <span style={{ color: "#53fc18", fontWeight: "700" }}>Kick</span>
               </div>
-              {currentUser?.kickLink ? (
-                <a href={currentUser.kickLink} target="_blank" rel="noreferrer" style={{ color: "#60a5fa", textDecoration: "none", fontSize: "12px" }}>
+              {kcUrl ? (
+                <a href={kcUrl} target="_blank" rel="noreferrer" style={{ color: "#60a5fa", textDecoration: "none", fontSize: "12px" }}>
                   View Link ↗
                 </a>
               ) : (
