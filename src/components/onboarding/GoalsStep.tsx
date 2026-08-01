@@ -5,11 +5,12 @@ import { motion } from "framer-motion";
 import { useOnboarding } from "@/context/OnboardingContext";
 
 const GOAL_OPTIONS = [
-  { id: "Grow Viewers", icon: "📈", title: "Grow Viewers", desc: "Increase peak CCV and audience reach." },
-  { id: "Improve Engagement", icon: "💬", title: "Improve Engagement", desc: "Boost active chatters and sentiment index." },
-  { id: "Find Viral Clips", icon: "🚀", title: "Find Viral Clips", desc: "Auto-detect high excitement stream moments." },
-  { id: "Better Stream Quality", icon: "⚡", title: "Better Stream Quality", desc: "Receive real-time AI producer advice." },
-  { id: "Understand Audience", icon: "📊", title: "Understand Audience", desc: "Deep breakdown of chat emotion & retention." },
+  { id: "1000 Concurrent Viewers", icon: "📈", title: "1000 Concurrent Viewers", desc: "Build a thriving live audience." },
+  { id: "Full-Time Creator", icon: "💼", title: "Full-Time Creator", desc: "Turn live broadcasts into your primary career." },
+  { id: "Better Community", icon: "💬", title: "Better Community", desc: "Cultivate India's or your region's strongest chat community." },
+  { id: "Consistent Uploads", icon: "🎬", title: "Consistent Short-Form Clips", desc: "Turn peak moments into daily TikTok/Shorts content." },
+  { id: "Brand Deals", icon: "🤝", title: "Brand Partnerships", desc: "Attract premium sponsor opportunities." },
+  { id: "Personal Growth", icon: "🌟", title: "Personal Growth", desc: "Become a more confident, engaging presenter." },
 ];
 
 export const GoalsStep: React.FC = () => {
@@ -29,10 +30,13 @@ export const GoalsStep: React.FC = () => {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+      style={{ display: "flex", flexDirection: "column", gap: "16px", fontFamily: "'Inter', sans-serif" }}
     >
+      <div style={{ fontSize: "14px", fontWeight: "700", color: "#f8fafc" }}>
+        If we talked one year from now... What would make you proud?
+      </div>
       <div style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "4px" }}>
-        Select all goals you want your AI Producer to prioritize:
+        Different goals need different advice. Select all that matter to you:
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>

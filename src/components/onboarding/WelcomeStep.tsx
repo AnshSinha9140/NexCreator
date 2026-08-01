@@ -8,84 +8,65 @@ export const WelcomeStep: React.FC = () => {
   const { goToNextStep } = useOnboarding();
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
-      {/* Visual Banner */}
+    <div style={{ display: "flex", flexDirection: "column", gap: "28px", fontFamily: "'Inter', sans-serif" }}>
+      {/* Conversational Greeting */}
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        style={{
-          padding: "24px",
-          borderRadius: "16px",
-          background: "linear-gradient(135deg, rgba(168, 85, 247, 0.12) 0%, rgba(99, 102, 241, 0.08) 100%)",
-          border: "1px solid rgba(168, 85, 247, 0.2)",
-          display: "flex",
-          alignItems: "center",
-          gap: "20px",
-        }}
+        transition={{ duration: 0.5 }}
+        style={{ display: "flex", flexDirection: "column", gap: "16px" }}
       >
-        <div
-          style={{
-            width: "56px",
-            height: "56px",
-            borderRadius: "16px",
-            background: "linear-gradient(135deg, #a855f7 0%, #6366f1 100%)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "24px",
-            color: "#fff",
-            flexShrink: 0,
-            boxShadow: "0 8px 24px rgba(168, 85, 247, 0.4)",
-          }}
-        >
-          ✨
-        </div>
-        <div>
-          <h3 style={{ fontSize: "16px", fontWeight: "800", color: "#f8fafc", marginBottom: "4px" }}>
-            Welcome to Your Creator Intelligence Hub
-          </h3>
-          <p style={{ fontSize: "13px", color: "#94a3b8", lineHeight: 1.5 }}>
-            NexCreator analyzes chat sentiment, detects viral clip moments, and generates AI producer guidance during your live streams.
-          </p>
-        </div>
+        <h2 style={{ fontSize: "28px", fontWeight: "800", color: "#f8fafc", margin: 0, lineHeight: 1.2 }}>
+          Hi.
+        </h2>
+        <p style={{ fontSize: "16px", color: "#c084fc", fontWeight: "700", margin: 0 }}>
+          I'm your AI Creator Manager.
+        </p>
+        <p style={{ fontSize: "14px", color: "#cbd5e1", lineHeight: "1.7", margin: 0 }}>
+          Before I ever recommend a clip, analyze a stream, or suggest changes... I want to understand who you are.
+        </p>
+        <p style={{ fontSize: "14px", color: "#94a3b8", lineHeight: "1.7", margin: 0 }}>
+          Every creator is different. My advice should be too. Over the next minute, I'll learn a little about your content, your goals, and the kind of creator you're becoming. Everything else comes later.
+        </p>
       </motion.div>
 
-      {/* Feature Cards Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-        {[
-          { icon: "🔴", title: "Live Pulse Engine", desc: "Monitor audience hype index and sentiment velocity." },
-          { icon: "🤖", title: "AI Creator Coach", desc: "Instant recommendations to maximize viewer retention." },
-          { icon: "🚀", title: "Viral Clip Detector", desc: "Auto-identify high excitement stream highlights." },
-          { icon: "💼", title: "Sponsorship CRM", desc: "Track brand deals, payouts, and deliverable schedules." },
-        ].map((feat, idx) => (
-          <motion.div
-            key={idx}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 * idx }}
-            style={{
-              padding: "18px",
-              borderRadius: "14px",
-              background: "rgba(255, 255, 255, 0.02)",
-              border: "1px solid rgba(255, 255, 255, 0.06)",
-              display: "flex",
-              alignItems: "flex-start",
-              gap: "14px",
-            }}
-          >
-            <span style={{ fontSize: "20px" }}>{feat.icon}</span>
-            <div>
-              <div style={{ fontSize: "14px", fontWeight: "700", color: "#e2e8f0", marginBottom: "4px" }}>
-                {feat.title}
-              </div>
-              <div style={{ fontSize: "12px", color: "#64748b", lineHeight: 1.4 }}>
-                {feat.desc}
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+      {/* Outcome Promises */}
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        style={{
+          padding: "20px",
+          borderRadius: "16px",
+          background: "rgba(255, 255, 255, 0.02)",
+          border: "1px solid rgba(255, 255, 255, 0.07)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "12px",
+        }}
+      >
+        <span style={{ fontSize: "12px", fontWeight: "800", color: "#f8fafc", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+          Here's what you can expect:
+        </span>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "13px", color: "#cbd5e1" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ color: "#4ade80", fontWeight: "bold" }}>✓</span>
+            <span>I'll watch every stream with you.</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ color: "#4ade80", fontWeight: "bold" }}>✓</span>
+            <span>I'll remember what works.</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ color: "#4ade80", fontWeight: "bold" }}>✓</span>
+            <span>I'll help you notice what you might miss.</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ color: "#4ade80", fontWeight: "bold" }}>✓</span>
+            <span>I'll help you improve over time.</span>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 };

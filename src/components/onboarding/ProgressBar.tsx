@@ -8,23 +8,23 @@ export const ProgressBar: React.FC = () => {
   const { state, progressPercentage, goToStep } = useOnboarding();
 
   return (
-    <div style={{ width: "100%", marginBottom: "36px" }}>
-      {/* Top indicator text */}
+    <div style={{ width: "100%", marginBottom: "32px" }}>
+      {/* Top narrative indicator */}
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           marginBottom: "12px",
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: "11px",
+          fontFamily: "'Inter', sans-serif",
+          fontSize: "12px",
           color: "#94a3b8",
         }}
       >
-        <span style={{ fontWeight: "700", color: "#c084fc", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-          Step {state.currentStepIndex + 1} of {ONBOARDING_STEPS.length}
+        <span style={{ fontWeight: "700", color: "#c084fc", letterSpacing: "0.02em" }}>
+          {ONBOARDING_STEPS[state.currentStepIndex]?.title}
         </span>
-        <span style={{ color: "#64748b" }}>{progressPercentage}% Completed</span>
+        <span style={{ color: "#64748b", fontSize: "11px" }}>Conversation Progress</span>
       </div>
 
       {/* Progress Track */}

@@ -93,12 +93,16 @@ export const PendingView: React.FC = () => {
         </div>
 
         <h2 style={{ fontSize: "26px", fontWeight: "800", color: "#f8fafc", letterSpacing: "-0.5px", marginBottom: "12px" }}>
-          Verification Pending
+          Preparing Your Workspace
         </h2>
 
-        <p style={{ color: "#94a3b8", fontSize: "14px", lineHeight: "1.6", marginBottom: "28px" }}>
-          Thank you for registering with <strong style={{ color: "#f8fafc" }}>NexCreator</strong>! Account{" "}
-          <strong style={{ color: "#a855f7" }}>{currentUser?.email}</strong> is under review. To protect our creator network and brand partners, accounts undergo manual channel verification.
+        <p style={{ color: "#cbd5e1", fontSize: "14px", lineHeight: "1.7", marginBottom: "28px" }}>
+          Thanks. While your account is being verified, I'll prepare your workspace.<br /><br />
+          When you come back, I'll already understand:
+          <br />
+          <span style={{ color: "#c084fc", fontWeight: "600" }}>• your content &nbsp; • your audience &nbsp; • your goals &nbsp; • your growth direction</span>
+          <br /><br />
+          See you soon.
         </p>
 
         {/* Submitted Channels Box */}
