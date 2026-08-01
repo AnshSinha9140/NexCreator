@@ -1,3 +1,4 @@
+import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import { OperationResult, OperationValidator } from "./types";
 import { AdminAuditHelper } from "./auditHelper";
@@ -41,30 +42,46 @@ export class CreatorOperations {
           ? "suspended"
           : "banned";
 
-      await db.collection("users").updateOne(
-        { $or: [{ id: creatorId }, { email: creatorId }] },
+      const isApprove = newStatus === "verified";
+
+      // Build multi-key match: by string id, email, and MongoDB ObjectId
+      const matchCriteria: any[] = [
+        { id: creatorId },
+        { email: creatorId.toLowerCase() },
+      ];
+      if (ObjectId.isValid(creatorId)) {
+        matchCriteria.push({ _id: new ObjectId(creatorId) });
+      }
+
+      // Atomic canonical status update
+      const updateResult = await db.collection("users").updateOne(
+        { $or: matchCriteria },
         {
           $set: {
             status: newStatus,
+            onboardingCompleted: isApprove ? true : false,
+            verifiedAt: isApprove ? new Date() : null,
             moderatedAt: new Date().toISOString(),
             moderatedBy: adminEmail,
             moderationReason: reason || null,
+            updatedAt: new Date(),
           },
         }
       );
 
+      // Write audit log entry
       await AdminAuditHelper.record({
         adminEmail,
         action: `Creator Verification ${action.toUpperCase()}`,
         target: creatorId,
         reason: reason || `Updated creator status to ${newStatus}`,
-        metadata: { creatorId, newStatus, action },
+        metadata: { creatorId, newStatus, action, matchedCount: updateResult.matchedCount },
       });
 
       return {
         success: true,
         message: `Creator ${creatorId} successfully set to '${newStatus}'.`,
-        data: { creatorId, status: newStatus },
+        data: { creatorId, status: newStatus, onboardingCompleted: isApprove },
         timestamp: new Date().toISOString(),
       };
     } catch (e: unknown) {

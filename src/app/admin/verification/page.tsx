@@ -45,8 +45,19 @@ export default function CreatorVerificationPage() {
       });
       const json = await res.json();
       if (json.success) {
-        setMessage(`Success: Creator ${id} updated with action '${action.toUpperCase()}'.`);
-        setTimeout(() => setMessage(""), 4000);
+        // Optimistic UI: immediately remove from current filtered view when the status would change
+        const removingActions: string[] = ["approve", "reject", "suspend", "ban"];
+        if (removingActions.includes(action) && (filter === "pending" || filter !== action)) {
+          setCreators((prev) => prev.filter((c) => c.id !== id));
+        }
+
+        const successMsg = action === "approve"
+          ? `✓ Creator approved successfully. Relationship initialized. Workspace prepared.`
+          : `Success: Creator ${id} updated with action '${action.toUpperCase()}'.`;
+        setMessage(successMsg);
+        setTimeout(() => setMessage(""), 5000);
+
+        // Background refetch & admin context refresh to sync counts
         fetchQueue();
         refresh();
       } else {

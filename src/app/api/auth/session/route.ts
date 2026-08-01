@@ -40,13 +40,16 @@ export async function GET() {
       // Ignore DB error for session fallback
     }
 
+    const rawStatus = user?.status || "pending";
+    const normalizedStatus = (!rawStatus || rawStatus === "unverified") ? "pending" : rawStatus;
+
     const userResponse = {
       id: user?._id?.toString() || payload.userId || "usr_admin",
       name: user?.name || payload.email.split("@")[0],
       email: payload.email,
       role: user?.role || (isAdmin ? "admin" : "creator"),
-      onboardingCompleted: true,
-      status: user?.status || "verified",
+      onboardingCompleted: isAdmin ? true : Boolean(user?.onboardingCompleted),
+      status: isAdmin ? "verified" : normalizedStatus,
       isAdmin,
       createdAt: user?.createdAt || new Date(),
     };

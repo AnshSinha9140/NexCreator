@@ -426,21 +426,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     const initSession = async () => {
       let email: string | undefined = undefined;
-      const storedCurrentUser = localStorage.getItem("cm_current_user");
-      if (storedCurrentUser) {
-        email = JSON.parse(storedCurrentUser).email;
-      } else {
-        try {
-          const res = await fetch("/api/auth/session");
-          if (res.ok) {
-            const data = await res.json();
-            if (data.success && data.user) {
-              setCurrentUser(data.user);
-              localStorage.setItem("cm_current_user", JSON.stringify(data.user));
-              email = data.user.email;
-            }
+      try {
+        // ALWAYS fetch canonical session from backend first (prevents stale status)
+        const res = await fetch("/api/auth/session", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.user) {
+            setCurrentUser(data.user);
+            localStorage.setItem("cm_current_user", JSON.stringify(data.user));
+            email = data.user.email;
           }
-        } catch(e) {}
+        }
+      } catch (e) {
+        // Fallback: restore from localStorage when offline / session API fails
+        const storedCurrentUser = localStorage.getItem("cm_current_user");
+        if (storedCurrentUser) {
+          try {
+            const parsed = JSON.parse(storedCurrentUser);
+            setCurrentUser(parsed);
+            email = parsed.email;
+          } catch {}
+        }
       }
       await fetchData(email);
       setIsLoaded(true);
