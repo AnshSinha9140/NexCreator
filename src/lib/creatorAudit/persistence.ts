@@ -27,6 +27,7 @@ import {
   HydrationDiagnostics,
 } from "./types";
 import { buildInitialKnowledgeGraph } from "@/lib/creatorKnowledge/knowledgeBuilder";
+import { buildInitialCreatorMission } from "@/lib/creatorMission/missionBuilder";
 
 // ---------------------------------------------------------------------------
 // Creator resolution — multi-key lookup by _id, email, or string id
@@ -224,6 +225,7 @@ export async function getCreatorHydration(creatorId: string): Promise<{
   creatorHistory: Record<string, unknown>[] | null;
   onboardingState: Record<string, unknown> | null;
   knowledgeGraph: Record<string, unknown> | null;
+  creatorMission: Record<string, unknown> | null;
   canonicalCreatorId: string | null;
   diagnostics: HydrationDiagnostics;
 }> {
@@ -243,15 +245,16 @@ export async function getCreatorHydration(creatorId: string): Promise<{
       },
       diagnosticMessage: "Creator not found in users collection.",
     };
-    return { creator: null, profile: null, relationshipMemory: null, creatorHistory: null, onboardingState: null, knowledgeGraph: null, canonicalCreatorId: null, diagnostics };
+    return { creator: null, profile: null, relationshipMemory: null, creatorHistory: null, onboardingState: null, knowledgeGraph: null, creatorMission: null, canonicalCreatorId: null, diagnostics };
   }
 
-  const [profile, relationshipMemory, creatorHistory, onboardingState, knowledgeGraph] = await Promise.all([
+  const [profile, relationshipMemory, creatorHistory, onboardingState, knowledgeGraph, creatorMission] = await Promise.all([
     db.collection("creator_profile").findOne({ creatorId: canonicalCreatorId }),
     db.collection("relationship_memory").findOne({ creatorId: canonicalCreatorId }),
     db.collection("creator_history").find({ creatorId: canonicalCreatorId }).sort({ timestamp: -1 }).toArray(),
     db.collection("onboarding_state").findOne({ creatorId: canonicalCreatorId }),
     db.collection("creator_knowledge_graph").findOne({ creatorId: canonicalCreatorId }),
+    db.collection("creator_mission").findOne({ creatorId: canonicalCreatorId }),
   ]);
 
   const missing: string[] = [];
@@ -260,10 +263,11 @@ export async function getCreatorHydration(creatorId: string): Promise<{
   if (!creatorHistory || creatorHistory.length === 0) missing.push("creator_history");
   if (!onboardingState) missing.push("onboarding_state");
 
-  // Only check knowledge graph if onboarding was previously completed
+  // Only check knowledge graph and mission if onboarding was previously completed
   const onboardingDone = onboardingState?.completed || profile?.onboardingCompleted;
-  if (onboardingDone && !knowledgeGraph) {
-    missing.push("creator_knowledge_graph");
+  if (onboardingDone) {
+    if (!knowledgeGraph) missing.push("creator_knowledge_graph");
+    if (!creatorMission) missing.push("creator_mission");
   }
 
   const diagnostics: HydrationDiagnostics = {
@@ -290,6 +294,7 @@ export async function getCreatorHydration(creatorId: string): Promise<{
     creatorHistory: creatorHistory as Record<string, unknown>[],
     onboardingState: onboardingState as Record<string, unknown> | null,
     knowledgeGraph: knowledgeGraph as Record<string, unknown> | null,
+    creatorMission: creatorMission as Record<string, unknown> | null,
     canonicalCreatorId,
     diagnostics,
   };
@@ -465,6 +470,12 @@ export async function mergeCreatorAlignment(
     db.collection("creator_knowledge_graph").updateOne(
       { creatorId: canonicalCreatorId },
       { $set: fullKnowledgeGraph },
+      { upsert: true }
+    ),
+    // Save to creator_mission collection (Sprint 21.2)
+    db.collection("creator_mission").updateOne(
+      { creatorId: canonicalCreatorId },
+      { $set: buildInitialCreatorMission(canonicalCreatorId, audit, answers) },
       { upsert: true }
     ),
     // Update creator_profile: save the merged knowledgeGraph & mark onboardingCompleted

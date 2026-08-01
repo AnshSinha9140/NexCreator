@@ -62,6 +62,7 @@ export async function GET() {
     creatorHistory: hydration.creatorHistory,
     onboardingState: hydration.onboardingState,
     knowledgeGraph: hydration.knowledgeGraph,
+    creatorMission: hydration.creatorMission,
     canonicalCreatorId: hydration.canonicalCreatorId,
     diagnostics: hydration.diagnostics,
     // Convenience flags for the dashboard

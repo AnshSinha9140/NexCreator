@@ -138,6 +138,12 @@ export const PersonalizedCoaching: React.FC<PersonalizedCoachingProps> = ({ coac
                   const { RelationshipInsights } = require("@/lib/creatorKnowledge/relationshipInsights");
                   rec = RelationshipInsights.getCoachingAdvice(kg, rec);
                 }
+                // Apply CareerCompass filter if mission is present
+                const mission = (window as any).__creatorMission || null;
+                if (mission) {
+                  const { CareerCompass } = require("@/lib/creatorMission/careerCompass");
+                  rec = CareerCompass.getCoachingCompassAdvice(mission, kg, rec);
+                }
                 return (
                   <div
                     style={{

@@ -162,6 +162,25 @@ export async function POST(
       alreadyExisted.push("creator_knowledge_graph");
     }
 
+    // creator_mission — build if missing and onboarding is complete
+    const existingMission = await db.collection("creator_mission").findOne({ creatorId: canonicalCreatorId });
+    if (existingProfile && onboardingDone && !existingMission) {
+      const { buildInitialCreatorMission } = require("@/lib/creatorMission/missionBuilder");
+      const fullMission = buildInitialCreatorMission(canonicalCreatorId, existingProfile.audit, {
+        hypothesesAnswers: {},
+        reflectionAnswers: {},
+        challengeAnswers: {},
+      });
+      await db.collection("creator_mission").updateOne(
+        { creatorId: canonicalCreatorId },
+        { $set: fullMission },
+        { upsert: true }
+      );
+      repaired.push("creator_mission");
+    } else if (existingMission) {
+      alreadyExisted.push("creator_mission");
+    }
+
     // Re-check hydration after repair
     const postRepair = await getCreatorHydration(creatorId);
 

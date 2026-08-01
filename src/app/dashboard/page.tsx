@@ -15,6 +15,7 @@ import { AICopilotPanel } from "@/components/copilot/AICopilotPanel";
 import { ExecutiveReportView } from "@/components/executive/ExecutiveReportView";
 import { CreatorOnboardingView } from "@/components/creatorAudit/CreatorOnboardingView";
 import { CreatorDNAView } from "@/components/CreatorDNAView";
+import { CreatorMissionView } from "@/components/CreatorMissionView";
 import { CreatorManagerProfile } from "@/lib/creatorAudit/types";
 
 export default function DashboardPage() {
@@ -23,6 +24,7 @@ export default function DashboardPage() {
   const [onboardingAudit, setOnboardingAudit] = useState<any>(null);
   const [profile, setProfile] = useState<CreatorManagerProfile | null>(null);
   const [knowledgeGraph, setKnowledgeGraph] = useState<any>(null);
+  const [creatorMission, setCreatorMission] = useState<any>(null);
   const [hydrationError, setHydrationError] = useState(false);
   const [hydrationDiagnostics, setHydrationDiagnostics] = useState<any>(null);
 
@@ -39,6 +41,10 @@ export default function DashboardPage() {
         }
         setProfile(data.profile || null);
         setKnowledgeGraph(data.knowledgeGraph || null);
+        setCreatorMission(data.creatorMission || null);
+        if (typeof window !== "undefined") {
+          (window as any).__creatorMission = data.creatorMission || null;
+        }
         // Onboarding source of truth: onboarding_state.completed (fallback: profile.onboardingCompleted)
         const onboardingDone =
           data.onboardingState?.completed ?? data.profile?.onboardingCompleted ?? true;
@@ -66,6 +72,10 @@ export default function DashboardPage() {
                 if (data.success) {
                   setProfile(data.profile);
                   setKnowledgeGraph(data.knowledgeGraph);
+                  setCreatorMission(data.creatorMission);
+                  if (typeof window !== "undefined") {
+                    (window as any).__creatorMission = data.creatorMission || null;
+                  }
                 }
               });
           }
@@ -78,6 +88,7 @@ export default function DashboardPage() {
     switch (activeTab) {
       case "command_center": return <CommandCenterView setActiveTab={setActiveTab} profile={profile} />;
       case "dna":            return <CreatorDNAView knowledgeGraph={knowledgeGraph} />;
+      case "mission":        return <CreatorMissionView creatorMission={creatorMission} knowledgeGraph={knowledgeGraph} />;
       case "copilot":        return <AICopilotPanel onNavigateToLive={() => setActiveTab("live")} />;
       case "reports":        return <ExecutiveReportView />;
       case "live":           return <DashboardView setActiveTab={setActiveTab} />;
