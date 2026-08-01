@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import HealthBadge from "./HealthBadge";
 import { DeepResearchModal } from "./DeepResearchModal";
 
@@ -29,6 +29,39 @@ export default function VerificationCard({ creator, onAction }: VerificationCard
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Sprint 20.6: track whether creator intelligence exists in MongoDB
+  const [intelligenceExists, setIntelligenceExists] = useState<boolean | null>(null);
+  const [repairResult, setRepairResult] = useState<any>(null);
+  const [repairing, setRepairing] = useState(false);
+
+  const checkIntelligence = () => {
+    fetch(`/api/debug/verification/${encodeURIComponent(creator.id)}`)
+      .then((r) => r.json())
+      .then((data) => setIntelligenceExists(data.hydrationReady === true))
+      .catch(() => setIntelligenceExists(false));
+  };
+
+  useEffect(() => {
+    checkIntelligence();
+  }, [creator.id]);
+
+  const handleRepair = async () => {
+    setRepairing(true);
+    setRepairResult(null);
+    try {
+      const res = await fetch(`/api/admin/creators/${encodeURIComponent(creator.id)}/repair`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      setRepairResult(data);
+      // Re-check intelligence status after repair
+      checkIntelligence();
+    } catch (e: any) {
+      setRepairResult({ success: false, error: e.message });
+    } finally {
+      setRepairing(false);
+    }
+  };
 
   const handleActionClick = async (action: "approve" | "reject" | "request_changes" | "suspend" | "ban") => {
     setLoading(true);
@@ -72,6 +105,16 @@ export default function VerificationCard({ creator, onAction }: VerificationCard
         <div style={{ textAlign: "right", fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b", display: "flex", flexDirection: "column", gap: "4px" }}>
           <div>Applied: <span style={{ color: "#e2e8f0" }}>{new Date(creator.createdAt).toLocaleDateString()}</span></div>
           <div>ID: <span style={{ color: "#c084fc" }}>{creator.id}</span></div>
+          {creator.status === "pending" && intelligenceExists === false && (
+            <div style={{ marginTop: "4px", padding: "3px 8px", borderRadius: "6px", background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.3)", color: "#fbbf24", fontSize: "10px", fontWeight: 700 }}>
+              ⚠ Deep Research Required
+            </div>
+          )}
+          {creator.status === "pending" && intelligenceExists === true && (
+            <div style={{ marginTop: "4px", padding: "3px 8px", borderRadius: "6px", background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.3)", color: "#34d399", fontSize: "10px", fontWeight: 700 }}>
+              ✓ Intelligence Ready
+            </div>
+          )}
         </div>
       </div>
 
@@ -145,6 +188,25 @@ export default function VerificationCard({ creator, onAction }: VerificationCard
           >
             🔬 Deep Research Pipeline
           </button>
+
+          {/* Repair button: shown for verified creators with missing intelligence */}
+          {creator.status === "verified" && intelligenceExists === false && (
+            <button
+              onClick={handleRepair}
+              disabled={repairing}
+              className="admin-filter-btn"
+              style={{
+                color: "#fbbf24",
+                borderColor: "rgba(245,158,11,0.4)",
+                background: "rgba(245,158,11,0.12)",
+                fontWeight: 700,
+                opacity: repairing ? 0.6 : 1,
+                cursor: repairing ? "not-allowed" : "pointer",
+              }}
+            >
+              {repairing ? "⏳ Repairing…" : "🔧 Repair Intelligence"}
+            </button>
+          )}
           <button
             disabled={loading}
             onClick={() => handleActionClick("request_changes")}
@@ -169,12 +231,19 @@ export default function VerificationCard({ creator, onAction }: VerificationCard
             Suspend
           </button>
           <button
-            disabled={loading}
+            disabled={loading || !intelligenceExists}
             onClick={() => handleActionClick("approve")}
+            title={!intelligenceExists ? "Complete the Deep Research pipeline first (🔬 Deep Research Pipeline → 🚀 Begin Long-Term Creator Partnership)" : "Approve this creator"}
             className="btn btn-emerald"
-            style={{ fontSize: "11px", padding: "6px 14px", borderRadius: "7px" }}
+            style={{
+              fontSize: "11px",
+              padding: "6px 14px",
+              borderRadius: "7px",
+              opacity: (!loading && intelligenceExists) ? 1 : 0.4,
+              cursor: (!loading && intelligenceExists) ? "pointer" : "not-allowed",
+            }}
           >
-            Approve Verification
+            {intelligenceExists ? "Approve Verification" : "🔒 Approve (Requires Deep Research)"}
           </button>
         </div>
       </div>
@@ -183,11 +252,37 @@ export default function VerificationCard({ creator, onAction }: VerificationCard
         <DeepResearchModal
           creator={creator}
           onClose={() => setShowAuditModal(false)}
-          onApproveWithAudit={(creatorId) => {
+          onApproveWithAudit={() => {
             setShowAuditModal(false);
-            onAction(creatorId, "approve", "Approved via Creator Deep Research Pipeline");
+            checkIntelligence();
           }}
         />
+      )}
+
+      {/* Repair result panel */}
+      {repairResult && (
+        <div style={{
+          padding: "14px 18px", borderRadius: "10px", fontSize: "12px",
+          fontFamily: "'JetBrains Mono', monospace",
+          background: repairResult.success ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)",
+          border: `1px solid ${repairResult.success ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)"}`,
+          color: repairResult.success ? "#6ee7b7" : "#fca5a5",
+          display: "flex", flexDirection: "column", gap: "6px",
+        }}>
+          <div style={{ fontWeight: 800, color: repairResult.success ? "#34d399" : "#f87171" }}>
+            {repairResult.success ? "✅ Repair Complete" : "⚠ Repair Failed"}
+          </div>
+          <div>{repairResult.message || repairResult.error}</div>
+          {repairResult.repaired?.length > 0 && (
+            <div>Initialized: {repairResult.repaired.map((c: string) => (
+              <span key={c} style={{ marginRight: 6, padding: "2px 6px", borderRadius: 4, background: "rgba(16,185,129,0.15)", color: "#6ee7b7" }}>✓ {c}</span>
+            ))}</div>
+          )}
+          {repairResult.requiresDeepResearch?.length > 0 && (
+            <div style={{ color: "#fbbf24" }}>Still needs Deep Research: {repairResult.requiresDeepResearch.join(", ")}</div>
+          )}
+          <button onClick={() => setRepairResult(null)} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", textAlign: "left", fontSize: "11px" }}>dismiss</button>
+        </div>
       )}
     </div>
   );

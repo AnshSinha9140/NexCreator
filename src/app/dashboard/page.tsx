@@ -13,22 +13,35 @@ import { AdminView } from "@/components/AdminView";
 import { PendingView } from "@/components/PendingView";
 import { AICopilotPanel } from "@/components/copilot/AICopilotPanel";
 import { ExecutiveReportView } from "@/components/executive/ExecutiveReportView";
-import { AuditStorage } from "@/lib/creatorAudit/auditStorage";
 import { CreatorOnboardingView } from "@/components/creatorAudit/CreatorOnboardingView";
+import { CreatorManagerProfile } from "@/lib/creatorAudit/types";
 
 export default function DashboardPage() {
   const { currentUser } = useApp();
   const [activeTab, setActiveTab] = useState("command_center");
   const [onboardingAudit, setOnboardingAudit] = useState<any>(null);
+  const [profile, setProfile] = useState<CreatorManagerProfile | null>(null);
+  const [hydrationError, setHydrationError] = useState(false);
+  const [hydrationDiagnostics, setHydrationDiagnostics] = useState<any>(null);
 
   useEffect(() => {
-    const creatorId = (currentUser as any)?.id || currentUser?.email;
-    if (creatorId) {
-      const profile = AuditStorage.getProfile(creatorId);
-      if (profile && !profile.onboardingCompleted && profile.audit) {
-        setOnboardingAudit(profile.audit);
-      }
-    }
+    if (!currentUser || currentUser.isAdmin) return;
+    fetch("/api/creator/hydration", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          // 503 with diagnostics — fail loudly
+          if (data.diagnostics) setHydrationDiagnostics(data.diagnostics);
+          setHydrationError(true);
+          return;
+        }
+        setProfile(data.profile || null);
+        // Onboarding source of truth: onboarding_state.completed (fallback: profile.onboardingCompleted)
+        const onboardingDone =
+          data.onboardingState?.completed ?? data.profile?.onboardingCompleted ?? true;
+        setOnboardingAudit(!onboardingDone && data.profile?.audit ? data.profile.audit : null);
+      })
+      .catch(() => setHydrationError(true));
   }, [currentUser]);
 
   if (currentUser && currentUser.status !== "verified" && !currentUser.isAdmin) {
@@ -47,15 +60,15 @@ export default function DashboardPage() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case "command_center": return <CommandCenterView setActiveTab={setActiveTab} />;
+      case "command_center": return <CommandCenterView setActiveTab={setActiveTab} profile={profile} />;
       case "copilot":        return <AICopilotPanel onNavigateToLive={() => setActiveTab("live")} />;
       case "reports":        return <ExecutiveReportView />;
       case "live":           return <DashboardView setActiveTab={setActiveTab} />;
       case "content":        return <VideoAnalyzerView />;
       case "audience":       return <InsightsView />;
       case "settings":       return <SettingsView />;
-      case "admin":          return currentUser?.isAdmin ? <AdminView /> : <CommandCenterView setActiveTab={setActiveTab} />;
-      default:               return <CommandCenterView setActiveTab={setActiveTab} />;
+      case "admin":          return currentUser?.isAdmin ? <AdminView /> : <CommandCenterView setActiveTab={setActiveTab} profile={profile} />;
+      default:               return <CommandCenterView setActiveTab={setActiveTab} profile={profile} />;
     }
   };
 
@@ -91,6 +104,17 @@ export default function DashboardPage() {
           }}
         >
           {renderContent()}
+          {process.env.NODE_ENV !== "production" && !currentUser?.isAdmin && (
+            <div style={{ marginTop: 16, padding: 12, border: "1px dashed #64748b", color: "#cbd5e1", fontSize: 12 }}>
+              <strong>Creator Hydration Diagnostics</strong><br />
+              {currentUser ? "✓ Creator Loaded" : "✗ Missing Creator"} · {profile ? "✓ Audit Loaded · ✓ Relationship Loaded · ✓ Executive Letter Loaded · ✓ Dashboard Hydrated" : "✗ Missing Creator Profile · ✗ Using Fallback Content"}{hydrationError ? " · hydration request failed" : ""}
+              {hydrationDiagnostics && (
+                <div style={{ marginTop: 8, color: "#fca5a5" }}>
+                  Missing: {hydrationDiagnostics.missingCollections?.join(", ")}
+                </div>
+              )}
+            </div>
+          )}
         </main>
       </div>
     </div>

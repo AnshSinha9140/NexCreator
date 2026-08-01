@@ -42,9 +42,11 @@ export const AuditModal: React.FC<AuditModalProps> = ({ creator, onClose, onAppr
     }
   };
 
-  const handleSaveAndApprove = () => {
+  const handleSaveAndApprove = async () => {
     if (!parsedAudit) return;
-    AuditStorage.saveProfile(creator.id, parsedAudit);
+    const response = await fetch(`/api/admin/creators/${encodeURIComponent(creator.id)}/intelligence`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ audit: parsedAudit }) });
+    const result = await response.json();
+    if (!response.ok || !result.success) { setParseError(result.error || "Creator intelligence could not be persisted."); return; }
     onApproveWithAudit(creator.id);
   };
 

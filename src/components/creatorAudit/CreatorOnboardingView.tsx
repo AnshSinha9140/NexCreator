@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { CreatorIntelligenceAudit } from "@/lib/creatorAudit/types";
-import { AuditStorage } from "@/lib/creatorAudit/auditStorage";
 
 interface CreatorOnboardingViewProps {
   audit: CreatorIntelligenceAudit;
@@ -17,9 +16,9 @@ export const CreatorOnboardingView: React.FC<CreatorOnboardingViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<"letter" | "promise" | "identity" | "psychology" | "roadmap">("letter");
 
-  const handleBegin = () => {
-    AuditStorage.markOnboardingCompleted(creatorId);
-    onComplete();
+  const handleBegin = async () => {
+    const response = await fetch("/api/creator/hydration", { method: "PATCH" });
+    if (response.ok) onComplete();
   };
 
   return (

@@ -102,21 +102,48 @@ export async function POST(request: NextRequest) {
     
     // Attempt DB update using ObjectId fallback
     try {
-      const matchCriteria: any[] = [{ id: creatorId }, { email: creatorId }];
+      const matchCriteria: any[] = [{ id: creatorId }, { email: creatorId.toLowerCase() }];
       if (ObjectId.isValid(creatorId)) {
         matchCriteria.push({ _id: new ObjectId(creatorId) });
       }
 
+      const isApprove = newStatus === "verified";
+
+      if (isApprove) {
+        const creator = await db.collection("users").findOne({ $or: matchCriteria });
+        const canonicalCreatorId = creator?._id?.toString();
+        const [profile, relationshipMemory] = canonicalCreatorId ? await Promise.all([
+          db.collection("creator_profile").findOne({ creatorId: canonicalCreatorId }),
+          db.collection("relationship_memory").findOne({ creatorId: canonicalCreatorId }),
+        ]) : [null, null];
+        if (!profile || !relationshipMemory) {
+          return NextResponse.json({ success: false, error: "Creator profile and relationship memory must exist before verification." }, { status: 409 });
+        }
+      }
+
+      // 1. Update Canonical User Document
       await db.collection("users").updateOne(
         { $or: matchCriteria },
         {
           $set: {
             status: newStatus,
+            // Approval makes onboarding available; only the creator can complete it.
+            onboardingCompleted: false,
             notes: notes || `Admin updated status to ${newStatus}`,
+            verifiedAt: isApprove ? new Date() : null,
             updatedAt: new Date(),
           },
         }
       );
+
+      // 2. Write Audit Log Event
+      await db.collection("admin_audit_logs").insertOne({
+        action: `CREATOR_${newStatus.toUpperCase()}`,
+        creatorId,
+        adminEmail: auth.user?.email || "admin@nexcreator.com",
+        timestamp: new Date(),
+        metadata: { notes, pipelineVersion: "2.0" },
+      });
     } catch (dbErr) {
       console.warn("DB Update notice:", dbErr);
     }
@@ -124,7 +151,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: `Creator status updated to ${newStatus}`,
-      data: { creatorId, status: newStatus, notes },
+      data: { creatorId, status: newStatus, onboardingCompleted: false, notes },
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

@@ -43,6 +43,9 @@ export const DeepResearchModal: React.FC<DeepResearchModalProps> = ({
 
   const [parseError, setParseError] = useState("");
   const [evidenceParseError, setEvidenceParseError] = useState("");
+  const [approvalError, setApprovalError] = useState("");
+  const [verificationReceipt, setVerificationReceipt] = useState<any>(null);
+  const [approving, setApproving] = useState(false);
 
   // Load existing research, evidence & saved audit profile on mount
   useEffect(() => {
@@ -168,10 +171,38 @@ export const DeepResearchModal: React.FC<DeepResearchModalProps> = ({
   };
 
   // Handler: Save & Approve
-  const handleSaveAndApprove = () => {
-    if (!parsedAudit) return;
-    AuditStorage.saveProfile(creator.id, parsedAudit);
-    onApproveWithAudit(creator.id);
+  const handleSaveAndApprove = async () => {
+    if (!parsedAudit || approving) return;
+    setApprovalError("");
+    setVerificationReceipt(null);
+    setApproving(true);
+    try {
+      const response = await fetch(
+        `/api/admin/creators/${encodeURIComponent(creator.id)}/intelligence`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            audit: parsedAudit,
+            researchConfidence: storedEvidence?.researchConfidence?.overall ?? null,
+          }),
+        }
+      );
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        setApprovalError(
+          result.error ||
+            "Verification failed. Creator Intelligence could not be saved. The creator remains PENDING."
+        );
+        return;
+      }
+      setVerificationReceipt(result.verificationReceipt);
+      onApproveWithAudit(creator.id);
+    } catch (err: any) {
+      setApprovalError(err.message || "Network error — Creator Intelligence could not be saved.");
+    } finally {
+      setApproving(false);
+    }
   };
 
   return (
@@ -686,24 +717,58 @@ export const DeepResearchModal: React.FC<DeepResearchModalProps> = ({
               <p style={{ margin: 0, fontSize: "14px", color: "#cbd5e1", maxWidth: "680px", lineHeight: 1.6 }}>
                 Everything needed to begin a long-term coaching relationship has been prepared. The creator will receive a personalized onboarding experience based on this research and every future stream will build upon this foundation.
               </p>
-              <button
-                onClick={handleSaveAndApprove}
-                style={{
-                  marginTop: "8px",
-                  padding: "18px 36px",
-                  borderRadius: "14px",
-                  background: "linear-gradient(90deg, #10b981, #059669)",
-                  color: "#fff",
-                  border: "none",
-                  fontSize: "15px",
-                  fontWeight: "800",
-                  cursor: "pointer",
-                  boxShadow: "0 8px 24px rgba(16,185,129,0.4)",
-                  transition: "all 0.2s ease",
-                }}
-              >
-                🚀 Begin Long-Term Creator Partnership
-              </button>
+
+              {/* Approval Error */}
+              {approvalError && (
+                <div style={{ width: "100%", padding: "16px 20px", borderRadius: "12px", background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.4)", color: "#fca5a5", fontSize: "13px", textAlign: "left", fontFamily: "'JetBrains Mono', monospace" }}>
+                  <div style={{ fontWeight: 800, color: "#f87171", marginBottom: "4px" }}>⚠ Verification Failed</div>
+                  <div>{approvalError}</div>
+                  <div style={{ marginTop: "8px", fontSize: "11px", color: "#94a3b8" }}>Creator status remains PENDING. No changes were committed to MongoDB.</div>
+                </div>
+              )}
+
+              {/* Verification Receipt */}
+              {verificationReceipt && (
+                <div style={{ width: "100%", padding: "20px 24px", borderRadius: "14px", background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.4)", textAlign: "left", display: "flex", flexDirection: "column", gap: "12px" }}>
+                  <div style={{ fontSize: "13px", fontWeight: 800, color: "#34d399" }}>✅ Verification Transaction Complete</div>
+                  <div style={{ fontSize: "12px", color: "#94a3b8", fontFamily: "'JetBrains Mono', monospace" }}>
+                    <div>Creator ID: <span style={{ color: "#c084fc" }}>{verificationReceipt.canonicalCreatorId}</span></div>
+                    <div>Verified by: <span style={{ color: "#f8fafc" }}>{verificationReceipt.verifiedBy}</span></div>
+                    {verificationReceipt.researchConfidence && <div>Research Confidence: <span style={{ color: "#34d399" }}>{verificationReceipt.researchConfidence}%</span></div>}
+                  </div>
+                  <div style={{ fontSize: "11px", color: "#94a3b8" }}>Collections written to MongoDB:</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                    {(verificationReceipt.collectionsWritten || []).map((col: string) => (
+                      <span key={col} style={{ padding: "4px 10px", borderRadius: "6px", background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.3)", color: "#6ee7b7", fontSize: "11px", fontFamily: "'JetBrains Mono', monospace" }}>✓ {col}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!verificationReceipt && (
+                <button
+                  onClick={handleSaveAndApprove}
+                  disabled={approving}
+                  style={{
+                    marginTop: "8px",
+                    padding: "18px 36px",
+                    borderRadius: "14px",
+                    background: approving
+                      ? "rgba(255,255,255,0.08)"
+                      : "linear-gradient(90deg, #10b981, #059669)",
+                    color: "#fff",
+                    border: "none",
+                    fontSize: "15px",
+                    fontWeight: "800",
+                    cursor: approving ? "not-allowed" : "pointer",
+                    boxShadow: approving ? "none" : "0 8px 24px rgba(16,185,129,0.4)",
+                    transition: "all 0.2s ease",
+                    opacity: approving ? 0.6 : 1,
+                  }}
+                >
+                  {approving ? "⏳ Committing Transaction…" : "🚀 Begin Long-Term Creator Partnership"}
+                </button>
+              )}
             </div>
 
           </div>

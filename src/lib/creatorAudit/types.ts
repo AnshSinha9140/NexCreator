@@ -1,5 +1,6 @@
 /**
  * Sprint 20.0 — Creator Intelligence Audit & Relationship Foundation Types
+ * Sprint 20.6 — Extended with CreatorHistoryEvent, OnboardingState, HydrationDiagnostics
  * Schema for CreatorManagerProfile, Master Audit Prompts, and Executive Letter.
  * Zero AI API costs. Human-in-the-loop admin workflow.
  */
@@ -105,4 +106,77 @@ export interface CreatorManagerProfile {
   onboardingCompletedAt?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+// ============================================================
+// Sprint 20.6 — New Collection Types
+// All documents use creatorId = users._id.toString()
+// ============================================================
+
+/**
+ * creator_history collection
+ * Immutable append-only audit log of key creator lifecycle events.
+ */
+export interface CreatorHistoryEvent {
+  _id?: string;
+  creatorId: string;          // users._id.toString() — ALWAYS
+  eventType: string;          // e.g. "Creator Verified", "Onboarding Completed"
+  timestamp: string;          // ISO 8601
+  verifiedBy?: string | null;        // admin email for verification events
+  researchConfidence?: number | null; // 0-100 from Evidence JSON
+  auditVersion?: string;      // e.g. "20.6"
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * onboarding_state collection
+ * Tracks the creator onboarding flow state independently of creator_profile.
+ * Source of truth for whether creator has seen the onboarding experience.
+ */
+export interface OnboardingState {
+  _id?: string;
+  creatorId: string;          // users._id.toString() — ALWAYS
+  completed: boolean;
+  currentStep: number;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * relationship_memory collection (full shape)
+ * Initialized at verification, grown over time by the AI manager.
+ */
+export interface RelationshipMemory {
+  _id?: string;
+  creatorId: string;          // users._id.toString() — ALWAYS
+  firstConversationDate: string;
+  growthJournal: string[];
+  milestones: Array<{ title: string; date: string; notes?: string }>;
+  creatorHabits: string[];
+  recurringStrengths: string[];
+  recurringWeaknesses: string[];
+  managerNotes: string[];
+  adviceHistory: Array<{ advice: string; givenAt: string; context?: string }>;
+  storyTimeline: Array<{ event: string; timestamp: string }>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Hydration diagnostics — returned when dashboard hydration is incomplete.
+ * Used by GET /api/creator/hydration and GET /api/debug/verification/:creatorId
+ */
+export interface HydrationDiagnostics {
+  hydrationReady: boolean;
+  missingCollections: string[];
+  creatorId: string;
+  userStatus: string | null;
+  collectionsFound: {
+    creator_profile: boolean;
+    relationship_memory: boolean;
+    creator_history: boolean;
+    onboarding_state: boolean;
+  };
+  diagnosticMessage: string;
 }

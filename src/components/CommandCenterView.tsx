@@ -4,9 +4,11 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { ConnectedPlatformAccount, MonitoringSession } from "@/types";
+import { CreatorManagerProfile } from "@/lib/creatorAudit/types";
 
-export const CommandCenterView: React.FC<{ setActiveTab: (tab: string) => void }> = ({
+export const CommandCenterView: React.FC<{ setActiveTab: (tab: string) => void; profile?: CreatorManagerProfile | null }> = ({
   setActiveTab,
+  profile,
 }) => {
   const { currentUser } = useApp();
 
@@ -24,7 +26,8 @@ export const CommandCenterView: React.FC<{ setActiveTab: (tab: string) => void }
     return "Good Evening";
   };
 
-  const displayName = currentUser?.email?.split("@")[0] || "Creator";
+  const displayName = profile?.audit.creatorName || currentUser?.name || currentUser?.email?.split("@")[0] || "Creator";
+  const managerNote = profile?.audit.managerImpression?.firstImpression || "Your Creator Intelligence profile is still being prepared.";
 
   // Fetch Connected Platforms & Monitoring Sessions
   useEffect(() => {
@@ -152,7 +155,7 @@ export const CommandCenterView: React.FC<{ setActiveTab: (tab: string) => void }
           </span>
         </div>
         <div style={{ fontSize: "14px", color: "#f8fafc", lineHeight: "1.6", fontWeight: "600" }}>
-          "Morning. I've been reviewing your recent broadcast energy and audience retention windows. Your unscripted commentary and direct viewer interactions are officially your strongest asset — let's make sure we build structured Q&A pauses into today's broadcast to maximize short-form clip generation."
+          {managerNote}
         </div>
       </div>
 
