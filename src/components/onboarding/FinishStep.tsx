@@ -16,11 +16,11 @@ export const FinishStep: React.FC = () => {
       style={{ display: "flex", flexDirection: "column", gap: "24px", fontFamily: "'Inter', sans-serif" }}
     >
       <div>
-        <h3 style={{ fontSize: "22px", fontWeight: "800", color: "#f8fafc", marginBottom: "6px" }}>
-          Ready to Work Together, {profile.displayName || "Creator"}!
+        <h3 style={{ fontSize: "24px", fontWeight: "800", color: "#f8fafc", marginBottom: "8px" }}>
+          I'm ready, {profile.displayName || "Creator"}.
         </h3>
-        <p style={{ fontSize: "14px", color: "#94a3b8" }}>
-          Here is what you can expect from me as your AI Creator Manager:
+        <p style={{ fontSize: "15px", color: "#cbd5e1", lineHeight: "1.6" }}>
+          I know enough about your content, your goals, and your audience to begin helping you improve. We'll continue learning together after every stream.
         </p>
       </div>
 
