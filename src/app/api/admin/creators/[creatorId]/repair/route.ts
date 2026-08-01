@@ -145,13 +145,17 @@ export async function POST(
     // creator_knowledge_graph — build if missing and onboarding is complete
     const existingKnowledgeGraph = await db.collection("creator_knowledge_graph").findOne({ creatorId: canonicalCreatorId });
     const onboardingDone = existingOnboarding?.completed || existingProfile?.onboardingCompleted;
+    
+    // Extract actual alignment answers if available
+    const alignmentAnswers = existingOnboarding?.alignmentAnswers || existingProfile?.alignmentSession?.answers || {
+      hypothesesAnswers: {},
+      reflectionAnswers: {},
+      challengeAnswers: {},
+    };
+
     if (existingProfile && onboardingDone && !existingKnowledgeGraph) {
       const { buildInitialKnowledgeGraph } = require("@/lib/creatorKnowledge/knowledgeBuilder");
-      const fullKnowledgeGraph = buildInitialKnowledgeGraph(canonicalCreatorId, existingProfile.audit, {
-        hypothesesAnswers: {},
-        reflectionAnswers: {},
-        challengeAnswers: {},
-      });
+      const fullKnowledgeGraph = buildInitialKnowledgeGraph(canonicalCreatorId, existingProfile.audit, alignmentAnswers);
       await db.collection("creator_knowledge_graph").updateOne(
         { creatorId: canonicalCreatorId },
         { $set: fullKnowledgeGraph },
@@ -166,11 +170,7 @@ export async function POST(
     const existingMission = await db.collection("creator_mission").findOne({ creatorId: canonicalCreatorId });
     if (existingProfile && onboardingDone && !existingMission) {
       const { buildInitialCreatorMission } = require("@/lib/creatorMission/missionBuilder");
-      const fullMission = buildInitialCreatorMission(canonicalCreatorId, existingProfile.audit, {
-        hypothesesAnswers: {},
-        reflectionAnswers: {},
-        challengeAnswers: {},
-      });
+      const fullMission = buildInitialCreatorMission(canonicalCreatorId, existingProfile.audit, alignmentAnswers);
       await db.collection("creator_mission").updateOne(
         { creatorId: canonicalCreatorId },
         { $set: fullMission },

@@ -183,14 +183,40 @@ export async function approveCreatorPartnership(
       );
 
       // ---------------------------------------------------------------
-      // Durability verification — read back all 4 intelligence documents
+      // Write 6: Upsert creator_knowledge_graph (Sprint 21.2.1)
+      // ---------------------------------------------------------------
+      const initialKnowledgeGraph = buildInitialKnowledgeGraph(canonicalCreatorId, audit, {});
+      await db.collection("creator_knowledge_graph").updateOne(
+        { creatorId: canonicalCreatorId },
+        {
+          $set: initialKnowledgeGraph,
+        },
+        { upsert: true, session }
+      );
+
+      // ---------------------------------------------------------------
+      // Write 7: Upsert creator_mission (Sprint 21.2.1)
+      // ---------------------------------------------------------------
+      const initialMission = buildInitialCreatorMission(canonicalCreatorId, audit, {});
+      await db.collection("creator_mission").updateOne(
+        { creatorId: canonicalCreatorId },
+        {
+          $set: initialMission,
+        },
+        { upsert: true, session }
+      );
+
+      // ---------------------------------------------------------------
+      // Durability verification — read back all 6 intelligence documents
       // If any are missing, throw to abort the transaction
       // ---------------------------------------------------------------
-      const [savedProfile, savedMemory, savedHistory, savedOnboarding] = await Promise.all([
+      const [savedProfile, savedMemory, savedHistory, savedOnboarding, savedGraph, savedMission] = await Promise.all([
         db.collection("creator_profile").findOne({ creatorId: canonicalCreatorId }, { session }),
         db.collection("relationship_memory").findOne({ creatorId: canonicalCreatorId }, { session }),
         db.collection("creator_history").findOne({ creatorId: canonicalCreatorId }, { session }),
         db.collection("onboarding_state").findOne({ creatorId: canonicalCreatorId }, { session }),
+        db.collection("creator_knowledge_graph").findOne({ creatorId: canonicalCreatorId }, { session }),
+        db.collection("creator_mission").findOne({ creatorId: canonicalCreatorId }, { session }),
       ]);
 
       const missing: string[] = [];
@@ -198,12 +224,23 @@ export async function approveCreatorPartnership(
       if (!savedMemory) missing.push("relationship_memory");
       if (!savedHistory) missing.push("creator_history");
       if (!savedOnboarding) missing.push("onboarding_state");
+      if (!savedGraph) missing.push("creator_knowledge_graph");
+      if (!savedMission) missing.push("creator_mission");
 
       if (missing.length > 0) {
+        console.error("[Creator Persistence Error] Missing documents:", missing);
         throw new Error(
           `Transaction abort: durability check failed. Missing after write: ${missing.join(", ")}.`
         );
       }
+
+      console.log(`[Creator Persistence]
+Creator ID: ${canonicalCreatorId}
+Knowledge Graph Built: YES
+Mission Built: YES
+Knowledge Saved: YES
+Mission Saved: YES
+Transaction Commit: YES`);
     });
   } finally {
     await session.endSession();
