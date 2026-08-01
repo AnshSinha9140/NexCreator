@@ -141,14 +141,14 @@ export async function approveCreatorPartnership(
         throw new Error("Transaction abort: users.updateOne matched 0 documents.");
       }
 
-      // ---------------------------------------------------------------
-      // Write 2: Upsert creator_profile
-      // ---------------------------------------------------------------
+      // Destructure profile to separate createdAt so we don't try to both $set and $setOnInsert it
+      const { createdAt: profileCreatedAt, ...profileRest } = profile;
+
       await db.collection("creator_profile").updateOne(
         { creatorId: canonicalCreatorId },
         {
-          $set: { ...profile, updatedAt: now },
-          $setOnInsert: { createdAt: now },
+          $set: { ...profileRest, updatedAt: now.toISOString() },
+          $setOnInsert: { createdAt: profileCreatedAt || now.toISOString() },
         },
         { upsert: true, session }
       );
