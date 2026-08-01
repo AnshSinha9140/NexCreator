@@ -80,6 +80,23 @@ export interface CreatorMission {
   successDefinition: string;
 }
 
+export type DeepResearchPipelineStage =
+  | "research_prompt"
+  | "research_imported"
+  | "audit_prompt"
+  | "audit_parsed"
+  | "approved";
+
+export interface CreatorResearchDocument {
+  creatorId: string;
+  creatorName: string;
+  importedAt: string;
+  rawMarkdown: string;
+  evidenceSourcesCount: number;
+  confidenceScore: number; // e.g. 85%
+  missingSections: string[];
+}
+
 export interface CreatorManagerProfile {
   creatorId: string;
   audit: CreatorIntelligenceAudit;

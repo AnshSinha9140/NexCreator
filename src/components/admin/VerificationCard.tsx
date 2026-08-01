@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import HealthBadge from "./HealthBadge";
-import { AuditModal } from "./AuditModal";
+import { DeepResearchModal } from "./DeepResearchModal";
 
 export interface CreatorVerificationItem {
   id: string;
@@ -143,7 +143,7 @@ export default function VerificationCard({ creator, onAction }: VerificationCard
             className="admin-filter-btn"
             style={{ color: "#c084fc", borderColor: "rgba(168,85,247,0.4)", background: "rgba(168,85,247,0.15)", fontWeight: 700 }}
           >
-            🧠 Intelligence Audit
+            🔬 Deep Research Pipeline
           </button>
           <button
             disabled={loading}
@@ -180,12 +180,12 @@ export default function VerificationCard({ creator, onAction }: VerificationCard
       </div>
 
       {showAuditModal && (
-        <AuditModal
+        <DeepResearchModal
           creator={creator}
           onClose={() => setShowAuditModal(false)}
           onApproveWithAudit={(creatorId) => {
             setShowAuditModal(false);
-            onAction(creatorId, "approve", "Approved with Creator Intelligence Audit");
+            onAction(creatorId, "approve", "Approved via Creator Deep Research Pipeline");
           }}
         />
       )}

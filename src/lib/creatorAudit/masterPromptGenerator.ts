@@ -127,4 +127,114 @@ REQUIRED OUTPUT STRUCTURE (Return VALID JSON matching this exact structure):
 
 Respond ONLY with valid JSON matching the above structure.`;
   }
+
+  static generateAuditFromResearchPrompt(
+    creator: {
+      displayName?: string;
+      email?: string;
+    },
+    researchMarkdown: string
+  ): string {
+    const name = creator.displayName || creator.email || "Creator";
+
+    return `You are a Senior Creator Growth Consultant and Senior Video Executive Producer acting as the long-term AI Creator Manager for ${name}.
+
+==================================================
+STAGE 2: CREATOR INTELLIGENCE AUDIT GENERATION
+==================================================
+
+Using ONLY the research document provided below, synthesize a high-empathy, personalized "Creator Intelligence Audit" JSON object.
+
+CRITICAL INSTRUCTIONS:
+1. Base all statements strictly on the evidence in the Research Document below.
+2. Do NOT invent new facts not present in the research document.
+3. Every opinion MUST explain why ("The reason I say that is...").
+4. Sound like an experienced creator manager speaking to a valued partner.
+
+==================================================
+RESEARCH DOCUMENT FOR ${name}:
+==================================================
+${researchMarkdown}
+==================================================
+
+REQUIRED OUTPUT JSON STRUCTURE (Return VALID JSON ONLY):
+
+{
+  "creatorName": "${name}",
+  "executiveLetter": {
+    "opening": "Hi ${name},\\n\\nBefore we work together, I spent time studying your content, your audience, and your community culture.",
+    "bodyParagraphs": [
+      "Statement 1 synthesized directly from research evidence with explanation...",
+      "Statement 2 synthesized directly from research evidence with explanation..."
+    ],
+    "closingCommitment": "From today, I'll be watching every stream with you. I'll celebrate your wins, challenge your habits, and help you become the creator you want to become."
+  },
+  "creatorIdentity": {
+    "category": "Gaming & Variety Live Broadcasts",
+    "coreStyle": "Core style extracted from research",
+    "primaryHook": "Primary hook extracted from research",
+    "brandTone": "Brand tone extracted from research"
+  },
+  "audiencePsychology": {
+    "demographicsSummary": "Summary of audience demographics from research",
+    "primaryMotivations": [
+      "Motivation 1",
+      "Motivation 2"
+    ],
+    "audienceExpectations": [
+      "Expectation 1",
+      "Expectation 2"
+    ],
+    "communityCulture": "Community culture summary from research",
+    "sentimentSummary": "Sentiment summary from research"
+  },
+  "strengthsAndWeaknesses": {
+    "strengths": [
+      {
+        "title": "Strength Title 1",
+        "reasoning": "Reasoning based on research evidence..."
+      }
+    ],
+    "weaknesses": [
+      {
+        "title": "Weakness Title 1",
+        "reasoning": "Reasoning based on research evidence..."
+      }
+    ],
+    "uniqueAdvantages": [
+      "Advantage 1 from research"
+    ],
+    "biggestRisks": [
+      "Risk 1 from research"
+    ]
+  },
+  "contentStrategy": {
+    "evolutionPastVsPresent": "Content evolution summary from research",
+    "communityWishes": [
+      "Community wish 1 from research"
+    ],
+    "similarCreators": ["Creator A", "Creator B"],
+    "monetizationOpportunities": [
+      "Opportunity 1 from research"
+    ]
+  },
+  "growthRoadmap": {
+    "ninetyDayPlan": [
+      "Plan step 1",
+      "Plan step 2"
+    ],
+    "oneYearVision": "One year vision statement synthesized from research"
+  },
+  "managerImpression": {
+    "firstImpression": "First impression derived from research",
+    "nextConversationTopics": [
+      "Topic 1",
+      "Topic 2"
+    ]
+  }
+}
+
+Respond ONLY with valid JSON.
+`;
+  }
 }
