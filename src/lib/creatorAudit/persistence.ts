@@ -300,7 +300,7 @@ export async function completeCreatorOnboarding(canonicalCreatorId: string): Pro
     ),
     db.collection("creator_profile").updateOne(
       { creatorId: canonicalCreatorId },
-      { $set: { onboardingCompleted: true, onboardingCompletedAt: now.toISOString(), updatedAt: now } }
+      { $set: { onboardingCompleted: true, onboardingCompletedAt: now.toISOString(), updatedAt: now.toISOString() } }
     ),
     db.collection("users").updateOne(
       { _id: new ObjectId(canonicalCreatorId) },
@@ -312,6 +312,184 @@ export async function completeCreatorOnboarding(canonicalCreatorId: string): Pro
       timestamp: now.toISOString(),
       auditVersion: "20.6",
       metadata: {},
+    }),
+  ]);
+}
+
+/**
+ * Sprint 21.0 — Save step-by-step progress of the Creator Alignment Session
+ */
+export async function saveCreatorAlignmentState(
+  canonicalCreatorId: string,
+  currentStep: number,
+  answers: any
+): Promise<void> {
+  const { db } = await connectToDatabase();
+  const now = new Date().toISOString();
+
+  await Promise.all([
+    // Persist to onboarding_state for resuming later
+    db.collection("onboarding_state").updateOne(
+      { creatorId: canonicalCreatorId },
+      {
+        $set: {
+          currentStep,
+          alignmentAnswers: answers,
+          updatedAt: now,
+        },
+      },
+      { upsert: true }
+    ),
+    // Also save in creator_profile for persistence / durability
+    db.collection("creator_profile").updateOne(
+      { creatorId: canonicalCreatorId },
+      {
+        $set: {
+          alignmentSession: {
+            currentStep,
+            answers,
+            updatedAt: now,
+            version: "21.0",
+          },
+          updatedAt: now,
+        },
+      },
+      { upsert: true }
+    ),
+  ]);
+}
+
+/**
+ * Sprint 21.0 — Merge Deep Research + Creator Answers into the permanent Knowledge Graph
+ */
+export async function mergeCreatorAlignment(
+  canonicalCreatorId: string,
+  answers: any
+): Promise<void> {
+  const { db } = await connectToDatabase();
+  const now = new Date();
+  const nowStr = now.toISOString();
+
+  // 1. Fetch current profile & memory to perform a merge
+  const [profile, memory] = await Promise.all([
+    db.collection("creator_profile").findOne({ creatorId: canonicalCreatorId }),
+    db.collection("relationship_memory").findOne({ creatorId: canonicalCreatorId }),
+  ]);
+
+  const audit = profile?.audit;
+  
+  // Build Audience Beliefs & Creator Values & Blind Spots from hypotheses answers and reflection questions
+  const creatorValues: string[] = [];
+  if (answers.reflectionAnswers?.["5"]?.toLowerCase().includes("yes")) {
+    creatorValues.push("Content-first / Pure Creation");
+  } else {
+    creatorValues.push("Community / Audience-first");
+  }
+  if (answers.reflectionAnswers?.["8"]?.toLowerCase().includes("community") || answers.reflectionAnswers?.["6"]?.toLowerCase().includes("community")) {
+    creatorValues.push("Community");
+  }
+
+  // Extract strengths and weaknesses from audit
+  const strengths = audit?.strengthsAndWeaknesses?.strengths?.map((s: any) => s.title) ?? [];
+  const weaknesses = audit?.strengthsAndWeaknesses?.weaknesses?.map((w: any) => w.title) ?? [];
+
+  // Create Knowledge Graph merge document
+  const knowledgeGraph = {
+    mergedAt: nowStr,
+    version: "1.0",
+    creatorBeliefs: {
+      successDefinition: answers.reflectionAnswers?.["1"] || "Creating high-impact stories",
+      proudestMoment: answers.reflectionAnswers?.["0"] || "Recent growth",
+      viewersCoreAttraction: answers.reflectionAnswers?.["5"] || "Personality & Connection",
+      hurtingCriticism: answers.reflectionAnswers?.["6"] || "Inconsistency",
+      afraidOfLosing: answers.reflectionAnswers?.["3"] || "Personal connection with community",
+    },
+    coachingPriorities: [
+      { priority: "Align content to core styles", confidence: 90 },
+      { priority: "Address weak points identified in audit", confidence: 80 },
+    ],
+    audienceBeliefs: {
+      primaryAttraction: answers.hypothesesAnswers?.["0"] === "Very Accurate" || answers.hypothesesAnswers?.["0"] === "Mostly"
+        ? "Personality and raw human connection"
+        : "Gameplay / skills",
+      communityExpectation: audit?.audiencePsychology?.communityCulture || "High interactivity",
+    },
+    blindSpots: [
+      answers.hypothesesAnswers?.["2"] === "Very Accurate" || answers.hypothesesAnswers?.["2"] === "Mostly"
+        ? "Becoming a supporting character rather than the main attraction"
+        : "Over-reliance on technical performance over presentation",
+    ],
+    confidenceScores: {
+      overallAlignment: 95,
+      researchMatchRate: answers.hypothesesAnswers?.["0"] === "Very Accurate" ? 100 : 75,
+    },
+    futureQuestions: [
+      "How is the audience responding to the main-character presentation focus?",
+      "Are we maintaining the proudest quality standard in current streams?",
+    ]
+  };
+
+  // 2. Perform the update across collections
+  await Promise.all([
+    // Update users: onboarding completed
+    db.collection("users").updateOne(
+      { _id: new ObjectId(canonicalCreatorId) },
+      { $set: { onboardingCompleted: true, status: "verified", updatedAt: now } }
+    ),
+    // Update onboarding_state: completed
+    db.collection("onboarding_state").updateOne(
+      { creatorId: canonicalCreatorId },
+      {
+        $set: {
+          completed: true,
+          completedAt: nowStr,
+          currentStep: 7, // final step
+          updatedAt: nowStr,
+        },
+      }
+    ),
+    // Update creator_profile: save the merged knowledgeGraph & mark onboardingCompleted
+    db.collection("creator_profile").updateOne(
+      { creatorId: canonicalCreatorId },
+      {
+        $set: {
+          knowledgeGraph,
+          onboardingCompleted: true,
+          onboardingCompletedAt: nowStr,
+          updatedAt: nowStr,
+        },
+      }
+    ),
+    // Update relationship_memory: record the first conversation/alignment session completed
+    db.collection("relationship_memory").updateOne(
+      { creatorId: canonicalCreatorId },
+      {
+        $set: {
+          updatedAt: now,
+        },
+        $push: {
+          growthJournal: `Creator completed the first 1-on-1 Alignment Session. Merged audit observations with creator beliefs. Overall Alignment Score: ${knowledgeGraph.confidenceScores.overallAlignment}%.`,
+          storyTimeline: {
+            event: "Alignment Session Completed",
+            timestamp: nowStr,
+          } as any,
+          adviceHistory: {
+            advice: "Maintain focus on the proudest moments and watch for the identified blind spots.",
+            givenAt: nowStr,
+            context: "Initial Alignment",
+          } as any,
+        },
+      } as any
+    ),
+    // Add event to creator_history
+    db.collection("creator_history").insertOne({
+      creatorId: canonicalCreatorId,
+      eventType: "Creator Alignment Completed",
+      timestamp: nowStr,
+      auditVersion: "21.0",
+      metadata: {
+        alignmentScore: knowledgeGraph.confidenceScores.overallAlignment,
+      },
     }),
   ]);
 }
