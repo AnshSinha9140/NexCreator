@@ -208,7 +208,7 @@ export class ConversationComposer {
         priority: "MAJOR_OPPORTUNITY",
         messageType: "Praise",
         headline: topOpp.dynamicTitle || topOpp.title || "Strong Short-Form Clip Moment",
-        statement: `You had a standout moment in the recent window. ${topOpp.reason} I'd mark this segment for short-form editing.`,
+        statement: `I think we've just captured today's strongest Short: "${topOpp.dynamicTitle || topOpp.title}". I'd definitely save this one for quick publishing.`,
         reasoning: topOpp.reason,
         actions: topOpp.recommendedNextStep || topOpp.recommendedAction,
         expectedOutcome: "High potential for virality on TikTok or Shorts.",

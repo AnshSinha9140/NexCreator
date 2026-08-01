@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifySessionToken } from "@/lib/session";
 import clientPromise from "@/lib/mongodb";
+import { EditorialHighlightComposer } from "@/lib/highlights/editorialStudio";
+import { HighlightCandidate } from "@/lib/highlights/generator";
 
 async function getAuthUser() {
   const cookieStore = await cookies();
@@ -10,7 +12,7 @@ async function getAuthUser() {
   return await verifySessionToken(token);
 }
 
-// GET /api/highlights?sessionId=XYZ (Fetch production highlight candidates)
+// GET /api/highlights?sessionId=XYZ (Fetch production highlight candidates and compose Editorial Highlights)
 export async function GET(request: Request) {
   try {
     const authUser = await getAuthUser();
@@ -28,20 +30,26 @@ export async function GET(request: Request) {
     const client = await clientPromise;
     const db = client.db("nexcreator");
 
-    const highlights = await db
+    const rawCandidates = (await db
       .collection("highlight_candidates")
       .find({ sessionId })
       .sort({ createdAt: -1 })
-      .limit(30)
-      .toArray();
+      .limit(50)
+      .toArray()) as unknown as HighlightCandidate[];
+
+    // Compose Editorial Studio Highlights & Senior Editor's Report
+    const { highlights: editorialHighlights, report: editorsReport } = EditorialHighlightComposer.composeFromCandidates(rawCandidates);
 
     return NextResponse.json({
       success: true,
       sessionId,
-      highlights,
+      highlights: rawCandidates,
+      editorialHighlights,
+      editorsReport,
     });
   } catch (error: any) {
     console.error("[API] GET /api/highlights error:", error);
     return NextResponse.json({ error: error.message || "Failed to fetch highlights" }, { status: 500 });
   }
 }
+
