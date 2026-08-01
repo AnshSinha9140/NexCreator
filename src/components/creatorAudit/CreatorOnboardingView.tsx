@@ -15,7 +15,7 @@ export const CreatorOnboardingView: React.FC<CreatorOnboardingViewProps> = ({
   creatorId,
   onComplete,
 }) => {
-  const [activeTab, setActiveTab] = useState<"letter" | "identity" | "psychology" | "roadmap">("letter");
+  const [activeTab, setActiveTab] = useState<"letter" | "promise" | "identity" | "psychology" | "roadmap">("letter");
 
   const handleBegin = () => {
     AuditStorage.markOnboardingCompleted(creatorId);
@@ -63,10 +63,11 @@ export const CreatorOnboardingView: React.FC<CreatorOnboardingViewProps> = ({
       </div>
 
       {/* Navigation Tabs */}
-      <div style={{ display: "flex", gap: "8px", background: "rgba(13,16,27,0.8)", padding: "6px", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.08)" }}>
+      <div style={{ display: "flex", gap: "8px", background: "rgba(13,16,27,0.8)", padding: "6px", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.08)", flexWrap: "wrap" }}>
         {[
           { id: "letter", label: "✉️ Executive Letter" },
-          { id: "identity", label: "👤 Creator Identity & Tone" },
+          { id: "promise", label: "🤝 Manager Promise" },
+          { id: "identity", label: "👤 Identity & Tone" },
           { id: "psychology", label: "🧠 Audience Psychology" },
           { id: "roadmap", label: "🚀 90-Day Roadmap" },
         ].map((tab) => (
@@ -75,6 +76,7 @@ export const CreatorOnboardingView: React.FC<CreatorOnboardingViewProps> = ({
             onClick={() => setActiveTab(tab.id as any)}
             style={{
               flex: 1,
+              minWidth: "120px",
               padding: "10px",
               borderRadius: "10px",
               border: activeTab === tab.id ? "1px solid rgba(168,85,247,0.4)" : "none",
@@ -103,6 +105,30 @@ export const CreatorOnboardingView: React.FC<CreatorOnboardingViewProps> = ({
           </div>
           <div style={{ padding: "16px", borderRadius: "12px", background: "rgba(59, 130, 246, 0.1)", borderLeft: "4px solid #3b82f6", fontSize: "14px", color: "#93c5fd", fontStyle: "italic" }}>
             "{audit.executiveLetter.closingCommitment}"
+          </div>
+        </div>
+      )}
+      {activeTab === "promise" && (
+        <div style={{ padding: "32px", borderRadius: "20px", background: "rgba(13,16,27,0.9)", border: "1px solid rgba(168,85,247,0.3)", display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div style={{ fontSize: "18px", fontWeight: "800", color: "#c084fc", display: "flex", alignItems: "center", gap: "8px" }}>
+            <span>🤝</span> My Promise To You
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "14px", color: "#e2e8f0" }}>
+            <div style={{ padding: "10px 14px", borderRadius: "8px", background: "rgba(255,255,255,0.03)", borderLeft: "3px solid #f87171" }}>
+              • I won't always tell you what you want to hear — I'll tell you what I genuinely believe will help you grow.
+            </div>
+            <div style={{ padding: "10px 14px", borderRadius: "8px", background: "rgba(255,255,255,0.03)", borderLeft: "3px solid #4ade80" }}>
+              • If you're improving, I'll celebrate it. If I think you're making a mistake, I'll explain why.
+            </div>
+            <div style={{ padding: "10px 14px", borderRadius: "8px", background: "rgba(255,255,255,0.03)", borderLeft: "3px solid #38bdf8" }}>
+              • I'll admit when I'm uncertain.
+            </div>
+            <div style={{ padding: "10px 14px", borderRadius: "8px", background: "rgba(255,255,255,0.03)", borderLeft: "3px solid #facc15" }}>
+              • My goal isn't to make you feel good — my goal is to help you become the creator you want to become.
+            </div>
+          </div>
+          <div style={{ marginTop: "12px", fontSize: "13px", color: "#94a3b8", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "12px" }}>
+            <strong>What I'll remember:</strong> your personal goals, your unique audience culture, your key strengths, and your progress across every broadcast.
           </div>
         </div>
       )}

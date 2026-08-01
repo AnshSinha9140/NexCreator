@@ -129,7 +129,30 @@ export const CommandCenterView: React.FC<{ setActiveTab: (tab: string) => void }
           }}
         >
           <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#10b981" }} />
-          Creator OS Active
+          AI Manager Online
+        </div>
+      </div>
+
+      {/* ─── TODAY'S MANAGER NOTE (Sprint 20.1 Part 12) ───────────────────────── */}
+      <div
+        style={{
+          padding: "20px 24px",
+          borderRadius: "16px",
+          background: "linear-gradient(135deg, rgba(147, 51, 234, 0.12), rgba(59, 130, 246, 0.12))",
+          border: "1px solid rgba(147, 51, 234, 0.3)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ fontSize: "16px" }}>📝</span>
+          <span style={{ fontSize: "11px", fontWeight: "800", color: "#c084fc", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            Today's Manager Note
+          </span>
+        </div>
+        <div style={{ fontSize: "14px", color: "#f8fafc", lineHeight: "1.6", fontWeight: "600" }}>
+          "Morning. I've been reviewing your recent broadcast energy and audience retention windows. Your unscripted commentary and direct viewer interactions are officially your strongest asset — let's make sure we build structured Q&A pauses into today's broadcast to maximize short-form clip generation."
         </div>
       </div>
 

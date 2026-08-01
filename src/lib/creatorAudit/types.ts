@@ -64,9 +64,26 @@ export interface CreatorIntelligenceAudit {
   managerImpression: ManagerImpression;
 }
 
+export type CreatorValue =
+  | "Community"
+  | "Entertainment"
+  | "Competition"
+  | "Education"
+  | "Creativity"
+  | "Business"
+  | "Family Friendly";
+
+export interface CreatorMission {
+  primaryGoal: string; // e.g. "I want streaming to become my career"
+  personalVision: string;
+  values: CreatorValue[];
+  successDefinition: string;
+}
+
 export interface CreatorManagerProfile {
   creatorId: string;
   audit: CreatorIntelligenceAudit;
+  mission?: CreatorMission;
   onboardingCompleted: boolean;
   onboardingCompletedAt?: string;
   createdAt: string;

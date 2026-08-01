@@ -56,6 +56,26 @@ export const CompletedCreatorIntelligence: React.FC<CompletedCreatorIntelligence
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px", fontFamily: "'Inter', sans-serif" }}>
       <ExecutiveBriefingCard review={review} />
+
+      {/* Single Focus Before Next Stream (Sprint 20.1 Part 13) */}
+      <div
+        style={{
+          padding: "20px",
+          borderRadius: "16px",
+          background: "linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(239, 68, 68, 0.12))",
+          border: "1px solid rgba(245, 158, 11, 0.3)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+        }}
+      >
+        <div style={{ fontSize: "11px", fontWeight: "800", color: "#fcd34d", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+          🎯 Single Focus Before Your Next Stream
+        </div>
+        <div style={{ fontSize: "14px", fontWeight: "700", color: "#f8fafc" }}>
+          "{review.oneThingToImprove}"
+        </div>
+      </div>
     </div>
   );
 };
