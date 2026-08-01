@@ -263,6 +263,7 @@ export async function getCreatorHydration(creatorId: string): Promise<{
   onboardingState: Record<string, unknown> | null;
   knowledgeGraph: Record<string, unknown> | null;
   creatorMission: Record<string, unknown> | null;
+  completedSessionsCount: number;
   canonicalCreatorId: string | null;
   diagnostics: HydrationDiagnostics;
 }> {
@@ -282,16 +283,17 @@ export async function getCreatorHydration(creatorId: string): Promise<{
       },
       diagnosticMessage: "Creator not found in users collection.",
     };
-    return { creator: null, profile: null, relationshipMemory: null, creatorHistory: null, onboardingState: null, knowledgeGraph: null, creatorMission: null, canonicalCreatorId: null, diagnostics };
+    return { creator: null, profile: null, relationshipMemory: null, creatorHistory: null, onboardingState: null, knowledgeGraph: null, creatorMission: null, completedSessionsCount: 0, canonicalCreatorId: null, diagnostics };
   }
 
-  const [profile, relationshipMemory, creatorHistory, onboardingState, knowledgeGraph, creatorMission] = await Promise.all([
+  const [profile, relationshipMemory, creatorHistory, onboardingState, knowledgeGraph, creatorMission, completedSessionsCount] = await Promise.all([
     db.collection("creator_profile").findOne({ creatorId: canonicalCreatorId }),
     db.collection("relationship_memory").findOne({ creatorId: canonicalCreatorId }),
     db.collection("creator_history").find({ creatorId: canonicalCreatorId }).sort({ timestamp: -1 }).toArray(),
     db.collection("onboarding_state").findOne({ creatorId: canonicalCreatorId }),
     db.collection("creator_knowledge_graph").findOne({ creatorId: canonicalCreatorId }),
     db.collection("creator_mission").findOne({ creatorId: canonicalCreatorId }),
+    db.collection("completed_session_bundle").countDocuments({ creatorId: canonicalCreatorId }),
   ]);
 
   const missing: string[] = [];
@@ -332,6 +334,7 @@ export async function getCreatorHydration(creatorId: string): Promise<{
     onboardingState: onboardingState as Record<string, unknown> | null,
     knowledgeGraph: knowledgeGraph as Record<string, unknown> | null,
     creatorMission: creatorMission as Record<string, unknown> | null,
+    completedSessionsCount,
     canonicalCreatorId,
     diagnostics,
   };

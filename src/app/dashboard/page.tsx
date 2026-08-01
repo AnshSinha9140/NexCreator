@@ -25,6 +25,7 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<CreatorManagerProfile | null>(null);
   const [knowledgeGraph, setKnowledgeGraph] = useState<any>(null);
   const [creatorMission, setCreatorMission] = useState<any>(null);
+  const [completedSessionsCount, setCompletedSessionsCount] = useState<number>(0);
   const [hydrationError, setHydrationError] = useState(false);
   const [hydrationDiagnostics, setHydrationDiagnostics] = useState<any>(null);
 
@@ -42,6 +43,7 @@ export default function DashboardPage() {
         setProfile(data.profile || null);
         setKnowledgeGraph(data.knowledgeGraph || null);
         setCreatorMission(data.creatorMission || null);
+        setCompletedSessionsCount(data.completedSessionsCount ?? 0);
         if (typeof window !== "undefined") {
           (window as any).__creatorMission = data.creatorMission || null;
         }
@@ -73,6 +75,7 @@ export default function DashboardPage() {
                   setProfile(data.profile);
                   setKnowledgeGraph(data.knowledgeGraph);
                   setCreatorMission(data.creatorMission);
+                  setCompletedSessionsCount(data.completedSessionsCount ?? 0);
                   if (typeof window !== "undefined") {
                     (window as any).__creatorMission = data.creatorMission || null;
                   }
@@ -86,17 +89,17 @@ export default function DashboardPage() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case "command_center": return <CommandCenterView setActiveTab={setActiveTab} profile={profile} />;
+      case "command_center": return <CommandCenterView setActiveTab={setActiveTab} profile={profile} completedSessionsCount={completedSessionsCount} />;
       case "dna":            return <CreatorDNAView knowledgeGraph={knowledgeGraph} />;
       case "mission":        return <CreatorMissionView creatorMission={creatorMission} knowledgeGraph={knowledgeGraph} />;
       case "copilot":        return <AICopilotPanel onNavigateToLive={() => setActiveTab("live")} />;
       case "reports":        return <ExecutiveReportView />;
-      case "live":           return <DashboardView setActiveTab={setActiveTab} />;
+      case "live":           return <DashboardView setActiveTab={setActiveTab} completedSessionsCount={completedSessionsCount} />;
       case "content":        return <VideoAnalyzerView />;
       case "audience":       return <InsightsView />;
       case "settings":       return <SettingsView />;
-      case "admin":          return currentUser?.isAdmin ? <AdminView /> : <CommandCenterView setActiveTab={setActiveTab} profile={profile} />;
-      default:               return <CommandCenterView setActiveTab={setActiveTab} profile={profile} />;
+      case "admin":          return currentUser?.isAdmin ? <AdminView /> : <CommandCenterView setActiveTab={setActiveTab} profile={profile} completedSessionsCount={completedSessionsCount} />;
+      default:               return <CommandCenterView setActiveTab={setActiveTab} profile={profile} completedSessionsCount={completedSessionsCount} />;
     }
   };
 

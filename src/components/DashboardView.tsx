@@ -72,8 +72,9 @@ const formatDuration = (session: MonitoringSession | null): string => {
   return "0m";
 };
 
-export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = ({
+export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void; completedSessionsCount?: number }> = ({
   setActiveTab,
+  completedSessionsCount = 0,
 }) => {
   // Sprint 18.9 Creator Operating System Navigation & Dialog States
   const [osTab, setOsTab] = useState<OsTab>("home");
@@ -716,6 +717,7 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void }> = 
         {/* Main Operating System Active View */}
         {osTab === "home" && (
           <HomeDashboard
+            completedSessionsCount={completedSessionsCount}
             onStartMonitoring={() => setIsSelectModalOpen(true)}
             onOpenLastReport={() => setActiveTab("history")}
             onReviewContentStrategy={() => setOsTab("compare")}

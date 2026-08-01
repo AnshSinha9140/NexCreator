@@ -5,10 +5,17 @@ import { motion } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { ConnectedPlatformAccount, MonitoringSession } from "@/types";
 import { CreatorManagerProfile } from "@/lib/creatorAudit/types";
+import { resolveDashboardState, DashboardState } from "@/lib/dashboardStateResolver";
+import { WaitingForFirstStream } from "./dashboard/WaitingForFirstStream";
 
-export const CommandCenterView: React.FC<{ setActiveTab: (tab: string) => void; profile?: CreatorManagerProfile | null }> = ({
+export const CommandCenterView: React.FC<{
+  setActiveTab: (tab: string) => void;
+  profile?: CreatorManagerProfile | null;
+  completedSessionsCount?: number;
+}> = ({
   setActiveTab,
   profile,
+  completedSessionsCount = 0,
 }) => {
   const { currentUser } = useApp();
 
@@ -64,6 +71,12 @@ export const CommandCenterView: React.FC<{ setActiveTab: (tab: string) => void; 
 
     loadCommandCenterData();
   }, []);
+
+  const dashboardState = resolveDashboardState(completedSessionsCount);
+
+  if (dashboardState === DashboardState.FIRST_STREAM) {
+    return <WaitingForFirstStream creatorName={displayName} setActiveTab={setActiveTab} />;
+  }
 
   return (
     <motion.div
@@ -377,7 +390,7 @@ export const CommandCenterView: React.FC<{ setActiveTab: (tab: string) => void; 
           </div>
         </div>
 
-        {/* Creator Health Placeholder Card */}
+        {/* Creator Health Telemetry Card */}
         <div
           style={{
             padding: "20px",
@@ -391,14 +404,14 @@ export const CommandCenterView: React.FC<{ setActiveTab: (tab: string) => void; 
         >
           <div>
             <div style={{ fontSize: "11px", fontWeight: "700", color: "#a855f7", textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace" }}>
-              Creator Health Score
+              Monitored Streams
             </div>
             <div style={{ fontSize: "36px", fontWeight: "900", color: "#34d399", margin: "8px 0 2px" }}>
-              100%
+              {completedSessionsCount}
             </div>
           </div>
           <p style={{ fontSize: "11px", color: "#64748b", lineHeight: 1.4 }}>
-            This telemetry score will dynamically calibrate as NexCreator analyzes more of your live streams and VODs.
+            Your Creator Intelligence profile is dynamically calibrating based on your actual broadcast behavior.
           </p>
         </div>
       </div>
