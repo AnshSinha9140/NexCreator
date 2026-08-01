@@ -61,6 +61,7 @@ export async function GET() {
     relationshipMemory: hydration.relationshipMemory,
     creatorHistory: hydration.creatorHistory,
     onboardingState: hydration.onboardingState,
+    knowledgeGraph: hydration.knowledgeGraph,
     canonicalCreatorId: hydration.canonicalCreatorId,
     diagnostics: hydration.diagnostics,
     // Convenience flags for the dashboard

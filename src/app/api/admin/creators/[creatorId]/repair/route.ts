@@ -142,6 +142,26 @@ export async function POST(
       alreadyExisted.push("onboarding_state");
     }
 
+    // creator_knowledge_graph — build if missing and onboarding is complete
+    const existingKnowledgeGraph = await db.collection("creator_knowledge_graph").findOne({ creatorId: canonicalCreatorId });
+    const onboardingDone = existingOnboarding?.completed || existingProfile?.onboardingCompleted;
+    if (existingProfile && onboardingDone && !existingKnowledgeGraph) {
+      const { buildInitialKnowledgeGraph } = require("@/lib/creatorKnowledge/knowledgeBuilder");
+      const fullKnowledgeGraph = buildInitialKnowledgeGraph(canonicalCreatorId, existingProfile.audit, {
+        hypothesesAnswers: {},
+        reflectionAnswers: {},
+        challengeAnswers: {},
+      });
+      await db.collection("creator_knowledge_graph").updateOne(
+        { creatorId: canonicalCreatorId },
+        { $set: fullKnowledgeGraph },
+        { upsert: true }
+      );
+      repaired.push("creator_knowledge_graph");
+    } else if (existingKnowledgeGraph) {
+      alreadyExisted.push("creator_knowledge_graph");
+    }
+
     // Re-check hydration after repair
     const postRepair = await getCreatorHydration(creatorId);
 

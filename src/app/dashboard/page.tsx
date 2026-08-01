@@ -14,6 +14,7 @@ import { PendingView } from "@/components/PendingView";
 import { AICopilotPanel } from "@/components/copilot/AICopilotPanel";
 import { ExecutiveReportView } from "@/components/executive/ExecutiveReportView";
 import { CreatorOnboardingView } from "@/components/creatorAudit/CreatorOnboardingView";
+import { CreatorDNAView } from "@/components/CreatorDNAView";
 import { CreatorManagerProfile } from "@/lib/creatorAudit/types";
 
 export default function DashboardPage() {
@@ -21,6 +22,7 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("command_center");
   const [onboardingAudit, setOnboardingAudit] = useState<any>(null);
   const [profile, setProfile] = useState<CreatorManagerProfile | null>(null);
+  const [knowledgeGraph, setKnowledgeGraph] = useState<any>(null);
   const [hydrationError, setHydrationError] = useState(false);
   const [hydrationDiagnostics, setHydrationDiagnostics] = useState<any>(null);
 
@@ -36,6 +38,7 @@ export default function DashboardPage() {
           return;
         }
         setProfile(data.profile || null);
+        setKnowledgeGraph(data.knowledgeGraph || null);
         // Onboarding source of truth: onboarding_state.completed (fallback: profile.onboardingCompleted)
         const onboardingDone =
           data.onboardingState?.completed ?? data.profile?.onboardingCompleted ?? true;
@@ -53,7 +56,20 @@ export default function DashboardPage() {
       <CreatorOnboardingView
         audit={onboardingAudit}
         creatorId={(currentUser as any)?.id || currentUser?.email || "creator"}
-        onComplete={() => setOnboardingAudit(null)}
+        onComplete={() => {
+          setOnboardingAudit(null);
+          // Refetch to load knowledgeGraph and profile cleanly
+          if (currentUser) {
+            fetch("/api/creator/hydration", { cache: "no-store" })
+              .then(res => res.json())
+              .then(data => {
+                if (data.success) {
+                  setProfile(data.profile);
+                  setKnowledgeGraph(data.knowledgeGraph);
+                }
+              });
+          }
+        }}
       />
     );
   }
@@ -61,6 +77,7 @@ export default function DashboardPage() {
   const renderContent = () => {
     switch (activeTab) {
       case "command_center": return <CommandCenterView setActiveTab={setActiveTab} profile={profile} />;
+      case "dna":            return <CreatorDNAView knowledgeGraph={knowledgeGraph} />;
       case "copilot":        return <AICopilotPanel onNavigateToLive={() => setActiveTab("live")} />;
       case "reports":        return <ExecutiveReportView />;
       case "live":           return <DashboardView setActiveTab={setActiveTab} />;

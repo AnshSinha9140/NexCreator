@@ -26,6 +26,7 @@ import {
   RelationshipMemory,
   HydrationDiagnostics,
 } from "./types";
+import { buildInitialKnowledgeGraph } from "@/lib/creatorKnowledge/knowledgeBuilder";
 
 // ---------------------------------------------------------------------------
 // Creator resolution — multi-key lookup by _id, email, or string id
@@ -222,6 +223,7 @@ export async function getCreatorHydration(creatorId: string): Promise<{
   relationshipMemory: Record<string, unknown> | null;
   creatorHistory: Record<string, unknown>[] | null;
   onboardingState: Record<string, unknown> | null;
+  knowledgeGraph: Record<string, unknown> | null;
   canonicalCreatorId: string | null;
   diagnostics: HydrationDiagnostics;
 }> {
@@ -241,14 +243,15 @@ export async function getCreatorHydration(creatorId: string): Promise<{
       },
       diagnosticMessage: "Creator not found in users collection.",
     };
-    return { creator: null, profile: null, relationshipMemory: null, creatorHistory: null, onboardingState: null, canonicalCreatorId: null, diagnostics };
+    return { creator: null, profile: null, relationshipMemory: null, creatorHistory: null, onboardingState: null, knowledgeGraph: null, canonicalCreatorId: null, diagnostics };
   }
 
-  const [profile, relationshipMemory, creatorHistory, onboardingState] = await Promise.all([
+  const [profile, relationshipMemory, creatorHistory, onboardingState, knowledgeGraph] = await Promise.all([
     db.collection("creator_profile").findOne({ creatorId: canonicalCreatorId }),
     db.collection("relationship_memory").findOne({ creatorId: canonicalCreatorId }),
     db.collection("creator_history").find({ creatorId: canonicalCreatorId }).sort({ timestamp: -1 }).toArray(),
     db.collection("onboarding_state").findOne({ creatorId: canonicalCreatorId }),
+    db.collection("creator_knowledge_graph").findOne({ creatorId: canonicalCreatorId }),
   ]);
 
   const missing: string[] = [];
@@ -256,6 +259,12 @@ export async function getCreatorHydration(creatorId: string): Promise<{
   if (!relationshipMemory) missing.push("relationship_memory");
   if (!creatorHistory || creatorHistory.length === 0) missing.push("creator_history");
   if (!onboardingState) missing.push("onboarding_state");
+
+  // Only check knowledge graph if onboarding was previously completed
+  const onboardingDone = onboardingState?.completed || profile?.onboardingCompleted;
+  if (onboardingDone && !knowledgeGraph) {
+    missing.push("creator_knowledge_graph");
+  }
 
   const diagnostics: HydrationDiagnostics = {
     hydrationReady: missing.length === 0,
@@ -271,7 +280,7 @@ export async function getCreatorHydration(creatorId: string): Promise<{
     diagnosticMessage:
       missing.length === 0
         ? "All collections present. Dashboard hydration ready."
-        : `Hydration incomplete. Missing: ${missing.join(", ")}. Run the Deep Research pipeline to fix.`,
+        : `Hydration incomplete. Missing: ${missing.join(", ")}. Run the Deep Research pipeline or complete Alignment to fix.`,
   };
 
   return {
@@ -280,6 +289,7 @@ export async function getCreatorHydration(creatorId: string): Promise<{
     relationshipMemory: relationshipMemory as Record<string, unknown> | null,
     creatorHistory: creatorHistory as Record<string, unknown>[],
     onboardingState: onboardingState as Record<string, unknown> | null,
+    knowledgeGraph: knowledgeGraph as Record<string, unknown> | null,
     canonicalCreatorId,
     diagnostics,
   };
@@ -429,6 +439,9 @@ export async function mergeCreatorAlignment(
     ]
   };
 
+  // Build the rich CreatorKnowledgeGraph using the new domain engine
+  const fullKnowledgeGraph = buildInitialKnowledgeGraph(canonicalCreatorId, audit, answers);
+
   // 2. Perform the update across collections
   await Promise.all([
     // Update users: onboarding completed
@@ -447,6 +460,12 @@ export async function mergeCreatorAlignment(
           updatedAt: nowStr,
         },
       }
+    ),
+    // Save to creator_knowledge_graph collection
+    db.collection("creator_knowledge_graph").updateOne(
+      { creatorId: canonicalCreatorId },
+      { $set: fullKnowledgeGraph },
+      { upsert: true }
     ),
     // Update creator_profile: save the merged knowledgeGraph & mark onboardingCompleted
     db.collection("creator_profile").updateOne(

@@ -15,6 +15,19 @@ const IMPROVEMENT_CONFIG = {
 };
 
 export const PersonalizedCoaching: React.FC<PersonalizedCoachingProps> = ({ coaching }) => {
+  const [kg, setKg] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    fetch("/api/creator/hydration")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.knowledgeGraph) {
+          setKg(data.knowledgeGraph);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   if (!coaching || coaching.length === 0) return null;
 
   return (
@@ -119,20 +132,29 @@ export const PersonalizedCoaching: React.FC<PersonalizedCoachingProps> = ({ coac
                 {item.insight}
               </p>
 
-              <div
-                style={{
-                  padding: "10px 14px",
-                  borderRadius: "10px",
-                  background: "linear-gradient(135deg, rgba(168,85,247,0.08) 0%, rgba(99,102,241,0.05) 100%)",
-                  border: "1px solid rgba(168,85,247,0.2)",
-                  fontSize: "12px",
-                  color: "#f1f5f9",
-                  fontWeight: 600,
-                  lineHeight: 1.4,
-                }}
-              >
-                <span style={{ color: "#c084fc" }}>→ </span>{item.recommendation}
-              </div>
+              {(() => {
+                let rec = item.recommendation;
+                if (kg) {
+                  const { RelationshipInsights } = require("@/lib/creatorKnowledge/relationshipInsights");
+                  rec = RelationshipInsights.getCoachingAdvice(kg, rec);
+                }
+                return (
+                  <div
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: "10px",
+                      background: "linear-gradient(135deg, rgba(168,85,247,0.08) 0%, rgba(99,102,241,0.05) 100%)",
+                      border: "1px solid rgba(168,85,247,0.2)",
+                      fontSize: "12px",
+                      color: "#f1f5f9",
+                      fontWeight: 600,
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    <span style={{ color: "#c084fc" }}>→ </span>{rec}
+                  </div>
+                );
+              })()}
             </div>
           );
         })}
