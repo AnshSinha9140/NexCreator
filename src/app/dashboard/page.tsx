@@ -13,15 +13,36 @@ import { AdminView } from "@/components/AdminView";
 import { PendingView } from "@/components/PendingView";
 import { AICopilotPanel } from "@/components/copilot/AICopilotPanel";
 import { ExecutiveReportView } from "@/components/executive/ExecutiveReportView";
+import { AuditStorage } from "@/lib/creatorAudit/auditStorage";
+import { CreatorOnboardingView } from "@/components/creatorAudit/CreatorOnboardingView";
 
 export default function DashboardPage() {
   const { currentUser } = useApp();
   const [activeTab, setActiveTab] = useState("command_center");
+  const [onboardingAudit, setOnboardingAudit] = useState<any>(null);
 
-  // Default active tab is command_center for creator app view
+  useEffect(() => {
+    const creatorId = (currentUser as any)?.id || currentUser?.email;
+    if (creatorId) {
+      const profile = AuditStorage.getProfile(creatorId);
+      if (profile && !profile.onboardingCompleted && profile.audit) {
+        setOnboardingAudit(profile.audit);
+      }
+    }
+  }, [currentUser]);
 
   if (currentUser && currentUser.status !== "verified" && !currentUser.isAdmin) {
     return <PendingView />;
+  }
+
+  if (onboardingAudit) {
+    return (
+      <CreatorOnboardingView
+        audit={onboardingAudit}
+        creatorId={(currentUser as any)?.id || currentUser?.email || "creator"}
+        onComplete={() => setOnboardingAudit(null)}
+      />
+    );
   }
 
   const renderContent = () => {

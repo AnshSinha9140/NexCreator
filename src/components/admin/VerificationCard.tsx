@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import HealthBadge from "./HealthBadge";
+import { AuditModal } from "./AuditModal";
 
 export interface CreatorVerificationItem {
   id: string;
@@ -26,6 +27,7 @@ interface VerificationCardProps {
 export default function VerificationCard({ creator, onAction }: VerificationCardProps) {
   const [noteText, setNoteText] = useState(creator.notes || "");
   const [showNoteInput, setShowNoteInput] = useState(false);
+  const [showAuditModal, setShowAuditModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleActionClick = async (action: "approve" | "reject" | "request_changes" | "suspend" | "ban") => {
@@ -137,6 +139,13 @@ export default function VerificationCard({ creator, onAction }: VerificationCard
 
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px" }}>
           <button
+            onClick={() => setShowAuditModal(true)}
+            className="admin-filter-btn"
+            style={{ color: "#c084fc", borderColor: "rgba(168,85,247,0.4)", background: "rgba(168,85,247,0.15)", fontWeight: 700 }}
+          >
+            🧠 Intelligence Audit
+          </button>
+          <button
             disabled={loading}
             onClick={() => handleActionClick("request_changes")}
             className="admin-filter-btn"
@@ -169,6 +178,17 @@ export default function VerificationCard({ creator, onAction }: VerificationCard
           </button>
         </div>
       </div>
+
+      {showAuditModal && (
+        <AuditModal
+          creator={creator}
+          onClose={() => setShowAuditModal(false)}
+          onApproveWithAudit={(creatorId) => {
+            setShowAuditModal(false);
+            onAction(creatorId, "approve", "Approved with Creator Intelligence Audit");
+          }}
+        />
+      )}
     </div>
   );
 }

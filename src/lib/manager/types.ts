@@ -55,6 +55,7 @@ export interface CreatorManagerMemoryState {
   mentionedClips: string[];
   suggestedActionsHistory: string[];
   confidenceTrend: number[];
+  creatorProfile?: any;
   conversationLog: Array<{
     id: string;
     snapshotId: string;
