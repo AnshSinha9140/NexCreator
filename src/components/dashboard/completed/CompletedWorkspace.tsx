@@ -17,13 +17,13 @@ import { CompletedContentStrategy } from "./CompletedContentStrategy";
 export type CompletedModuleTab = "intelligence" | "strategy" | "overview" | "producer" | "timeline" | "chat" | "highlights";
 
 const COMPLETED_NAV: { id: CompletedModuleTab; name: string; icon: string; desc: string }[] = [
-  { id: "intelligence", name: "Creator Intelligence", icon: "🧠", desc: "Executive Manager report & behaviour score" },
-  { id: "strategy",     name: "Content Strategy",     icon: "📈", desc: "AI post-production strategy & publishing plan" },
-  { id: "overview",     name: "Overview",             icon: "📊", desc: "Broadcast performance summary & key metrics" },
-  { id: "producer",     name: "Final AI Report",      icon: "🤖", desc: "AI performance analysis & action recommendations" },
-  { id: "timeline",     name: "Broadcast Timeline",   icon: "⏱️", desc: "Historical event markers & milestone log" },
-  { id: "chat",         name: "Chat Archive",         icon: "💬", desc: "Broadcast chat log & message filtering" },
-  { id: "highlights",   name: "Highlights",           icon: "🚀", desc: "Auto-detected highlight candidates & clips" },
+  { id: "intelligence", name: "Manager Executive Review", icon: "🧠", desc: "Your AI Creator Manager session briefing" },
+  { id: "strategy",     name: "Publishing Strategy",      icon: "📈", desc: "Post-production strategy & publishing plan" },
+  { id: "overview",     name: "Overview",                 icon: "📊", desc: "Broadcast performance summary & key metrics" },
+  { id: "producer",     name: "Manager Action Plan",      icon: "📋", desc: "Performance analysis & action recommendations" },
+  { id: "timeline",     name: "Broadcast Timeline",       icon: "⏱️", desc: "Historical event markers & milestone log" },
+  { id: "chat",         name: "Chat Archive",             icon: "💬", desc: "Broadcast chat log & message filtering" },
+  { id: "highlights",   name: "Highlights Studio",        icon: "🎬", desc: "Editorial highlight candidates & clips" },
 ];
 
 

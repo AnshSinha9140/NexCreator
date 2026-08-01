@@ -17,40 +17,40 @@ const CONFIDENCE_MAP: Array<{ min: number; entry: ConfidencePhrase }> = [
     min: 95,
     entry: {
       level: "extreme",
-      phrase: "I'm extremely confident about this",
-      shortLabel: "Extremely confident",
+      phrase: "I'm very confident",
+      shortLabel: "Very confident",
     },
   },
   {
-    min: 85,
+    min: 80,
     entry: {
       level: "high",
-      phrase: "I'm highly confident",
-      shortLabel: "Highly confident",
+      phrase: "I'm fairly confident",
+      shortLabel: "Fairly confident",
     },
   },
   {
-    min: 70,
+    min: 65,
     entry: {
       level: "reasonable",
-      phrase: "I'm reasonably confident",
-      shortLabel: "Reasonably confident",
+      phrase: "I'd wait another snapshot",
+      shortLabel: "Waiting for snapshot",
     },
   },
   {
-    min: 50,
+    min: 45,
     entry: {
       level: "watching",
-      phrase: "I'm watching this carefully",
-      shortLabel: "Watching carefully",
+      phrase: "I'm not convinced yet",
+      shortLabel: "Not convinced yet",
     },
   },
   {
     min: 0,
     entry: {
       level: "insufficient",
-      phrase: "I don't have enough evidence yet",
-      shortLabel: "Insufficient evidence",
+      phrase: "This still needs more evidence",
+      shortLabel: "Needs more evidence",
     },
   },
 ];

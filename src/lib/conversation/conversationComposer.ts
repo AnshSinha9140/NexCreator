@@ -38,6 +38,10 @@ export class ConversationComposer {
     const nowEpochMs = Date.now();
     const lastState = ConversationMemory.getLastStateSnapshot(sessionId);
 
+    // Sprint 19.3 Memory Sync
+    const { MemoryBuilder } = require("@/lib/manager/memoryBuilder");
+    MemoryBuilder.buildFromSnapshot(snapshot, bundle);
+
     // ── 1. Meaningful Change Detection (Sprint 19.1 Part 6) ──────────────────
     const primaryRec = bundle.coach && bundle.coach.length > 0 ? bundle.coach[0] : null;
     const moodStr = bundle.mood?.primaryMood ?? "Relaxed";

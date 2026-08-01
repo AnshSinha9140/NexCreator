@@ -212,7 +212,7 @@ export class ConversationEngine {
 
     return {
       openingStatement:
-        `If I were your manager, here's what I'd tell you about today's broadcast.`,
+        `If I were sitting beside you today, here's what I'd tell you.`,
       whatImpressedMe,
       whatHurtPerformance,
       whatToRepeat,
