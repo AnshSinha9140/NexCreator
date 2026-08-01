@@ -29,24 +29,33 @@ export async function GET(request: NextRequest) {
 
     const users = await db.collection("users").find(query).sort({ createdAt: -1 }).toArray();
 
-    let result = users.map((u: any) => ({
-      id: u._id?.toString() || u.id || `usr_${Math.random().toString(36).slice(2, 7)}`,
-      email: u.email,
-      displayName: u.name || u.displayName || u.email.split("@")[0],
-      avatarUrl: u.avatarUrl || "",
-      kickUrl: u.kickLink || u.kickUrl || "",
-      kickFollowers: 0,
-      youtubeUrl: u.youtubeLink || u.youtubeUrl || "",
-      youtubeSubscribers: 0,
-      status: (!u.status || u.status === "unverified") ? "pending" : u.status,
-      createdAt: u.createdAt || new Date().toISOString(),
-      notes: u.notes || "",
-      connectedPlatforms: u.connectedPlatforms ? u.connectedPlatforms.map((p: any) => p.platform || p) : [],
-      monitoringEnabled: false,
-      lastLogin: new Date().toISOString(),
-      aiRequests: 0,
-      storageUsage: "0 MB",
-    }));
+    let result = users.map((u: any) => {
+      const connected = Array.isArray(u.connectedPlatforms) ? u.connectedPlatforms : [];
+      const kickItem = connected.find((p: any) => p.platform === "kick" || p.id === "kick");
+      const ytItem = connected.find((p: any) => p.platform === "youtube" || p.id === "youtube");
+
+      const kickUrl = u.kickLink || u.kickUrl || kickItem?.channelUrl || kickItem?.url || "";
+      const youtubeUrl = u.youtubeLink || u.youtubeUrl || ytItem?.channelUrl || ytItem?.url || "";
+
+      return {
+        id: u._id?.toString() || u.id || `usr_${Math.random().toString(36).slice(2, 7)}`,
+        email: u.email,
+        displayName: u.name || u.displayName || u.email.split("@")[0],
+        avatarUrl: u.avatarUrl || "",
+        kickUrl,
+        kickFollowers: 0,
+        youtubeUrl,
+        youtubeSubscribers: 0,
+        status: (!u.status || u.status === "unverified") ? "pending" : u.status,
+        createdAt: u.createdAt || new Date().toISOString(),
+        notes: u.notes || "",
+        connectedPlatforms: connected.map((p: any) => p.platform || p.id || p),
+        monitoringEnabled: false,
+        lastLogin: new Date().toISOString(),
+        aiRequests: 0,
+        storageUsage: "0 MB",
+      };
+    });
 
     if (statusFilter && statusFilter !== "all") {
       result = result.filter((c) => c.status === statusFilter);
