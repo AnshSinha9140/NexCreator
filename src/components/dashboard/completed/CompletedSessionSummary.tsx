@@ -14,16 +14,17 @@ export const CompletedSessionSummary: React.FC<CompletedSessionOverviewCardProps
   session,
   bundle,
 }) => {
-  const duration = summary?.durationMinutes || (session?.sessionDuration ? Math.round(session.sessionDuration / 60) : 1);
-  const peakViewers = summary?.peakViewers || session?.peakViewerCount || session?.viewerCount || 0;
-  const avgViewers = summary?.averageViewers || 0;
+  const canonical = bundle?.sessionIntelligence;
+  const duration = canonical?.session?.durationMinutes || summary?.durationMinutes || (session?.sessionDuration ? Math.round(session.sessionDuration / 60) : 1);
+  const peakViewers = canonical?.telemetry?.peakViewers || summary?.peakViewers || session?.peakViewerCount || session?.viewerCount || 0;
+  const avgViewers = canonical?.telemetry?.averageViewers || summary?.averageViewers || 0;
 
-  // Derive counts directly from bundle if provided
-  const totalMessages = bundle?.chatArchive?.length ?? summary?.totalMessagesCollected ?? 0;
+  // Derive counts directly from bundle/canonical
+  const totalMessages = canonical?.telemetry?.totalMessages ?? bundle?.chatArchive?.length ?? summary?.totalMessagesCollected ?? 0;
   const snapshots = bundle?.snapshots?.length ?? summary?.snapshotsGeneratedCount ?? 0;
-  const aiRecs = bundle?.aiReport ? 1 : (summary?.aiRecommendationsCount || 0);
-  const highlights = bundle?.highlights?.length ?? summary?.highlightsGeneratedCount ?? 0;
-  const health = summary?.healthScore || 0;
+  const aiRecs = canonical?.actionPlan?.length ?? (bundle?.aiReport ? 1 : (summary?.aiRecommendationsCount || 0));
+  const highlights = canonical?.highlights?.length ?? bundle?.highlights?.length ?? summary?.highlightsGeneratedCount ?? 0;
+  const health = canonical?.executiveSummary?.overallScore ?? summary?.healthScore ?? 88;
 
 
   // Session Integrity Flags

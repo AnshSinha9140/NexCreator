@@ -80,3 +80,39 @@ export interface PrimaryManagerDecision {
   rationale: string;
   comparedToBaselineText: string;
 }
+
+// ---------------------------------------------------------------------------
+// Sprint 24.5 — Longitudinal Creator Skill Memory
+// ---------------------------------------------------------------------------
+
+export type CreatorSkillName =
+  | "humor"
+  | "conversation"
+  | "energy"
+  | "pacing"
+  | "storytelling"
+  | "audienceInteraction"
+  | "communityBuilding"
+  | "retention"
+  | "consistency";
+
+export interface CreatorSkillEntry {
+  sessionId: string;
+  value: number;       // 0-100
+  recordedAt: string;  // ISO timestamp
+}
+
+export interface CreatorSkillDimension {
+  skillName: CreatorSkillName;
+  current: number;
+  history: CreatorSkillEntry[]; // append-only, capped at 30
+  trend: "IMPROVING" | "STABLE" | "DECLINING" | "INSUFFICIENT_DATA";
+  lastUpdated: string;
+}
+
+export interface CreatorSkillProfile {
+  creatorId: string;
+  skills: { [K in CreatorSkillName]: CreatorSkillDimension };
+  streamsAnalyzed: number;
+  lastUpdated: string;
+}

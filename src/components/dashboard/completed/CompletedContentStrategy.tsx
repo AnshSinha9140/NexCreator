@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { CompletedSessionBundle } from "@/lib/session/completedBundle";
 import { FinalSessionSummary } from "@/lib/session/lifecycle";
 import { ContentStrategyEngine } from "@/lib/contentStrategy/generator";
+import { TimelineNavigator } from "@/lib/timeline/navigator";
 
 interface CompletedContentStrategyProps {
   bundle?: CompletedSessionBundle | null;
@@ -14,7 +15,7 @@ export const CompletedContentStrategy: React.FC<CompletedContentStrategyProps> =
   bundle,
   sessionSummary,
 }) => {
-  const [activeTitleTab, setActiveTitleTab] = useState<"Curiosity" | "SEO" | "High CTR">("Curiosity");
+  const [activeTitleTab, setActiveTitleTab] = useState<string>("Curiosity");
   const report = ContentStrategyEngine.generateReport(bundle || null);
   const { executiveBrief, topAssets, titleOptions, thumbnailAdvice, hookStrategy, publishingCalendar, missedOpportunities, nextStreamChecklist } = report;
 
@@ -112,12 +113,49 @@ export const CompletedContentStrategy: React.FC<CompletedContentStrategyProps> =
                 </div>
               </div>
 
-              {/* Metadata Badges */}
-              <div style={{ display: "flex", gap: "16px", fontSize: "11px", color: "#cbd5e1", background: "rgba(0,0,0,0.2)", padding: "8px 12px", borderRadius: "8px" }}>
-                <span>Length: <strong style={{ color: "#60a5fa" }}>{asset.recommendedDuration}</strong></span>
-                <span>Platform: <strong style={{ color: "#34d399" }}>{asset.bestPlatform}</strong></span>
-                <span>Difficulty: <strong style={{ color: "#c084fc" }}>{asset.difficulty}</strong></span>
-                <span>Target: <strong style={{ color: "#f8fafc" }}>{asset.expectedAudience}</strong></span>
+              {/* Metadata Badges & Universal Timeline Seek */}
+              <div style={{ display: "flex", gap: "16px", fontSize: "11px", color: "#cbd5e1", background: "rgba(0,0,0,0.2)", padding: "8px 12px", borderRadius: "8px", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
+                  <span>Length: <strong style={{ color: "#60a5fa" }}>{asset.recommendedDuration}</strong></span>
+                  <span>Platform: <strong style={{ color: "#34d399" }}>{asset.bestPlatform}</strong></span>
+                  <span>Difficulty: <strong style={{ color: "#c084fc" }}>{asset.difficulty}</strong></span>
+                  <span>Target: <strong style={{ color: "#f8fafc" }}>{asset.expectedAudience}</strong></span>
+                </div>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <button
+                    title="Inspect raw telemetry evidence: viewers, chat velocity, sentiment & replay score"
+                    onClick={() => TimelineNavigator.seek("15:20:00", `Evidence for ${asset.title}`, "Publishing Strategy Evidence")}
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: "6px",
+                      background: "rgba(168, 85, 247, 0.15)",
+                      border: "1px solid rgba(168, 85, 247, 0.3)",
+                      color: "#c084fc",
+                      fontSize: "11px",
+                      fontWeight: "700",
+                      cursor: "pointer",
+                    }}
+                  >
+                    🔍 Show Evidence
+                  </button>
+                  <button
+                    title="Jump to video: Seek stream player to asset position"
+                    onClick={() => TimelineNavigator.seek("15:20:00", `Asset #${index + 1} (${asset.title})`, "Publishing Strategy")}
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: "6px",
+                      background: "rgba(56, 189, 248, 0.15)",
+                      border: "1px solid rgba(56, 189, 248, 0.3)",
+                      color: "#38bdf8",
+                      fontSize: "11px",
+                      fontWeight: "700",
+                      cursor: "pointer",
+                    }}
+                  >
+                    ⏱️ Jump to Video
+                  </button>
+                </div>
+
               </div>
 
               {/* Why AI Selected & Evidence */}

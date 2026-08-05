@@ -1,12 +1,12 @@
 export interface ContentAssetItem {
   id: string;
-  assetType: "Best Short" | "Best TikTok" | "Best YouTube Highlight" | "Best Thumbnail Moment" | "Best Community Post";
+  assetType: "Best Short" | "Best TikTok" | "Best YouTube Highlight" | "Best Thumbnail Moment" | "Best Community Post" | string;
   title: string;
   hook: string;
   recommendedDuration: string;
   bestPlatform: string;
-  priority: "Critical" | "High" | "Medium";
-  difficulty: "Easy" | "Moderate" | "Hard";
+  priority: "Critical" | "High" | "Medium" | string;
+  difficulty: "Easy" | "Moderate" | "Hard" | string;
   confidence: number;
   expectedAudience: string;
   whyAiSelected: string;
@@ -21,11 +21,10 @@ export interface ContentAssetItem {
     communityImpact?: number;
     overallPublishScore: number;
   };
-
 }
 
 export interface TitleOption {
-  type: "Curiosity" | "SEO" | "High CTR";
+  type: "Curiosity" | "SEO" | "High CTR" | string;
   title: string;
   explanation: string;
 }
@@ -48,7 +47,7 @@ export interface HookStrategy {
 }
 
 export interface CalendarItem {
-  dayLabel: "Today" | "Tomorrow" | "48 Hours Later" | "Weekend";
+  dayLabel: "Today" | "Tomorrow" | "48 Hours Later" | "Weekend" | string;
   assetTitle: string;
   platform: string;
   rationale: string;
@@ -71,7 +70,7 @@ export interface MissedOpportunity {
 
 export interface NextStreamChecklist {
   item: string;
-  category: "Engagement" | "Pacing" | "Technical" | "Community";
+  category: "Engagement" | "Pacing" | "Technical" | "Community" | string;
 }
 
 export interface ContentStrategyReport {

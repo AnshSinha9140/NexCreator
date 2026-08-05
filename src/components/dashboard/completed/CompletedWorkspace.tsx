@@ -5,7 +5,7 @@ import { FinalSessionSummary } from "@/lib/session/lifecycle";
 import { CompletedHeader } from "./CompletedHeader";
 import { CompletedSessionSummary } from "./CompletedSessionSummary";
 import { CompletedActions } from "./CompletedActions";
-import { CompletedSessionOverview } from "./CompletedSessionOverview";
+import { ContextualSidebar } from "./ContextualSidebar";
 import { CompletedAIReport } from "./CompletedAIReport";
 import { CompletedTimeline } from "./CompletedTimeline";
 import { CompletedChatArchive } from "./CompletedChatArchive";
@@ -154,11 +154,11 @@ export const CompletedWorkspace: React.FC<CompletedWorkspaceProps> = ({
           )}
 
           {activeTab === "producer" && (
-            <CompletedAIReport insights={bundle?.aiReport ? [bundle.aiReport] : insights} session={session} summary={sessionSummary} />
+            <CompletedAIReport insights={bundle?.aiReport ? [bundle.aiReport] : insights} session={session} summary={sessionSummary} bundle={bundle} />
           )}
 
           {activeTab === "timeline" && (
-            <CompletedTimeline summary={sessionSummary} session={session} snapshots={bundle?.snapshots || snapshots} insights={insights} timelineEvents={bundle?.timeline?.events} />
+            <CompletedTimeline summary={sessionSummary} session={session} snapshots={bundle?.snapshots || snapshots} insights={insights} timelineEvents={bundle?.sessionIntelligence?.timeline?.events || bundle?.timeline?.events} bundle={bundle} />
           )}
 
           {activeTab === "chat" && (
@@ -166,12 +166,12 @@ export const CompletedWorkspace: React.FC<CompletedWorkspaceProps> = ({
           )}
 
           {activeTab === "highlights" && (
-            <CompletedHighlights session={session} summary={sessionSummary} highlights={bundle?.highlights || []} />
+            <CompletedHighlights session={session} summary={sessionSummary} highlights={bundle?.sessionIntelligence?.highlights || bundle?.highlights || []} />
           )}
         </div>
 
-        {/* Right Sidebar: Completed Session Overview (Immutable Report Metadata) */}
-        <CompletedSessionOverview summary={sessionSummary} session={session} bundle={bundle} />
+        {/* Right Sidebar: Contextual Sidebar per active tab */}
+        <ContextualSidebar activeTab={activeTab} session={session} sessionSummary={sessionSummary} bundle={bundle} />
 
       </div>
     </div>

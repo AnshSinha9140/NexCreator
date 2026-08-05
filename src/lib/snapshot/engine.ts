@@ -21,14 +21,9 @@ export class SnapshotEngine {
     const messages = buffer.getMessages();
     const metricsSummary = accumulator.getMetricsSummary();
 
-    // Skip snapshots when there is zero chat activity (channel offline or not yet live)
+    // Capture periodic and adaptive snapshots even when chat is quiet (to log viewer telemetry and stream state)
     if (messages.length === 0) {
-      if (isFinalPartial) {
-        console.log(`[SnapshotEngine] Skipping empty final partial snapshot for session '${sessionId}'`);
-      } else {
-        console.log(`[SnapshotEngine] ⏭️ Skipping regular snapshot — 0 messages in buffer for session '${sessionId}'. Channel may be offline or ingestion not receiving messages.`);
-      }
-      return null;
+      console.log(`[SnapshotEngine] 📸 Generating baseline snapshot for session '${sessionId}' (quiet stream segment / 0 chat messages).`);
     }
 
     console.log(`[SnapshotEngine] 📸 Generating snapshot for session '${sessionId}' with ${messages.length} messages.`);

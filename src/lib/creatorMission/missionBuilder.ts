@@ -1,5 +1,6 @@
 import { CreatorIntelligenceAudit } from "../creatorAudit/types";
 import { CreatorMissionData } from "./types";
+import { planInitialMission } from "./MissionPlanner";
 
 /**
  * Builds initial CreatorMissionData using Deep Research Audit + Alignment Answers.
@@ -98,7 +99,8 @@ export function buildInitialCreatorMission(
         reasonForChange: "Initial setting upon completion of the Alignment Session.",
         causedBy: "Alignment Session Completion"
       }
-    ]
+    ],
+    ...planInitialMission(audit, creatorId, now),
   };
 }
 export async function getCreatorMission(creatorId: string): Promise<CreatorMissionData | null> {

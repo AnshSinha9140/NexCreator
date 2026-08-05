@@ -1,4 +1,5 @@
 import { EvidenceSource } from "../creatorKnowledge/types";
+import { IdentityMetadata, DomainConfidence } from "../creatorDNA/CreatorDNATypes";
 
 export interface CreatorMissionData {
   creatorId: string;
@@ -53,4 +54,59 @@ export interface CreatorMissionData {
     reasonForChange: string;
     causedBy: string;
   }>;
+
+  vision: string;
+  longTermGoal: string;
+  currentGoal: string;
+  currentPhase: string;
+  missionProgress: number;
+  missionConfidence: number;
+  primaryKpi: string;
+  secondaryKpi?: string;
+  estimatedTimeline?: string;
+  currentStrategy: {
+    focus: string[];
+    intentionallyIgnoring: string[];
+    rationale: string;
+  };
+  milestones: Array<{
+    id: string;
+    title: string;
+    status: "complete" | "current" | "upcoming";
+    evidence: string[];
+  }>;
+  currentExperiments: Array<{
+    id: string;
+    title: string;
+    rationale: string;
+    evidenceIds: string[];
+    confidence: number;
+  }>;
+  risks: Array<{
+    id: string;
+    title: string;
+    severity: "low" | "medium" | "high";
+    confidence: number;
+    recommendation: string;
+    evidenceIds: string[];
+  }>;
+  opportunities: Array<{
+    id: string;
+    title: string;
+    expectedImpact: "low" | "medium" | "high";
+    confidence: number;
+    reason: string;
+    evidenceIds: string[];
+  }>;
+  alignmentHistory: Array<{
+    sessionId: string;
+    score: number;
+    helped: string[];
+    slowed: string[];
+    evidenceIds: string[];
+    createdAt: string;
+  }>;
+
+  metadata?: IdentityMetadata;
+  domainConfidence?: DomainConfidence;
 }

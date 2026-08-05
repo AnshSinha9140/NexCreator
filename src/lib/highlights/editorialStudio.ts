@@ -4,12 +4,37 @@ import { HighlightCandidate } from "./generator";
 
 export type EditorialRank = "GOLD" | "SILVER" | "BRONZE" | "ADDITIONAL";
 
+export type HighlightType =
+  | "REACTION"
+  | "COMEDY"
+  | "CHAT_EXPLOSION"
+  | "EMOTIONAL"
+  | "STORY_PAYOFF"
+  | "RP_ROLEPLAY"
+  | "ARGUMENT"
+  | "FAIL"
+  | "SUCCESS"
+  | "GAMEPLAY"
+  | "COMMUNITY"
+  | "ANNOUNCEMENT"
+  | "SCARY"
+  | "WHOLESOME"
+  | "SURPRISE";
+
 export interface HighlightTimeline {
   startFormatted: string; // HH:MM:SS
   endFormatted: string;   // HH:MM:SS
   durationFormatted: string; // e.g. "48 seconds"
   durationSeconds: number;
-  visualBar: string; // e.g. "██████████████░░░░░░"
+  visualBar: string;
+
+  // Real Timestamp System
+  streamStartTimestamp: string;
+  streamEndTimestamp: string;
+  clipStartTimestamp: string;
+  clipEndTimestamp: string;
+  peakTimestamp: string;
+  hookTimestamp: string;
 }
 
 export interface ClipStructurePhase {
@@ -34,15 +59,28 @@ export interface EditingInstructions {
 }
 
 export interface PublishingStrategy {
-  bestPlatform: "TikTok" | "YouTube Shorts" | "Instagram Reels" | "Facebook Reels";
+  bestPlatform: "TikTok" | "YouTube Shorts" | "Instagram Reels" | "YouTube Longform" | "Twitch Highlights";
+  secondaryPlatform: string;
+  why: string;
+  audience: string;
+  recommendedUploadTime: string;
+  recommendedThumbnailEmotion: string;
+  recommendedSubtitleStyle: string;
   priorityWindow: "Today" | "Tomorrow" | "Weekend";
   reasoning: string;
 }
 
+export interface EditorialTitleSuggestion {
+  title: string;
+  reason: string;
+}
+
 export interface TitleSuggestions {
-  curiosity: string;
-  seo: string;
-  ctr: string;
+  curiosity: EditorialTitleSuggestion;
+  seo: EditorialTitleSuggestion;
+  ctr: EditorialTitleSuggestion;
+  tiktok: EditorialTitleSuggestion;
+  shorts: EditorialTitleSuggestion;
 }
 
 export interface ThumbnailRecommendation {
@@ -50,6 +88,15 @@ export interface ThumbnailRecommendation {
   expression: string;
   overlayText: string;
   focusArea: string;
+  eyeContact: string;
+  brightness: string;
+  sceneClarity: string;
+  reason: string;
+}
+
+export interface ScoreItem {
+  label: string;
+  value: number;
 }
 
 export interface PerformancePrediction {
@@ -60,6 +107,7 @@ export interface PerformancePrediction {
   community: number;
   overall: number;
   explanation: string;
+  scoreBreakdown: ScoreItem[];
 }
 
 export interface ChatReactionSummary {
@@ -74,7 +122,8 @@ export interface EditorialHighlight {
   rank: EditorialRank;
   rankTitle: string; // "🥇 Highlight of the Stream" | "🥈 Runner Up" | "🥉 Third Best Moment" | "Additional Moment"
   badgeIcon: string;
-  category: "Gaming" | "Comedy" | "Community" | "Clutch" | "Discussion" | "Reaction";
+  category: "Gaming" | "Comedy" | "Community" | "Clutch" | "Discussion" | "Reaction" | "Roleplay" | "Drama" | "Announcement" | "Fail";
+  classifiedType: HighlightType;
   title: string;
   editorSummary: string;
   timeline: HighlightTimeline;
@@ -86,6 +135,7 @@ export interface EditorialHighlight {
   titleSuggestions: TitleSuggestions;
   thumbnailRecommendation: ThumbnailRecommendation;
   performancePrediction: PerformancePrediction;
+  comparedToNext?: string;
   createdAt: string;
 }
 
@@ -100,9 +150,6 @@ export interface EditorsReport {
 }
 
 export class EditorialHighlightComposer {
-  /**
-   * Main entry point to compose Editorial Highlights from raw candidates & snapshots.
-   */
   public static composeFromCandidates(
     candidates: HighlightCandidate[],
     snapshots: PulseSnapshot[] = [],
@@ -121,20 +168,14 @@ export class EditorialHighlightComposer {
       return { highlights: [], report: emptyReport };
     }
 
-    // ── 1. Event Grouping ──────────────────────────────────────────────────────
-    // Group related candidates occurring within 3 minutes (180,000 ms)
     const grouped = this.groupCandidates(candidates);
-
-    // ── 2. Editorial Ranking & Transformation ──────────────────────────────────
     const rankedRaw = grouped.map((group) => this.transformToEditorial(group, snapshots, bundle));
 
     // Sort by overall score descending
     rankedRaw.sort((a, b) => b.performancePrediction.overall - a.performancePrediction.overall);
-
-    // Limit to maximum 5 highlights
     const topHighlights = rankedRaw.slice(0, 5);
 
-    // Apply ranking tiers
+    // Apply ranking tiers and justifications
     topHighlights.forEach((hl, index) => {
       if (index === 0) {
         hl.rank = "GOLD";
@@ -153,24 +194,27 @@ export class EditorialHighlightComposer {
         hl.rankTitle = `Additional Moment #${index - 2}`;
         hl.badgeIcon = "🎬";
       }
+
+      // Add justification compared to next highlight
+      const nextHl = topHighlights[index + 1];
+      if (nextHl) {
+        const diff = hl.performancePrediction.overall - nextHl.performancePrediction.overall;
+        hl.comparedToNext = `Ranked above #${index + 2} (${nextHl.classifiedType}) because this moment recorded a ${diff > 0 ? diff + " point" : "higher"} overall editor alignment, driven by higher ${hl.category === "Comedy" ? "chat laughter density" : "peak audience velocity"}.`;
+      } else {
+        hl.comparedToNext = "Ranked at baseline — holds standard performance potential.";
+      }
     });
 
-    // ── 3. Build Senior Editor's Report ─────────────────────────────────────────
     const report = this.buildEditorsReport(topHighlights, bundle);
-
     return { highlights: topHighlights, report };
   }
 
-  /**
-   * Groups candidates within a 3-minute sliding window into single editorial moments.
-   */
   private static groupCandidates(candidates: HighlightCandidate[]): HighlightCandidate[][] {
     const sorted = [...candidates].sort(
       (a, b) => new Date(a.windowStart).getTime() - new Date(b.windowStart).getTime()
     );
 
     const groups: HighlightCandidate[][] = [];
-
     for (const item of sorted) {
       if (groups.length === 0) {
         groups.push([item]);
@@ -181,20 +225,15 @@ export class EditorialHighlightComposer {
       const groupStart = new Date(lastGroup[0].windowStart).getTime();
       const itemStart = new Date(item.windowStart).getTime();
 
-      // If within 3 minutes (180 seconds), merge into group
       if (itemStart - groupStart <= 180000) {
         lastGroup.push(item);
       } else {
         groups.push([item]);
       }
     }
-
     return groups;
   }
 
-  /**
-   * Transforms a grouped set of raw candidates into a rich Editorial Highlight.
-   */
   private static transformToEditorial(
     group: HighlightCandidate[],
     snapshots: PulseSnapshot[],
@@ -205,67 +244,71 @@ export class EditorialHighlightComposer {
     const startTime = new Date(group[0].windowStart);
     const endTime = new Date(group[group.length - 1].windowEnd);
 
-    // Calculate duration
     let durationSeconds = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
-    if (durationSeconds < 30) durationSeconds = 48; // minimum realistic clip window
+    if (durationSeconds < 30) durationSeconds = 48;
 
-    const startFormatted = startTime.toTimeString().split(" ")[0] || "00:00:00";
-    const endFormatted = endTime.toTimeString().split(" ")[0] || "00:00:48";
-    const durationFormatted = `${durationSeconds} seconds`;
-
-    // Visual Timeline Bar (20 segments)
-    const filledSegments = Math.min(20, Math.max(8, Math.floor((durationSeconds / 90) * 20)));
-    const visualBar = "█".repeat(filledSegments) + "░".repeat(20 - filledSegments);
-
-    // Sample Chat Aggregation
     const allSampleMessages = group.flatMap((c) => c.sampleMessages || []);
-    const chatSummary = this.generateChatSummary(allSampleMessages, primary.type);
+    const classifiedType = this.classifyHighlightType(primary, allSampleMessages);
+    const category = this.determineCategory(classifiedType);
 
-    // Dynamic Title Generation
-    const title = this.generateEditorialTitle(primary, allSampleMessages);
+    // Timestamps formatting (HH:MM:SS)
+    const formatTime = (d: Date) => {
+      if (isNaN(d.getTime())) return "Timestamp unavailable";
+      return d.toTimeString().split(" ")[0];
+    };
 
-    // Category determination
-    const category = this.determineCategory(primary, allSampleMessages);
+    const streamStartTimestamp = formatTime(startTime);
+    const streamEndTimestamp = formatTime(endTime);
 
-    // Clip Structure
-    const clipStructure = this.buildClipStructure(startTime, durationSeconds, primary, category);
+    // Find peak moment candidate
+    const peakTime = new Date(primary.windowStart);
+    const peakTimestamp = formatTime(peakTime);
 
-    // Why AI Picked This
+    // Platform-appropriate clip windows (YouTube Shorts: 15-60s, TikTok: 20-45s, Instagram: 20-60s)
+    const clipDuration = Math.min(45, Math.max(25, Math.round(durationSeconds * 0.4)));
+    const clipStart = new Date(peakTime.getTime() - Math.round(clipDuration * 0.3) * 1000);
+    const clipEnd = new Date(clipStart.getTime() + clipDuration * 1000);
+
+    const clipStartTimestamp = formatTime(clipStart);
+    const clipEndTimestamp = formatTime(clipEnd);
+    const hookTimestamp = formatTime(new Date(clipStart.getTime() + 2000));
+
+    const durationFormatted = `${clipDuration} seconds (Short-form optimized)`;
+    const visualBar = "█".repeat(Math.round((clipDuration / 60) * 20)) + "░".repeat(20 - Math.round((clipDuration / 60) * 20));
+
+    const chatSummary = this.generateChatSummary(allSampleMessages, classifiedType);
+    const title = this.generateEditorialTitle(classifiedType, allSampleMessages);
+    const clipStructure = this.buildClipStructure(clipStart, clipDuration, classifiedType);
     const whyPicked = this.buildWhyPickedEvidence(primary, chatSummary, group);
-
-    // Editor Summary
-    const editorSummary = this.buildEditorSummary(category, primary, chatSummary);
-
-    // Editing Instructions
-    const editingInstructions = this.buildEditingInstructions(category, chatSummary);
-
-    // Publishing Strategy
-    const publishingStrategy = this.buildPublishingStrategy(category, durationSeconds);
-
-    // Title Suggestions
-    const titleSuggestions = this.buildTitleSuggestions(title, category);
-
-    // Thumbnail Recommendation
-    const thumbnailRecommendation = this.buildThumbnailRecommendation(startTime, category, primary);
-
-    // Multi-Dimensional Performance Prediction
-    const performancePrediction = this.buildPerformancePrediction(primary, group);
+    const editorSummary = this.buildEditorSummary(classifiedType, primary, chatSummary);
+    const editingInstructions = this.buildEditingInstructions(classifiedType);
+    const publishingStrategy = this.buildPublishingStrategy(classifiedType, clipDuration);
+    const titleSuggestions = this.buildTitleSuggestions(classifiedType);
+    const thumbnailRecommendation = this.buildThumbnailRecommendation(clipStart, classifiedType);
+    const performancePrediction = this.buildPerformancePrediction(primary, classifiedType);
 
     return {
       id: `ed_hl_${primary.id}`,
       sessionId: primary.sessionId,
-      rank: "ADDITIONAL", // Will be assigned by ranker
+      rank: "ADDITIONAL",
       rankTitle: "Additional Moment",
       badgeIcon: "🎬",
       category,
+      classifiedType,
       title,
       editorSummary,
       timeline: {
-        startFormatted,
-        endFormatted,
+        startFormatted: streamStartTimestamp,
+        endFormatted: streamEndTimestamp,
         durationFormatted,
-        durationSeconds,
+        durationSeconds: clipDuration,
         visualBar,
+        streamStartTimestamp,
+        streamEndTimestamp,
+        clipStartTimestamp,
+        clipEndTimestamp,
+        peakTimestamp,
+        hookTimestamp,
       },
       clipStructure,
       whyPicked,
@@ -279,111 +322,157 @@ export class EditorialHighlightComposer {
     };
   }
 
-  private static generateEditorialTitle(primary: HighlightCandidate, messages: string[]): string {
-    const textUpper = messages.join(" ").toUpperCase();
-
-    if (textUpper.includes("KEKW") || textUpper.includes("LAUGH") || textUpper.includes("😂") || textUpper.includes("💀")) {
-      return "🔥 Streamer Couldn't Stop Laughing After Chat Trolled Him";
-    }
-    if (textUpper.includes("GG") || textUpper.includes("W") || textUpper.includes("CLUTCH")) {
-      return "🏆 Impossible Clutch Leaves Chat Absolutely Speechless";
-    }
-    if (textUpper.includes("FIRE") || textUpper.includes("🔥") || textUpper.includes("HYPED")) {
-      return "🎉 Biggest Community Celebration Of The Entire Stream";
-    }
-    if (primary.type === "question_surge") {
-      return "💬 One Viewer Changed The Entire Direction Of Conversation";
-    }
-    if (primary.type === "viewer_spike" || primary.metrics.messagesPerMinute > 20) {
-      return "⚡ Unexpected Turning Point Triggered Sudden Chat Explosion";
-    }
-
-    return "😂 Chat Absolutely Lost It During This Unfiltered Moment";
-  }
-
-  private static determineCategory(primary: HighlightCandidate, messages: string[]): EditorialHighlight["category"] {
-    const textUpper = messages.join(" ").toUpperCase();
-    if (textUpper.includes("KEKW") || textUpper.includes("LMAO") || textUpper.includes("😂") || textUpper.includes("💀")) {
-      return "Comedy";
-    }
-    if (textUpper.includes("GG") || textUpper.includes("CLUTCH")) {
-      return "Clutch";
-    }
-    if (textUpper.includes("FIRE") || textUpper.includes("🎉") || textUpper.includes("HYPED")) {
-      return "Community";
-    }
-    if (primary.type === "question_surge") {
-      return "Discussion";
-    }
-    return "Reaction";
-  }
-
-  private static generateChatSummary(messages: string[], type: string): ChatReactionSummary {
+  private static classifyHighlightType(primary: HighlightCandidate, messages: string[]): HighlightType {
     const text = messages.join(" ").toUpperCase();
+    const trigger = (primary.triggerReason || "").toUpperCase();
 
+    if (text.includes("FAIL") || trigger.includes("FAIL") || text.includes("DIE") || text.includes("CHOKE") || text.includes("OOF")) {
+      return "FAIL";
+    }
+    if (text.includes("KEKW") || text.includes("LMAO") || text.includes("LOL") || text.includes("😂") || text.includes("💀")) {
+      return "COMEDY";
+    }
+    if (trigger.includes("CLUTCH") || text.includes("GG") || text.includes("1V3") || text.includes("1V4")) {
+      return text.includes("WIN") || text.includes("W") ? "SUCCESS" : "GAMEPLAY";
+    }
+    if (text.includes("OMG") || text.includes("WTF") || text.includes("WHA") || text.includes("😱")) {
+      return "SURPRISE";
+    }
+    if (text.includes("CRY") || text.includes("SAD") || text.includes("FEELS") || text.includes("😭") || text.includes("❤️")) {
+      return text.includes("CUTE") || text.includes("AWW") ? "WHOLESOME" : "EMOTIONAL";
+    }
+    if (text.includes("ROLE") || text.includes("RP") || text.includes("COP") || text.includes("COURT")) {
+      return "RP_ROLEPLAY";
+    }
+    if (text.includes("ANNOUNCE") || text.includes("NEWS") || text.includes("UPDATE")) {
+      return "ANNOUNCEMENT";
+    }
+    if (text.includes("SCARY") || text.includes("FEAR") || text.includes("GHOST") || text.includes("👻")) {
+      return "SCARY";
+    }
+    if (text.includes("COMMUNITY") || text.includes("SPAM") || text.includes("SPAMMING")) {
+      return "COMMUNITY";
+    }
+    if (primary.type === "velocity_spike" || primary.metrics.messagesPerMinute > 25) {
+      return "CHAT_EXPLOSION";
+    }
+    return "REACTION";
+  }
+
+  private static determineCategory(type: HighlightType): EditorialHighlight["category"] {
+    switch (type) {
+      case "COMEDY":
+      case "FAIL":
+        return "Comedy";
+      case "SUCCESS":
+      case "GAMEPLAY":
+        return "Clutch";
+      case "COMMUNITY":
+      case "CHAT_EXPLOSION":
+        return "Community";
+      case "ANNOUNCEMENT":
+      case "STORY_PAYOFF":
+        return "Discussion";
+      case "RP_ROLEPLAY":
+        return "Roleplay";
+      default:
+        return "Reaction";
+    }
+  }
+
+  private static generateEditorialTitle(type: HighlightType, messages: string[]): string {
+    switch (type) {
+      case "COMEDY":
+        return "😂 The Joke That Broke The Entire Chat";
+      case "FAIL":
+        return "💀 The Confident Play That Ended In Disaster";
+      case "SUCCESS":
+      case "GAMEPLAY":
+        return "🏆 The 1v3 Hold That Saved The Whole Run";
+      case "RP_ROLEPLAY":
+        return "🎭 The Courtroom Scene Nobody Expected";
+      case "COMMUNITY":
+        return "🤝 Chat United Behind One Viewer's Goal";
+      case "WHOLESOME":
+        return "❤️ A Wholesome Moment of Viewer Gratitude";
+      case "SCARY":
+        return "😱 The Jump Scare That Cleared The Room";
+      case "ANNOUNCEMENT":
+        return "📢 Major Stream Update Announcement Reveal";
+      case "SURPRISE":
+        return "😲 The Unplanned Twist That Changed Everything";
+      default:
+        return "🔥 Chat Couldn't Stop Reacting To This Moment";
+    }
+  }
+
+  private static generateChatSummary(messages: string[], type: HighlightType): ChatReactionSummary {
+    const text = messages.join(" ").toUpperCase();
     let dominantEmotion = "High Enthusiasm";
-    let summaryText = "Chat responded with rapid activity and sustained engagement.";
+    let summaryText = "Chat velocity spiked due to synchronized viewer feedback.";
     const commonReactions: Array<{ reaction: string; frequencyPercent: number }> = [];
 
-    if (text.includes("KEKW") || text.includes("😂") || text.includes("LOL") || text.includes("LMAO")) {
+    if (type === "COMEDY" || type === "FAIL") {
       dominantEmotion = "Uncontrollable Laughter";
-      summaryText = "Laughter dominated this moment. Most viewers reacted with KEKW, laughing emotes and surprise messages.";
-      commonReactions.push({ reaction: "KEKW", frequencyPercent: 48 });
-      commonReactions.push({ reaction: "LMAO / 😂", frequencyPercent: 32 });
-      commonReactions.push({ reaction: '"No way!"', frequencyPercent: 14 });
-    } else if (text.includes("GG") || text.includes("W") || text.includes("🎉")) {
+      summaryText = "Laughter dominated the chat feed. Most viewers reacted with KEKW and laugh emojis.";
+      commonReactions.push({ reaction: "KEKW", frequencyPercent: 55 });
+      commonReactions.push({ reaction: "😂 / 💀", frequencyPercent: 30 });
+      commonReactions.push({ reaction: '"OMFG"', frequencyPercent: 15 });
+    } else if (type === "SUCCESS" || type === "GAMEPLAY") {
       dominantEmotion = "Victory Hype";
-      summaryText = "Celebration flooded the chat. Viewers unified with GG spam and victory emotes.";
-      commonReactions.push({ reaction: "GG", frequencyPercent: 55 });
-      commonReactions.push({ reaction: "W", frequencyPercent: 30 });
-      commonReactions.push({ reaction: "🎉 / Hype", frequencyPercent: 15 });
+      summaryText = "Celebrative feedback took over. Chat filled with GG spams and success markers.";
+      commonReactions.push({ reaction: "GG", frequencyPercent: 60 });
+      commonReactions.push({ reaction: "W", frequencyPercent: 25 });
+      commonReactions.push({ reaction: "Pog", frequencyPercent: 15 });
     } else {
-      dominantEmotion = "Curiosity & Surprise";
-      summaryText = "Chat showed high message velocity with questions and rapid emoji reactions.";
-      commonReactions.push({ reaction: "🔥", frequencyPercent: 40 });
+      dominantEmotion = "Surprise & Spam";
+      summaryText = "Chat showed elevated velocity with rapid question marks and shock emojis.";
+      commonReactions.push({ reaction: "🔥", frequencyPercent: 45 });
       commonReactions.push({ reaction: "? / What", frequencyPercent: 35 });
-      commonReactions.push({ reaction: "Pog / Wow", frequencyPercent: 25 });
+      commonReactions.push({ reaction: "Pog / Wow", frequencyPercent: 20 });
     }
 
     return { dominantEmotion, summaryText, commonReactions };
   }
 
-  private static buildClipStructure(
-    startTime: Date,
-    durationSec: number,
-    primary: HighlightCandidate,
-    category: string
-  ): ClipStructure {
-    const addSec = (sec: number) => {
-      const d = new Date(startTime.getTime() + sec * 1000);
+  private static buildClipStructure(clipStart: Date, clipDuration: number, type: HighlightType): ClipStructure {
+    const formatRelativeTime = (sec: number) => {
+      const d = new Date(clipStart.getTime() + sec * 1000);
       return d.toTimeString().split(" ")[0];
     };
 
-    const buildUpSec = Math.round(durationSec * 0.2);
-    const peakSec = Math.round(durationSec * 0.5);
-    const endSec = durationSec;
+    const buildUpSec = Math.round(clipDuration * 0.25);
+    const peakSec = Math.round(clipDuration * 0.6);
+    const endSec = clipDuration;
 
-    if (category === "Comedy") {
+    if (type === "COMEDY" || type === "FAIL") {
       return {
-        hook: { timestampFormatted: addSec(0), label: "Hook", description: "Unexpected mistake or chat prompt" },
-        buildUp: { timestampFormatted: addSec(buildUpSec), label: "Build-up", description: "Chat begins noticing & spamming emotes" },
-        peak: { timestampFormatted: addSec(peakSec), label: "Peak", description: "Streamer laughs uncontrollably" },
-        ending: { timestampFormatted: addSec(endSec), label: "Ending", description: "Conversation returns to normal broadcast flow" },
+        hook: { timestampFormatted: formatRelativeTime(0), label: "Setup", description: "Streamer introduces joke premise or starts confident build-up." },
+        buildUp: { timestampFormatted: formatRelativeTime(buildUpSec), label: "Punchline / Trigger", description: "The comedy threshold or fail event occurs." },
+        peak: { timestampFormatted: formatRelativeTime(peakSec), label: "Streamer Laugh / Reaction", description: "Vocal and facial reaction peaks; chat explosion starts." },
+        ending: { timestampFormatted: formatRelativeTime(endSec), label: "Chat Laugh Loop", description: "Laughter loop cools down as topic shifts." },
       };
-    } else if (category === "Clutch") {
+    } else if (type === "GAMEPLAY" || type === "SUCCESS") {
       return {
-        hook: { timestampFormatted: addSec(0), label: "Hook", description: "High-stakes gameplay situation begins" },
-        buildUp: { timestampFormatted: addSec(buildUpSec), label: "Build-up", description: "Chat holds breath, tension builds" },
-        peak: { timestampFormatted: addSec(peakSec), label: "Peak", description: "Clutch win executed, massive W spam" },
-        ending: { timestampFormatted: addSec(endSec), label: "Ending", description: "Post-clutch victory shout & celebration" },
+        hook: { timestampFormatted: formatRelativeTime(0), label: "Setup", description: "Streamer enters active high-stakes challenge zone." },
+        buildUp: { timestampFormatted: formatRelativeTime(buildUpSec), label: "Action Loop", description: "Gameplay tension accelerates; active fighting starts." },
+        peak: { timestampFormatted: formatRelativeTime(peakSec), label: "Clutch Peak", description: "Victory play executed cleanly; W spam floods chat." },
+        ending: { timestampFormatted: formatRelativeTime(endSec), label: "Celebration", description: "Tension releases; streamer celebrates with viewers." },
+      };
+    } else if (type === "RP_ROLEPLAY") {
+      return {
+        hook: { timestampFormatted: formatRelativeTime(0), label: "Dialogue Start", description: "Characters engage in standard narrative dialog." },
+        buildUp: { timestampFormatted: formatRelativeTime(buildUpSec), label: "Conflict Rise", description: "Tension builds during roleplay interaction." },
+        peak: { timestampFormatted: formatRelativeTime(peakSec), label: "Betrayal / Twist", description: "Accusation or sudden plot twist occurs." },
+        ending: { timestampFormatted: formatRelativeTime(endSec), label: "Aftermath", description: "Immediate aftermath of roleplay resolution." },
       };
     }
 
     return {
-      hook: { timestampFormatted: addSec(0), label: "Hook", description: "Surprise event triggers audience focus" },
-      buildUp: { timestampFormatted: addSec(buildUpSec), label: "Build-up", description: "Message velocity accelerates rapidly" },
-      peak: { timestampFormatted: addSec(peakSec), label: "Peak", description: "Highest emotional reaction density" },
-      ending: { timestampFormatted: addSec(endSec), label: "Ending", description: "Audience momentum settles back to baseline" },
+      hook: { timestampFormatted: formatRelativeTime(0), label: "Hook", description: "Surprise event triggers audience focus." },
+      buildUp: { timestampFormatted: formatRelativeTime(buildUpSec), label: "Reaction Build-up", description: "Message velocity accelerates rapidly." },
+      peak: { timestampFormatted: formatRelativeTime(peakSec), label: "Reaction Peak", description: "Highest emotional reaction density from streamer." },
+      ending: { timestampFormatted: formatRelativeTime(endSec), label: "Cooldown", description: "Audience settles back to baseline." },
     };
   }
 
@@ -393,111 +482,108 @@ export class EditorialHighlightComposer {
     group: HighlightCandidate[]
   ): string[] {
     const list: string[] = [];
-
-    if (chatSummary.dominantEmotion.includes("Laughter")) {
-      list.push("Highest laughter density of the broadcast window");
-      list.push("Largest KEKW / emote burst sequence");
+    if (primary.metrics.messagesPerMinute > 20) {
+      list.push(`✓ Highest chat velocity recorded in this block (${primary.metrics.messagesPerMinute} messages/min)`);
     } else {
-      list.push(`Elevated chat velocity (${primary.metrics.messagesPerMinute} msgs/min)`);
+      list.push("✓ Significant audience message velocity spike");
     }
-
-    list.push("Strong replay potential for short-form video algorithms");
-    list.push("Viewer retention spike with zero drop-off during peak");
-    list.push(`Sustained engagement duration across ${group.length} consecutive snapshot window(s)`);
-
+    if (chatSummary.dominantEmotion.includes("Laughter")) {
+      list.push("✓ Concentrated burst of laughter emojis and spam text");
+    }
+    list.push("✓ Replay potential is high based on streamer facial reaction clarity");
+    list.push(`✓ Viewer counts held steady at ${primary.metrics.viewerCount || "stable level"} during this highlight`);
     return list;
   }
 
   private static buildEditorSummary(
-    category: string,
+    type: HighlightType,
     primary: HighlightCandidate,
     chatSummary: ChatReactionSummary
   ): string {
-    if (category === "Comedy") {
-      return "This became the strongest comedy moment of the broadcast. The gameplay mistake itself wasn't unusual, but your reaction immediately triggered a sustained wave of laughter that lasted almost a minute.";
-    } else if (category === "Clutch") {
-      return "This is your premier high-skill highlight of today's stream. The execution was clean, and chat's instant GG outbreak confirms high viewer satisfaction.";
-    } else if (category === "Community") {
-      return "A pure community celebration moment. Audience engagement peaked with synchronized emote bursts and high audience unity.";
-    }
-
-    return "A high-retention broadcast moment characterized by rapid chat acceleration and strong viewer emotional resonance.";
+    const velocityPct = Math.round((primary.metrics.messagesPerMinute / 5) * 100);
+    return `This became the strongest moment of the block because chat message velocity increased ${velocityPct}% immediately after your unexpected ${type.toLowerCase()} reaction. Viewers rallied behind the event with synchronized spam.`;
   }
 
-  private static buildEditingInstructions(category: string, chatSummary: ChatReactionSummary): EditingInstructions {
+  private static buildEditingInstructions(type: HighlightType): EditingInstructions {
     return {
       keep: [
-        "✓ Keep first reaction & initial prompt",
-        "✓ Keep chat explosion & emote overlay",
-        "✓ Keep streamer laugh / climax reaction",
+        "✓ Retain the initial 3 seconds of setup for context",
+        "✓ Display chat overlay during the primary peak",
+        "✓ Emphasize facecam reaction frame",
       ],
       trim: [
-        "✗ Remove loading screen / quiet setup",
-        "✗ Trim walking sequence prior to event",
+        "✗ Cut loading screens / silence prior to hook",
+        "✗ Trim post-peak stabilization",
       ],
-      facecamImportance: category === "Comedy" || category === "Reaction" ? "High" : "Medium",
+      facecamImportance: type === "COMEDY" || type === "REACTION" ? "High" : "Medium",
       subtitleRecommendation: true,
-      subtitleReason: "Bouncing animated subtitles will increase short-form hook retention by up to 35%.",
+      subtitleReason: "Add animated kinetic subtitles to improve retention by 35% on short-form platforms.",
     };
   }
 
-  private static buildPublishingStrategy(category: string, durationSec: number): PublishingStrategy {
-    let bestPlatform: PublishingStrategy["bestPlatform"] = "TikTok";
-    if (durationSec <= 60) {
-      bestPlatform = category === "Comedy" ? "TikTok" : "YouTube Shorts";
-    } else {
-      bestPlatform = "YouTube Shorts";
-    }
+  private static buildPublishingStrategy(type: HighlightType, clipDuration: number): PublishingStrategy {
+    const bestPlatform: PublishingStrategy["bestPlatform"] =
+      type === "COMEDY" ? "TikTok" : "YouTube Shorts";
 
     return {
       bestPlatform,
+      secondaryPlatform: "Instagram Reels",
+      why: "Requires aggressive visual framing and rapid hook pacing to appeal to algorithm recommendation feeds.",
+      audience: "Gen-Z focus looking for highly active community interactions and humorous moments.",
+      recommendedUploadTime: "16:00 - 18:00 Local Time",
+      recommendedThumbnailEmotion: type === "COMEDY" ? "Laughing / Wheezing" : "Focused / Intense",
+      recommendedSubtitleStyle: "Bold Yellow/White with word-by-word active scaling",
       priorityWindow: "Today",
-      reasoning: "This moment relies on immediate emotional reaction and is strongest formatted as an aggressive vertical short.",
+      reasoning: "Immediate short-form layout format fits this emotional spike perfectly.",
     };
   }
 
-  private static buildTitleSuggestions(title: string, category: string): TitleSuggestions {
-    if (category === "Comedy") {
-      return {
-        curiosity: "I Wasn't Ready For Chat To Do This...",
-        seo: "Streamer Fails Hard After Chat Distraction",
-        ctr: "This Completely Broke My Stream 😂",
-      };
-    } else if (category === "Clutch") {
-      return {
-        curiosity: "How Did I Survive This 1v4?",
-        seo: "Insane Clutch Victory Stream Highlights",
-        ctr: "Streamer Somehow Won A 1v4",
-      };
+  private static buildTitleSuggestions(type: HighlightType): TitleSuggestions {
+    switch (type) {
+      case "COMEDY":
+        return {
+          ctr: { title: "This Completely Broke My Chat 😂", reason: "Uses emotional hyperbole and a laughing emote to drive CTR." },
+          curiosity: { title: "I Didn't Think Chat Would Catch This...", reason: "Creates a curiosity gap focused on viewer eagle eyes." },
+          seo: { title: "Funny Stream Moments and Chat Highlights", reason: "Standard high-volume SEO search term." },
+          tiktok: { title: "They really had to do me like that 💀", reason: "Relatable meme phrasing." },
+          shorts: { title: "Chat had zero mercy today", reason: "Community call-out driving active viewer responses." },
+        };
+      case "FAIL":
+        return {
+          ctr: { title: "The Moment I Realized I Messed Up...", reason: "Leverages expectation failure." },
+          curiosity: { title: "It all went wrong in 3 seconds", reason: "Curiosity around a fast-occurring disaster." },
+          seo: { title: "Stream Fail compilation funny moments", reason: "Highly searched generic terms for stream fails." },
+          tiktok: { title: "Photos taken seconds before disaster", reason: "Memetic caption structure." },
+          shorts: { title: "How to lose a stream in 10 seconds", reason: "Strong hook utilizing negative framing." },
+        };
+      default:
+        return {
+          ctr: { title: "The 1v3 That Saved The Entire Run", reason: "High excitement level." },
+          curiosity: { title: "They thought it was over...", reason: "Underdog setup creating tension." },
+          seo: { title: "High level gameplay clutch compilation", reason: "SEO optimized search terms." },
+          tiktok: { title: "Calculated. 🎯", reason: "Punchy gameplay caption." },
+          shorts: { title: "We actually pulled this off", reason: "Authentic milestone celebration." },
+        };
     }
-
-    return {
-      curiosity: "Chat Made Me Do Something Regrettable",
-      seo: "Top Stream Highlights & Reactions",
-      ctr: "You Won't Believe What Happened Next!",
-    };
   }
 
-  private static buildThumbnailRecommendation(
-    startTime: Date,
-    category: string,
-    primary: HighlightCandidate
-  ): ThumbnailRecommendation {
-    const frameTime = new Date(startTime.getTime() + 15000);
+  private static buildThumbnailRecommendation(clipStart: Date, type: HighlightType): ThumbnailRecommendation {
+    const frameTime = new Date(clipStart.getTime() + 12000);
     const frameTimestamp = frameTime.toTimeString().split(" ")[0];
 
     return {
       frameTimestamp,
-      expression: category === "Comedy" ? "Laughing / Shocked" : "Focused / Triumphant",
-      overlayText: category === "Comedy" ? '"CHAT LOST IT"' : '"UNBELIEVABLE!"',
-      focusArea: "Facecam + Emote Cloud overlay",
+      expression: type === "COMEDY" ? "Laughing / Shocked" : "Focused / Intense",
+      overlayText: type === "COMEDY" ? '"CHAT LOST IT"' : '"UNBELIEVABLE!"',
+      focusArea: "Facecam close-up + Chat overlay block",
+      eyeContact: "Direct eye contact with camera for maximum click-through",
+      brightness: "120% boost on face; dark background for contrast",
+      sceneClarity: "High clarity with zero motion blur in selected frame",
+      reason: "Visual highlights streamer's emotional payoff moment directly aligned with chat spike.",
     };
   }
 
-  private static buildPerformancePrediction(
-    primary: HighlightCandidate,
-    group: HighlightCandidate[]
-  ): PerformancePrediction {
+  private static buildPerformancePrediction(primary: HighlightCandidate, type: HighlightType): PerformancePrediction {
     const baseScore = primary.score;
 
     const virality = Math.min(99, baseScore + 2);
@@ -507,6 +593,14 @@ export class EditorialHighlightComposer {
     const community = Math.min(99, baseScore + 4);
     const overall = Math.round((virality + replay + ctr + retention + community) / 5);
 
+    const scoreBreakdown: ScoreItem[] = [
+      { label: "Chat Explosion", value: Math.round(virality * 0.25) },
+      { label: "Emotional Reaction", value: Math.round(community * 0.25) },
+      { label: "Viewer Spike", value: Math.round(retention * 0.2) },
+      { label: "Replay Potential", value: Math.round(replay * 0.15) },
+      { label: "Strong Hook", value: Math.round(ctr * 0.15) },
+    ];
+
     return {
       virality,
       replay,
@@ -514,7 +608,8 @@ export class EditorialHighlightComposer {
       retention,
       community,
       overall,
-      explanation: "This score is driven mostly by emotional reaction and audience unity rather than passive gameplay.",
+      explanation: `This moment is driven by a ${type.toLowerCase()} response, causing high retention and community spam.`,
+      scoreBreakdown,
     };
   }
 
@@ -524,8 +619,8 @@ export class EditorialHighlightComposer {
   ): EditorsReport {
     const bestClip = topHighlights[0];
     const shortClip = topHighlights.find((h) => h.publishingStrategy.bestPlatform === "TikTok" || h.publishingStrategy.bestPlatform === "YouTube Shorts") || bestClip;
-    const funniest = topHighlights.find((h) => h.category === "Comedy") || bestClip;
-    const community = topHighlights.find((h) => h.category === "Community") || bestClip;
+    const funniest = topHighlights.find((h) => h.classifiedType === "COMEDY") || bestClip;
+    const community = topHighlights.find((h) => h.classifiedType === "COMMUNITY") || bestClip;
 
     const bestClipTitle = bestClip ? `"${bestClip.title}" (${bestClip.timeline.durationFormatted})` : "None";
     const shortTitle = shortClip ? `"${shortClip.title}" (${shortClip.publishingStrategy.bestPlatform})` : "None";

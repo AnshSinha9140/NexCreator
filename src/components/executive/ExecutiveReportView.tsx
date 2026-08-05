@@ -1,19 +1,19 @@
-"use client";
-
 import React, { useState, useEffect } from "react";
-import { ExecutiveReport, ActionItem } from "@/lib/ai/executiveTypes";
+import { ExecutiveReport } from "@/lib/ai/executiveTypes";
 import { ReportHeader } from "./ReportHeader";
-import { ExecutiveSummary } from "./ExecutiveSummary";
-import { PerformanceScore } from "./PerformanceScore";
-import { BiggestWinsCard } from "./BiggestWinsCard";
-import { MissedOpportunityCard } from "./MissedOpportunityCard";
-import { StreamStory } from "./StreamStory";
-import { AudienceInsights } from "./AudienceInsights";
-import { BestMoments } from "./BestMoments";
-import { ClipOpportunityCard } from "./ClipOpportunityCard";
-import { PersonalizedCoaching } from "./PersonalizedCoaching";
-import { ActionChecklist } from "./ActionChecklist";
 import { ReportHistoryView } from "./ReportHistoryView";
+import { SessionSnapshot } from "./SessionSnapshot";
+import { ThreeDiscoveries } from "./ThreeDiscoveries";
+import { CreatorMemory } from "./CreatorMemory";
+import { CreatorEvolution } from "./CreatorEvolution";
+import { RecurringPatterns } from "./RecurringPatterns";
+import { CreatorDNAChanges } from "./CreatorDNAChanges";
+import { MissionProgress } from "./MissionProgress";
+import { AIConfidenceEngine } from "./AIConfidenceEngine";
+import { ExperimentCard } from "./ExperimentCard";
+import { DecisionLog } from "./DecisionLog";
+import { ManagerJournal } from "./ManagerJournal";
+import { KnowledgeGraphUpdates } from "./KnowledgeGraphUpdates";
 
 interface ExecutiveReportViewProps {
   defaultSessionId?: string;
@@ -21,24 +21,21 @@ interface ExecutiveReportViewProps {
 
 function generateMarkdown(report: ExecutiveReport): string {
   const lines: string[] = [
-    `# Executive Producer Report`,
-    `**Stream:** ${report.streamTitle || "Stream"}`,
-    `**Platform:** ${report.platform || "Unknown"}`,
+    `# AI Creator Manager Intelligence Report`,
+    `**Stream:** ${report.streamTitle || "Monitored Broadcast"}`,
+    `**Platform:** ${report.platform || "Kick"}`,
     `**Generated:** ${report.createdAt}`,
     ``,
-    `## Executive Summary`,
-    report.executiveSummary.narrative,
+    `## Manager Journal`,
+    `"${report.managerJournal?.entryText || report.executiveSummary.narrative}"`,
+    `— ${report.managerJournal?.signedBy || "Your AI Creator Manager"}`,
     ``,
-    `## Stream Score`,
-    `- Overall Grade: **${report.scores.overallGrade}** (${report.scores.overall}%)`,
-    `- Content Quality: ${report.scores.content}%`,
-    `- Audience Engagement: ${report.scores.audience}%`,
-    `- Viewer Retention: ${report.scores.retention}%`,
-    `- Energy: ${report.scores.energy}%`,
-    `- Interaction: ${report.scores.interaction}%`,
+    `## Three Discoveries`,
+    ...(report.threeDiscoveries || []).map((d) => `- [${d.confidence}%] ${d.discovery} (Evidence: ${d.evidence})`),
     ``,
-    `## Action Plan`,
-    ...(report.actionPlan || []).map((a) => `- [ ] ${a.text}`),
+    `## Experiment for Next Stream`,
+    `Test: ${report.experiment?.testInstruction || "N/A"}`,
+    `Expected: ${report.experiment?.expectedImprovement || "N/A"}`,
   ];
   return lines.join("\n");
 }
@@ -84,7 +81,6 @@ export const ExecutiveReportView: React.FC<ExecutiveReportViewProps> = ({ defaul
     setLoading(true);
     setError(null);
     try {
-      // Get completed sessions and pick the most recent
       const sessRes = await fetch("/api/sessions?mode=history");
       const sessJson = await sessRes.json();
       if (sessJson.success && sessJson.sessions?.length > 0) {
@@ -113,29 +109,7 @@ export const ExecutiveReportView: React.FC<ExecutiveReportViewProps> = ({ defaul
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reportId: report.id, isFavorited: !report.isFavorited }),
       });
-      setReport((prev) => prev ? { ...prev, isFavorited: !prev.isFavorited } : prev);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleToggleAction = async (itemId: string, completed: boolean) => {
-    if (!report) return;
-    setReport((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        actionPlan: prev.actionPlan.map((a) =>
-          a.id === itemId ? { ...a, isCompleted: completed } : a
-        ),
-      };
-    });
-    try {
-      await fetch("/api/ai/reports", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reportId: report.id, actionItemId: itemId, actionCompleted: completed }),
-      });
+      setReport((prev) => (prev ? { ...prev, isFavorited: !prev.isFavorited } : prev));
     } catch (e) {
       console.error(e);
     }
@@ -157,7 +131,7 @@ export const ExecutiveReportView: React.FC<ExecutiveReportViewProps> = ({ defaul
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `exec-report-${report.sessionId}.md`;
+    a.download = `creator-intelligence-${report.sessionId}.md`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -185,7 +159,7 @@ export const ExecutiveReportView: React.FC<ExecutiveReportViewProps> = ({ defaul
               color: view === "history" ? "#f1f5f9" : "#64748b",
             }}
           >
-            📁 All Reports
+            📁 All Intelligence Reports
           </button>
           {report && (
             <button
@@ -201,7 +175,7 @@ export const ExecutiveReportView: React.FC<ExecutiveReportViewProps> = ({ defaul
                 color: view === "report" ? "#f1f5f9" : "#64748b",
               }}
             >
-              🎬 Current Report
+              🧠 Latest Stream Notebook
             </button>
           )}
         </div>
@@ -220,33 +194,28 @@ export const ExecutiveReportView: React.FC<ExecutiveReportViewProps> = ({ defaul
             boxShadow: "0 4px 14px rgba(168,85,247,0.3)",
           }}
         >
-          {loading ? "Generating..." : "Generate Latest Report"}
+          {loading ? "Analyzing Broadcast..." : "Generate Latest Report"}
         </button>
       </div>
 
-      {/* Content */}
+      {/* Error */}
       {error && (
-        <div style={{
-          padding: "16px 20px",
-          borderRadius: "12px",
-          background: "rgba(244,63,94,0.1)",
-          border: "1px solid rgba(244,63,94,0.25)",
-          color: "#f87171",
-          fontSize: "13px",
-        }}>
+        <div style={{ padding: "16px 20px", borderRadius: "12px", background: "rgba(244,63,94,0.1)", border: "1px solid rgba(244,63,94,0.25)", color: "#f87171", fontSize: "13px" }}>
           ⚠ {error}
         </div>
       )}
 
+      {/* Loading */}
       {loading && (
         <div style={{ padding: "60px 0", textAlign: "center", fontSize: "13px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b" }}>
-          <div style={{ fontSize: "36px", marginBottom: "16px" }}>🎬</div>
-          Generating Executive Producer Report...
+          <div style={{ fontSize: "36px", marginBottom: "16px" }}>🧠</div>
+          Formulating AI Creator Manager Notebook...
           <br />
-          <span style={{ color: "#a855f7" }}>Analyzing stream data, insights & pulse snapshots.</span>
+          <span style={{ color: "#a855f7" }}>Synthesizing telemetry, audience reactions, and long-term memory updates.</span>
         </div>
       )}
 
+      {/* History */}
       {!loading && view === "history" && (
         <ReportHistoryView
           reports={historyReports}
@@ -267,7 +236,7 @@ export const ExecutiveReportView: React.FC<ExecutiveReportViewProps> = ({ defaul
                 body: JSON.stringify({ reportId: id, isFavorited: !r.isFavorited }),
               });
               setHistoryReports((prev) =>
-                prev.map((rep) => rep.id === id ? { ...rep, isFavorited: !rep.isFavorited } : rep)
+                prev.map((rep) => (rep.id === id ? { ...rep, isFavorited: !rep.isFavorited } : rep))
               );
             } catch (e) {
               console.error(e);
@@ -277,6 +246,7 @@ export const ExecutiveReportView: React.FC<ExecutiveReportViewProps> = ({ defaul
         />
       )}
 
+      {/* Redesigned Sprint 23.0 Intelligence Report Layout */}
       {!loading && view === "report" && report && (
         <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
           <ReportHeader
@@ -285,21 +255,32 @@ export const ExecutiveReportView: React.FC<ExecutiveReportViewProps> = ({ defaul
             onExportMarkdown={handleExportMarkdown}
             onCopyToClipboard={handleCopyToClipboard}
           />
-          <ExecutiveSummary data={report.executiveSummary} />
-          <PerformanceScore scores={report.scores} />
-          <BiggestWinsCard wins={report.biggestWins} />
-          <MissedOpportunityCard items={report.missedOpportunities} />
-          <StreamStory milestones={report.streamStory} />
-          <AudienceInsights data={report.audienceIntelligence} />
-          <BestMoments moments={report.bestMoments} />
-          <ClipOpportunityCard clips={report.clipOpportunities} />
-          <PersonalizedCoaching coaching={report.coaching} />
-          <ActionChecklist
-            actionPlan={report.actionPlan}
-            onToggleItem={handleToggleAction}
+          <SessionSnapshot
+            streamTitle={report.streamTitle}
+            platform={report.platform}
+            durationMinutes={Math.round((report.streamDurationSeconds || 2700) / 60)}
+            health={report.sessionHealth}
+            peakViewers={report.peakViewers}
+            averageViewers={report.averageViewers}
+            totalMessages={report.totalMessages}
+            highlightsCount={report.highlightsCount}
+            reportsCount={report.reportsCount}
+            aiConfidence={report.aiConfidenceScore}
           />
+          <ThreeDiscoveries discoveries={report.threeDiscoveries} />
+          <ManagerJournal journal={report.managerJournal} />
+          <CreatorMemory memoryUpdate={report.memoryUpdate} />
+          <CreatorEvolution evolution={report.creatorEvolution} />
+          <RecurringPatterns patterns={report.recurringPatterns} />
+          <CreatorDNAChanges dnaChanges={report.dnaChanges} />
+          <MissionProgress data={report.missionProgress} />
+          <AIConfidenceEngine confidence={report.aiConfidence} />
+          <ExperimentCard experiment={report.experiment} />
+          <DecisionLog logs={report.decisionLog} />
+          <KnowledgeGraphUpdates updates={report.knowledgeGraphUpdates} />
         </div>
       )}
     </div>
   );
 };
+

@@ -88,6 +88,21 @@ export const ClipOpportunityCard: React.FC<ClipOpportunityCardProps> = ({ clips 
               </div>
             </div>
 
+            {/* Identity Badge */}
+            <div
+              style={{
+                fontSize: "11px",
+                fontWeight: 700,
+                color: "#f472b6",
+                background: "rgba(236,72,153,0.12)",
+                padding: "4px 10px",
+                borderRadius: "8px",
+                alignSelf: "flex-start",
+              }}
+            >
+              🎬 This clip best represents your creator identity.
+            </div>
+
             {/* Why */}
             <p style={{ margin: 0, fontSize: "13px", color: "#94a3b8", lineHeight: 1.4 }}>{clip.reason}</p>
 

@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifySessionToken } from "@/lib/session";
-import clientPromise from "@/lib/mongodb";
-import { EditorialHighlightComposer } from "@/lib/highlights/editorialStudio";
-import { HighlightCandidate } from "@/lib/highlights/generator";
+import { SessionIntelligenceEngine } from "@/lib/intelligence/SessionIntelligenceEngine";
 
 async function getAuthUser() {
   const cookieStore = await cookies();
@@ -12,7 +10,7 @@ async function getAuthUser() {
   return await verifySessionToken(token);
 }
 
-// GET /api/highlights?sessionId=XYZ (Fetch production highlight candidates and compose Editorial Highlights)
+// GET /api/highlights?sessionId=XYZ (Fetch canonical highlights from SessionIntelligence)
 export async function GET(request: Request) {
   try {
     const authUser = await getAuthUser();
@@ -27,29 +25,36 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "sessionId is required" }, { status: 400 });
     }
 
-    const client = await clientPromise;
-    const db = client.db("nexcreator");
+    // Fetch canonical intelligence (AI executes once, read anywhere)
+    const sessionIntelligence = await SessionIntelligenceEngine.generate(
+      sessionId,
+      authUser.email
+    );
 
-    const rawCandidates = (await db
-      .collection("highlight_candidates")
-      .find({ sessionId })
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .toArray()) as unknown as HighlightCandidate[];
+    const highlights = sessionIntelligence.highlights;
+    const publishing = sessionIntelligence.publishing;
 
-    // Compose Editorial Studio Highlights & Senior Editor's Report
-    const { highlights: editorialHighlights, report: editorsReport } = EditorialHighlightComposer.composeFromCandidates(rawCandidates);
+    // Senior Editor Report summary from canonical data
+    const editorsReport = {
+      summary: publishing.executiveBrief.summaryText,
+      totalYieldScore: sessionIntelligence.executiveSummary.overallScore,
+      topRecommendedPlatform: highlights[0]?.publishingPackage?.bestPlatform || "YouTube Shorts",
+      highestPriorityAction: publishing.executiveBrief.highestPriorityAction,
+      streamHighlightsCount: highlights.length,
+      shortsCandidateCount: publishing.executiveBrief.shortsCount,
+    };
 
     return NextResponse.json({
       success: true,
       sessionId,
-      highlights: rawCandidates,
-      editorialHighlights,
+      highlights,
+      editorialHighlights: highlights,
       editorsReport,
+      publishing,
+      sessionIntelligence,
     });
   } catch (error: any) {
     console.error("[API] GET /api/highlights error:", error);
     return NextResponse.json({ error: error.message || "Failed to fetch highlights" }, { status: 500 });
   }
 }
-

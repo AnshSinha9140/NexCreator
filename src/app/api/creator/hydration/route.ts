@@ -62,6 +62,7 @@ export async function GET() {
     creatorHistory: hydration.creatorHistory,
     onboardingState: hydration.onboardingState,
     knowledgeGraph: hydration.knowledgeGraph,
+    creatorDNA: hydration.creatorDNA,
     creatorMission: hydration.creatorMission,
     completedSessionsCount: hydration.completedSessionsCount,
     canonicalCreatorId: hydration.canonicalCreatorId,

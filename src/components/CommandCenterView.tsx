@@ -21,8 +21,7 @@ export const CommandCenterView: React.FC<{
 
   // State
   const [connectedPlatforms, setConnectedPlatforms] = useState<ConnectedPlatformAccount[]>([]);
-  const [activeSession, setActiveSession] = useState<MonitoringSession | null>(null);
-  const [recentSessions, setRecentSessions] = useState<MonitoringSession[]>([]);
+  const [workspaceState, setWorkspaceState] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Time Greeting Calculation
@@ -34,15 +33,18 @@ export const CommandCenterView: React.FC<{
   };
 
   const displayName = profile?.audit.creatorName || currentUser?.name || currentUser?.email?.split("@")[0] || "Creator";
-  const managerNote = profile?.audit.managerImpression?.firstImpression || "Your Creator Intelligence profile is still being prepared.";
+  const managerNote = profile?.audit.managerImpression?.firstImpression || "Your Creator Intelligence profile is dynamically calibrating across your broadcast activity.";
 
-  // Fetch Connected Platforms & Monitoring Sessions
+  // Fetch Single Source of Truth Workspace State & Connected Platforms
   useEffect(() => {
     const loadCommandCenterData = async () => {
       setIsLoading(true);
       try {
-        // 1. Fetch Connected Platforms
-        const platRes = await fetch("/api/platforms/connected");
+        const [platRes, wsRes] = await Promise.all([
+          fetch("/api/platforms/connected"),
+          fetch("/api/workspace/state"),
+        ]);
+
         if (platRes.ok) {
           const platData = await platRes.json();
           if (platData.success && Array.isArray(platData.platforms)) {
@@ -50,16 +52,10 @@ export const CommandCenterView: React.FC<{
           }
         }
 
-        // 2. Fetch Active & Recent Monitoring Sessions
-        const sessRes = await fetch("/api/sessions?mode=all");
-        if (sessRes.ok) {
-          const sessData = await sessRes.json();
-          if (sessData.success && Array.isArray(sessData.sessions)) {
-            const active = sessData.sessions.find((s: MonitoringSession) =>
-              ["waiting", "starting", "live", "paused"].includes(s.status)
-            );
-            setActiveSession(active || null);
-            setRecentSessions(sessData.sessions.slice(0, 5));
+        if (wsRes.ok) {
+          const wsData = await wsRes.json();
+          if (wsData.success && wsData.workspaceState) {
+            setWorkspaceState(wsData.workspaceState);
           }
         }
       } catch (err) {
@@ -72,11 +68,14 @@ export const CommandCenterView: React.FC<{
     loadCommandCenterData();
   }, []);
 
-  const dashboardState = resolveDashboardState(completedSessionsCount);
+  const totalCompleted = workspaceState?.completedSessionsCount ?? completedSessionsCount;
+  const activeSession = workspaceState?.activeSession ?? null;
+  const recentSessions = workspaceState?.recentSessions ?? [];
 
-  if (dashboardState === DashboardState.FIRST_STREAM) {
-    return <WaitingForFirstStream creatorName={displayName} setActiveTab={setActiveTab} />;
+  if (!isLoading && totalCompleted === 0) {
+    return <WaitingForFirstStream creatorName={displayName} setActiveTab={setActiveTab} workspaceState={workspaceState} />;
   }
+
 
   return (
     <motion.div
@@ -92,11 +91,13 @@ export const CommandCenterView: React.FC<{
           alignItems: "center",
           justifyContent: "space-between",
           gap: "20px",
-          padding: "24px 28px",
+          padding: "16px 20px",
           borderRadius: "18px",
           background: "linear-gradient(135deg, rgba(18,22,40,0.9) 0%, rgba(10,13,24,0.97) 100%)",
           border: "1px solid rgba(255,255,255,0.08)",
           boxShadow: "0 16px 40px rgba(0,0,0,0.4)",
+          maxWidth: "42rem",
+          height: "auto",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
@@ -152,13 +153,15 @@ export const CommandCenterView: React.FC<{
       {/* ─── TODAY'S MANAGER NOTE (Sprint 20.1 Part 12) ───────────────────────── */}
       <div
         style={{
-          padding: "20px 24px",
+          padding: "16px 20px",
           borderRadius: "16px",
           background: "linear-gradient(135deg, rgba(147, 51, 234, 0.12), rgba(59, 130, 246, 0.12))",
           border: "1px solid rgba(147, 51, 234, 0.3)",
           display: "flex",
           flexDirection: "column",
-          gap: "8px",
+          gap: "6px",
+          maxWidth: "42rem",
+          height: "auto",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -174,7 +177,7 @@ export const CommandCenterView: React.FC<{
 
       {/* ─── 2. CONNECTED PLATFORMS SECTION ───────────────────────────────── */}
       <div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
           <h2 style={{ fontSize: "15px", fontWeight: "700", color: "#f8fafc", display: "flex", alignItems: "center", gap: "8px" }}>
             <span>🔌</span> Connected Platforms
           </h2>
@@ -187,71 +190,83 @@ export const CommandCenterView: React.FC<{
         </div>
 
         {connectedPlatforms.length > 0 ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "14px" }}>
-            {connectedPlatforms.map((plat) => (
-              <div
-                key={plat.id}
-                style={{
-                  padding: "16px 20px",
-                  borderRadius: "14px",
-                  background: "rgba(13,16,27,0.7)",
-                  backdropFilter: "blur(16px)",
-                  border: "1px solid rgba(255,255,255,0.07)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "14px",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <div
-                    style={{
-                      width: "40px",
-                      height: "40px",
-                      borderRadius: "10px",
-                      background: plat.platform === "kick" ? "rgba(83, 252, 24, 0.15)" : "rgba(255, 0, 0, 0.15)",
-                      border: `1px solid ${plat.platform === "kick" ? "rgba(83, 252, 24, 0.3)" : "rgba(255, 0, 0, 0.3)"}`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "18px",
-                      fontWeight: "bold",
-                      color: plat.platform === "kick" ? "#53fc18" : "#ff0000",
-                    }}
-                  >
-                    {plat.platform === "kick" ? "K" : "▶"}
-                  </div>
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span style={{ fontSize: "14px", fontWeight: "700", color: "#f8fafc" }}>{plat.displayName}</span>
-                      {plat.verified && <span style={{ fontSize: "11px", color: "#10b981", fontWeight: "bold" }}>✓</span>}
-                      {plat.isDefault && (
-                        <span style={{ fontSize: "9px", padding: "1px 5px", borderRadius: "4px", background: "rgba(168,85,247,0.15)", color: "#c084fc", fontFamily: "monospace" }}>
-                          DEFAULT
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: "11px", color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>
-                      @{plat.username} {plat.followersCount ? `· ${plat.followersCount.toLocaleString()} followers` : ""}
-                    </div>
-                  </div>
-                </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "14px", height: "auto" }}>
+            {connectedPlatforms.map((plat) => {
+              const formattedName = plat.platform === "kick"
+                ? (plat.displayName.includes("kick.com")
+                    ? `@${plat.displayName.split("kick.com/").pop()?.replace(/\/$/, "")}`
+                    : (plat.displayName.startsWith("@") ? plat.displayName : `@${plat.displayName}`))
+                : plat.displayName;
 
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
-                  <span style={{ fontSize: "10px", fontWeight: "700", color: "#10b981", fontFamily: "monospace" }}>
-                    ● CONNECTED
-                  </span>
-                  <button
-                    onClick={() => setActiveTab("settings")}
-                    style={{ fontSize: "10px", color: "#64748b", background: "none", border: "none", cursor: "pointer" }}
-                  >
-                    Configure
-                  </button>
+              return (
+                <div
+                  key={plat.id}
+                  style={{
+                    padding: "14px 18px",
+                    borderRadius: "14px",
+                    background: "rgba(13,16,27,0.7)",
+                    backdropFilter: "blur(16px)",
+                    border: "1px solid rgba(255,255,255,0.07)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "14px",
+                    height: "auto",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div
+                      style={{
+                        width: "40px",
+                        height: "40px",
+                        borderRadius: "10px",
+                        background: plat.platform === "kick" ? "rgba(83, 252, 24, 0.05)" : "rgba(255, 0, 0, 0.05)",
+                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "18px",
+                        fontWeight: "bold",
+                        color: plat.platform === "kick" ? "#53fc18" : "#ff0000",
+                      }}
+                    >
+                      {plat.platform === "kick" ? "K" : "▶"}
+                    </div>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span style={{ fontSize: "14px", fontWeight: "700", color: "#f8fafc" }}>{formattedName}</span>
+                        {plat.verified && <span style={{ fontSize: "11px", color: "#10b981", fontWeight: "bold" }}>✓</span>}
+                        {plat.isDefault && (
+                          <span style={{ fontSize: "9px", padding: "1px 5px", borderRadius: "4px", background: "rgba(168,85,247,0.15)", color: "#c084fc", fontFamily: "monospace" }}>
+                            DEFAULT
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: "11px", color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>
+                        @{plat.username} {plat.followersCount ? `· ${plat.followersCount.toLocaleString()} followers` : ""}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#10b981", display: "inline-block" }} />
+                      <span style={{ fontSize: "10px", fontWeight: "700", color: "#94a3b8", fontFamily: "monospace" }}>
+                        CONNECTED
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab("settings")}
+                      style={{ fontSize: "10px", color: "#64748b", background: "none", border: "none", cursor: "pointer" }}
+                    >
+                      Configure
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {/* Future Placeholder Cards */}
-            <div style={{ padding: "16px 20px", borderRadius: "14px", background: "rgba(255,255,255,0.01)", border: "1px dashed rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between", opacity: 0.6 }}>
+            <div style={{ padding: "14px 18px", borderRadius: "14px", background: "rgba(255,255,255,0.01)", border: "1px dashed rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between", opacity: 0.6, height: "auto" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <span style={{ fontSize: "18px" }}>👾</span>
                 <div>
@@ -265,7 +280,7 @@ export const CommandCenterView: React.FC<{
           /* Empty State for Connected Platforms */
           <div
             style={{
-              padding: "28px",
+              padding: "16px 20px",
               borderRadius: "14px",
               background: "rgba(13,16,27,0.5)",
               border: "1px dashed rgba(255,255,255,0.08)",
@@ -274,6 +289,7 @@ export const CommandCenterView: React.FC<{
               flexDirection: "column",
               alignItems: "center",
               gap: "12px",
+              height: "auto",
             }}
           >
             <span style={{ fontSize: "28px" }}>🔌</span>
@@ -293,7 +309,7 @@ export const CommandCenterView: React.FC<{
       {/* ─── 3. LIVE STATUS HERO CARD ─────────────────────────────────────── */}
       <div
         style={{
-          padding: "24px 28px",
+          padding: "16px 20px",
           borderRadius: "18px",
           background: activeSession
             ? "linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(10,13,24,0.95) 100%)"
@@ -304,10 +320,11 @@ export const CommandCenterView: React.FC<{
           justifyContent: "space-between",
           gap: "24px",
           boxShadow: "0 20px 45px rgba(0,0,0,0.5)",
+          height: "auto",
         }}
       >
         <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
             <span className={activeSession ? "badge badge-live" : "badge"} style={{ background: activeSession ? undefined : "rgba(255,255,255,0.05)", color: activeSession ? undefined : "#64748b" }}>
               <span className={activeSession ? "live-pulse-dot" : ""} style={{ width: "6px", height: "6px", borderRadius: "50%", background: activeSession ? "#10b981" : "#475569", display: "inline-block" }} />
               {activeSession ? `STATUS: ${activeSession.status.toUpperCase()}` : "STATUS: OFFLINE"}
@@ -336,17 +353,18 @@ export const CommandCenterView: React.FC<{
       </div>
 
       {/* ─── 4. QUICK ACTIONS & CREATOR HEALTH ───────────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "16px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "16px", height: "auto" }}>
         {/* Quick Actions Grid */}
         <div
           style={{
-            padding: "20px",
+            padding: "16px",
             borderRadius: "16px",
             background: "rgba(13,16,27,0.7)",
             border: "1px solid rgba(255,255,255,0.07)",
+            height: "auto",
           }}
         >
-          <div style={{ fontSize: "13px", fontWeight: "700", color: "#f8fafc", marginBottom: "14px" }}>
+          <div style={{ fontSize: "13px", fontWeight: "700", color: "#f8fafc", marginBottom: "10px" }}>
             ⚡ Quick Actions
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
@@ -393,24 +411,25 @@ export const CommandCenterView: React.FC<{
         {/* Creator Health Telemetry Card */}
         <div
           style={{
-            padding: "20px",
+            padding: "16px",
             borderRadius: "16px",
             background: "rgba(13,16,27,0.7)",
             border: "1px solid rgba(255,255,255,0.07)",
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
+            height: "auto",
           }}
         >
           <div>
             <div style={{ fontSize: "11px", fontWeight: "700", color: "#a855f7", textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace" }}>
               Monitored Streams
             </div>
-            <div style={{ fontSize: "36px", fontWeight: "900", color: "#34d399", margin: "8px 0 2px" }}>
+            <div style={{ fontSize: "36px", fontWeight: "900", color: "#34d399", margin: "4px 0 2px" }}>
               {completedSessionsCount}
             </div>
           </div>
-          <p style={{ fontSize: "11px", color: "#64748b", lineHeight: 1.4 }}>
+          <p style={{ fontSize: "11px", color: "#64748b", lineHeight: 1.4, marginTop: "6px" }}>
             Your Creator Intelligence profile is dynamically calibrating based on your actual broadcast behavior.
           </p>
         </div>
@@ -419,34 +438,37 @@ export const CommandCenterView: React.FC<{
       {/* ─── 5. RECENT MONITORING SESSIONS ────────────────────────────────── */}
       <div
         style={{
-          padding: "20px",
+          padding: "16px",
           borderRadius: "16px",
           background: "rgba(13,16,27,0.7)",
           border: "1px solid rgba(255,255,255,0.07)",
+          height: "auto",
         }}
       >
-        <div style={{ fontSize: "13px", fontWeight: "700", color: "#f8fafc", marginBottom: "14px" }}>
+        <div style={{ fontSize: "13px", fontWeight: "700", color: "#f8fafc", marginBottom: "10px" }}>
           🎥 Recent Monitoring Sessions
         </div>
 
         {recentSessions.length > 0 ? (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {recentSessions.map((sess) => (
+            {recentSessions.map((sess: any) => (
               <div
-                key={sess.id}
+                key={sess.id || sess._id}
+
                 style={{
-                  padding: "12px 14px",
+                  padding: "10px 12px",
                   borderRadius: "10px",
                   background: "rgba(255,255,255,0.02)",
                   border: "1px solid rgba(255,255,255,0.05)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
+                  height: "auto",
                 }}
               >
                 <div>
                   <div style={{ fontSize: "13px", fontWeight: "600", color: "#f8fafc" }}>{sess.streamTitle}</div>
-                  <div style={{ fontSize: "11px", color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>
+                  <div style={{ fontSize: "11px", color: "#64748b", fontFamily: "'JetBrains Mono', monospace", marginTop: "2px" }}>
                     {sess.platform.toUpperCase()} · Peak Viewers: {sess.peakViewerCount}
                   </div>
                 </div>
@@ -458,7 +480,7 @@ export const CommandCenterView: React.FC<{
           </div>
         ) : (
           /* Empty State for Recent Sessions */
-          <div style={{ padding: "24px", textAlign: "center", color: "#475569", fontSize: "12px" }}>
+          <div style={{ padding: "16px", textAlign: "center", color: "#475569", fontSize: "12px" }}>
             No streams have been monitored yet. Your completed live stream sessions will be archived here.
           </div>
         )}
@@ -466,10 +488,10 @@ export const CommandCenterView: React.FC<{
 
       {/* ─── 8. UPCOMING LOCKED MODULE CARDS ─────────────────────────────── */}
       <div>
-        <div style={{ fontSize: "13px", fontWeight: "700", color: "#f8fafc", marginBottom: "14px" }}>
+        <div style={{ fontSize: "13px", fontWeight: "700", color: "#f8fafc", marginBottom: "10px" }}>
           🚀 Intelligence Modules (Coming Soon)
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", height: "auto" }}>
           {[
             { title: "AI Producer", icon: "🤖", desc: "Real-time action guidance" },
             { title: "Live Pulse", icon: "🔴", desc: "Sentiment & hype index" },
@@ -480,11 +502,12 @@ export const CommandCenterView: React.FC<{
             <div
               key={idx}
               style={{
-                padding: "16px",
+                padding: "12px",
                 borderRadius: "12px",
                 background: "rgba(255,255,255,0.01)",
                 border: "1px dashed rgba(255,255,255,0.06)",
                 opacity: 0.7,
+                height: "auto",
               }}
             >
               <div style={{ fontSize: "20px", marginBottom: "6px" }}>{mod.icon}</div>

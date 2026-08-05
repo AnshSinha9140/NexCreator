@@ -28,6 +28,7 @@ import {
 } from "./types";
 import { buildInitialKnowledgeGraph } from "@/lib/creatorKnowledge/knowledgeBuilder";
 import { buildInitialCreatorMission } from "@/lib/creatorMission/missionBuilder";
+import { buildInitialCreatorDNA } from "@/lib/creatorDNA/CreatorDNAEngine";
 
 // ---------------------------------------------------------------------------
 // Creator resolution — multi-key lookup by _id, email, or string id
@@ -194,6 +195,13 @@ export async function approveCreatorPartnership(
         { upsert: true, session }
       );
 
+      const initialDNA = buildInitialCreatorDNA(canonicalCreatorId, audit, initialKnowledgeGraph);
+      await db.collection("creator_dna").updateOne(
+        { creatorId: canonicalCreatorId },
+        { $setOnInsert: initialDNA },
+        { upsert: true, session }
+      );
+
       // ---------------------------------------------------------------
       // Write 7: Upsert creator_mission (Sprint 21.2.1)
       // ---------------------------------------------------------------
@@ -210,12 +218,13 @@ export async function approveCreatorPartnership(
       // Durability verification — read back all 6 intelligence documents
       // If any are missing, throw to abort the transaction
       // ---------------------------------------------------------------
-      const [savedProfile, savedMemory, savedHistory, savedOnboarding, savedGraph, savedMission] = await Promise.all([
+      const [savedProfile, savedMemory, savedHistory, savedOnboarding, savedGraph, savedDNA, savedMission] = await Promise.all([
         db.collection("creator_profile").findOne({ creatorId: canonicalCreatorId }, { session }),
         db.collection("relationship_memory").findOne({ creatorId: canonicalCreatorId }, { session }),
         db.collection("creator_history").findOne({ creatorId: canonicalCreatorId }, { session }),
         db.collection("onboarding_state").findOne({ creatorId: canonicalCreatorId }, { session }),
         db.collection("creator_knowledge_graph").findOne({ creatorId: canonicalCreatorId }, { session }),
+        db.collection("creator_dna").findOne({ creatorId: canonicalCreatorId }, { session }),
         db.collection("creator_mission").findOne({ creatorId: canonicalCreatorId }, { session }),
       ]);
 
@@ -225,6 +234,7 @@ export async function approveCreatorPartnership(
       if (!savedHistory) missing.push("creator_history");
       if (!savedOnboarding) missing.push("onboarding_state");
       if (!savedGraph) missing.push("creator_knowledge_graph");
+      if (!savedDNA) missing.push("creator_dna");
       if (!savedMission) missing.push("creator_mission");
 
       if (missing.length > 0) {
@@ -262,6 +272,7 @@ export async function getCreatorHydration(creatorId: string): Promise<{
   creatorHistory: Record<string, unknown>[] | null;
   onboardingState: Record<string, unknown> | null;
   knowledgeGraph: Record<string, unknown> | null;
+  creatorDNA: Record<string, unknown> | null;
   creatorMission: Record<string, unknown> | null;
   completedSessionsCount: number;
   canonicalCreatorId: string | null;
@@ -283,15 +294,16 @@ export async function getCreatorHydration(creatorId: string): Promise<{
       },
       diagnosticMessage: "Creator not found in users collection.",
     };
-    return { creator: null, profile: null, relationshipMemory: null, creatorHistory: null, onboardingState: null, knowledgeGraph: null, creatorMission: null, completedSessionsCount: 0, canonicalCreatorId: null, diagnostics };
+    return { creator: null, profile: null, relationshipMemory: null, creatorHistory: null, onboardingState: null, knowledgeGraph: null, creatorDNA: null, creatorMission: null, completedSessionsCount: 0, canonicalCreatorId: null, diagnostics };
   }
 
-  const [profile, relationshipMemory, creatorHistory, onboardingState, knowledgeGraph, creatorMission, completedSessionsCount] = await Promise.all([
+  const [profile, relationshipMemory, creatorHistory, onboardingState, knowledgeGraph, creatorDNA, creatorMission, completedSessionsCount] = await Promise.all([
     db.collection("creator_profile").findOne({ creatorId: canonicalCreatorId }),
     db.collection("relationship_memory").findOne({ creatorId: canonicalCreatorId }),
     db.collection("creator_history").find({ creatorId: canonicalCreatorId }).sort({ timestamp: -1 }).toArray(),
     db.collection("onboarding_state").findOne({ creatorId: canonicalCreatorId }),
     db.collection("creator_knowledge_graph").findOne({ creatorId: canonicalCreatorId }),
+    db.collection("creator_dna").findOne({ creatorId: canonicalCreatorId }),
     db.collection("creator_mission").findOne({ creatorId: canonicalCreatorId }),
     db.collection("completed_session_bundle").countDocuments({ creatorId: canonicalCreatorId }),
   ]);
@@ -306,6 +318,7 @@ export async function getCreatorHydration(creatorId: string): Promise<{
   const onboardingDone = onboardingState?.completed || profile?.onboardingCompleted;
   if (onboardingDone) {
     if (!knowledgeGraph) missing.push("creator_knowledge_graph");
+    if (!creatorDNA) missing.push("creator_dna");
     if (!creatorMission) missing.push("creator_mission");
   }
 
@@ -333,6 +346,7 @@ export async function getCreatorHydration(creatorId: string): Promise<{
     creatorHistory: creatorHistory as Record<string, unknown>[],
     onboardingState: onboardingState as Record<string, unknown> | null,
     knowledgeGraph: knowledgeGraph as Record<string, unknown> | null,
+    creatorDNA: creatorDNA as Record<string, unknown> | null,
     creatorMission: creatorMission as Record<string, unknown> | null,
     completedSessionsCount,
     canonicalCreatorId,
@@ -486,6 +500,7 @@ export async function mergeCreatorAlignment(
 
   // Build the rich CreatorKnowledgeGraph using the new domain engine
   const fullKnowledgeGraph = buildInitialKnowledgeGraph(canonicalCreatorId, audit, answers);
+  const initialDNA = buildInitialCreatorDNA(canonicalCreatorId, audit, fullKnowledgeGraph);
 
   // 2. Perform the update across collections
   await Promise.all([
@@ -510,6 +525,11 @@ export async function mergeCreatorAlignment(
     db.collection("creator_knowledge_graph").updateOne(
       { creatorId: canonicalCreatorId },
       { $set: fullKnowledgeGraph },
+      { upsert: true }
+    ),
+    db.collection("creator_dna").updateOne(
+      { creatorId: canonicalCreatorId },
+      { $setOnInsert: initialDNA },
       { upsert: true }
     ),
     // Save to creator_mission collection (Sprint 21.2)

@@ -1,8 +1,6 @@
 export const SNAPSHOT_CONFIG = {
-  /**
-   * Interval duration in milliseconds for generating Pulse Snapshots (Default: 10 minutes)
-   */
-  SNAPSHOT_INTERVAL_MS: Number(process.env.SNAPSHOT_INTERVAL_MS) || 10 * 60 * 1000,
+  // Sprint 22.1 Requirement: Default snapshot every 5-10 minutes (300,000ms = 5 minutes)
+  SNAPSHOT_INTERVAL_MS: 300000,
 
   /**
    * Maximum number of representative messages retained per snapshot (10 - 20)

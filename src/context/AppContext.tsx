@@ -7,6 +7,7 @@ import Pusher from "pusher-js";
 export interface User {
   email: string;
   name?: string;
+  displayName?: string;
   youtubeLink?: string;
   twitchLink?: string;
   kickLink?: string;

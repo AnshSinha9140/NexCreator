@@ -7,13 +7,26 @@ import { useApp } from "@/context/AppContext";
 interface WaitingForFirstStreamProps {
   creatorName: string;
   setActiveTab: (tab: string) => void;
+  workspaceState?: any;
 }
 
 export const WaitingForFirstStream: React.FC<WaitingForFirstStreamProps> = ({
   creatorName,
   setActiveTab,
+  workspaceState,
 }) => {
   const { currentUser } = useApp();
+
+  const completedSessionsCount = workspaceState?.completedSessionsCount ?? 0;
+  const milestones = workspaceState?.journeyMilestones || [
+    { id: "research", label: "Research", completed: true },
+    { id: "alignment", label: "Alignment", completed: true },
+    { id: "first_stream", label: "First Monitored Stream", completed: completedSessionsCount >= 1, current: completedSessionsCount === 0 },
+    { id: "three_sessions", label: "3 Sessions Completed", completed: completedSessionsCount >= 3 },
+    { id: "first_report", label: "First AI Report", completed: completedSessionsCount >= 1 },
+    { id: "highlights", label: "Highlights Generated", completed: completedSessionsCount >= 1 },
+    { id: "long_term_memory", label: "Long-Term Memory Growing", completed: completedSessionsCount >= 3, locked: completedSessionsCount < 3 },
+  ];
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -79,14 +92,14 @@ export const WaitingForFirstStream: React.FC<WaitingForFirstStreamProps> = ({
           </div>
         </div>
         <p style={{ fontSize: "15px", color: "#cbd5e1", lineHeight: "1.6", margin: 0 }}>
-          I've already studied your content history, community, goals and creator DNA. Now I need to watch you create.
-          Your first monitored stream is where our real coaching begins.
+          I've studied your content history, community, goals, and creator DNA. Now I need to watch you create.
+          Your first monitored stream is where our real live coaching begins.
         </p>
       </div>
 
       {/* Workspace Status and AI Manager Note */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
-        {/* Workspace Status */}
+        {/* Workspace Status (Derived Dynamically from Workspace State) */}
         <div style={sectionStyle}>
           <h3 style={{ fontSize: "16px", fontWeight: "800", color: "#c084fc", margin: 0 }}>
             Workspace Status
@@ -97,7 +110,7 @@ export const WaitingForFirstStream: React.FC<WaitingForFirstStreamProps> = ({
               { label: "Creator DNA Ready", checked: true },
               { label: "Mission Established", checked: true },
               { label: "AI Relationship Ready", checked: true },
-              { label: "Waiting For First Monitored Stream", checked: false },
+              { label: completedSessionsCount > 0 ? "First Monitored Stream Completed" : "Waiting For First Monitored Stream", checked: completedSessionsCount > 0 },
             ].map((step, idx) => (
               <div key={idx} style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <span style={{
@@ -129,7 +142,7 @@ export const WaitingForFirstStream: React.FC<WaitingForFirstStreamProps> = ({
             <span>✉️</span> AI Manager Note
           </h3>
           <p style={{ fontSize: "14px", color: "#cbd5e1", lineHeight: "1.6", margin: 0, fontStyle: "italic" }}>
-            "I've already spent hours understanding who you are as a creator. Research tells me where you've been. Your first monitored stream will tell me how you actually perform. That's when our long-term coaching really begins."
+            "I've spent hours understanding who you are as a creator. Research tells me where you've been. Your first monitored stream will tell me how you actually perform. That's when our long-term coaching really begins."
           </p>
         </div>
       </div>
@@ -171,68 +184,15 @@ export const WaitingForFirstStream: React.FC<WaitingForFirstStreamProps> = ({
         </button>
       </div>
 
-      {/* Side-by-side empty states */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
-        {/* Executive Reports Empty State */}
-        <div style={sectionStyle}>
-          <h3 style={{ fontSize: "15px", fontWeight: "800", color: "#f8fafc", margin: 0 }}>
-            Executive Reports
-          </h3>
-          <div style={{ textAlign: "center", padding: "20px 0" }}>
-            <span style={{ fontSize: "32px", display: "block", marginBottom: "12px" }}>📊</span>
-            <span style={{ fontSize: "14px", fontWeight: "700", color: "#e2e8f0", display: "block" }}>No reports yet</span>
-            <p style={{ fontSize: "12px", color: "#64748b", margin: "4px 0 0" }}>
-              Your first report will automatically appear after your first completed monitoring session.
-            </p>
-          </div>
-        </div>
-
-        {/* Recent Streams Empty State */}
-        <div style={sectionStyle}>
-          <h3 style={{ fontSize: "15px", fontWeight: "800", color: "#f8fafc", margin: 0 }}>
-            Recent Streams
-          </h3>
-          <div style={{ textAlign: "center", padding: "20px 0" }}>
-            <span style={{ fontSize: "32px", display: "block", marginBottom: "12px" }}>🎥</span>
-            <span style={{ fontSize: "14px", fontWeight: "700", color: "#e2e8f0", display: "block" }}>No monitored streams yet</span>
-            <p style={{ fontSize: "12px", color: "#64748b", margin: "4px 0 0" }}>
-              Every completed stream becomes part of your long-term Creator Memory.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* AI Producer */}
-      <div style={sectionStyle}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h3 style={{ fontSize: "15px", fontWeight: "800", color: "#f8fafc", margin: 0 }}>
-            AI Producer
-          </h3>
-          <span style={{ fontSize: "11px", background: "rgba(255,255,255,0.05)", color: "#64748b", padding: "2px 8px", borderRadius: "6px", fontWeight: "700" }}>
-            STATUS: WAITING
-          </span>
-        </div>
-        <p style={{ fontSize: "13px", color: "#cbd5e1", margin: 0 }}>
-          Available during live broadcasts. Connect your channel and start live monitoring to activate.
-        </p>
-      </div>
-
-      {/* Journey Timeline */}
+      {/* Dynamic Journey Timeline (Sprint 22.2 single source of truth) */}
       <div style={sectionStyle}>
         <h3 style={{ fontSize: "15px", fontWeight: "800", color: "#f8fafc", margin: 0 }}>
           Journey Timeline
         </h3>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative", padding: "10px 0" }}>
           <div style={{ position: "absolute", left: 0, right: 0, top: "50%", height: "2px", background: "rgba(255,255,255,0.1)", zIndex: 0 }} />
-          {[
-            { label: "Research", completed: true },
-            { label: "Alignment", completed: true },
-            { label: "First Stream", current: true },
-            { label: "5 Streams", locked: true },
-            { label: "20 Streams", locked: true },
-            { label: "Long-Term Intelligence", locked: true },
-          ].map((node, idx) => (
-            <div key={idx} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", zIndex: 1 }}>
+          {milestones.map((node: any, idx: number) => (
+            <div key={node.id || idx} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", zIndex: 1 }}>
               <div style={{
                 width: "24px",
                 height: "24px",
@@ -258,3 +218,4 @@ export const WaitingForFirstStream: React.FC<WaitingForFirstStreamProps> = ({
     </motion.div>
   );
 };
+

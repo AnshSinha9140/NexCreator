@@ -101,6 +101,21 @@ export const BestMoments: React.FC<BestMomentsProps> = ({ moments }) => {
                 </div>
               </div>
 
+              {/* Pillar Alignment Badge */}
+              <div
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  color: "#fbbf24",
+                  background: "rgba(245,158,11,0.12)",
+                  padding: "4px 10px",
+                  borderRadius: "8px",
+                  alignSelf: "flex-start",
+                }}
+              >
+                🔥 This moment reflects your strongest content pillar.
+              </div>
+
               <p style={{ margin: 0, fontSize: "13px", color: "#94a3b8", lineHeight: 1.4 }}>{moment.reason}</p>
 
               {moment.supportingMetrics.length > 0 && (

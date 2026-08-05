@@ -128,6 +128,7 @@ export interface User {
   id?: string;
   _id?: any;
   name?: string;
+  displayName?: string;
   email: string;
   hashedPassword?: string;
   emailVerified?: Date | null;

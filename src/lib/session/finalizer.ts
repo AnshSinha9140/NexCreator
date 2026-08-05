@@ -130,24 +130,24 @@ export class SessionFinalizer {
     const { IntelligenceStorage } = await import("@/lib/intelligence/storage");
     const intelligence = await IntelligenceStorage.fetchLatestBundle(sessionId);
 
-    // Step 7: Conditional AI Report Generation
-    let finalAIReport: FinalAIReport | undefined = undefined;
-    if (integrityFlags.aiValid) {
-      finalAIReport = {
-        biggestAudienceSpike: peakMomentum > 65 ? `Peak audience momentum reached ${peakMomentum}/100.` : `Consistent engagement maintained throughout broadcast.`,
-        mostAskedQuestions: snapshots.flatMap((s: any) => s.representativeMessages || [])
-          .filter((m: any) => m.category === "question")
-          .slice(0, 3)
-          .map((m: any) => m.text),
-        bestEngagementWindow: snapshots.length > 0 ? `Window ${snapshots[0]?.snapshotId || "1"} (${snapshots[0]?.metrics?.messagesPerMinute || 10} msgs/min)` : `Full Stream`,
-        suggestedShorts: highlights.slice(0, 3).map((h: any) => `${h.title}: "${h.triggerReason}"`),
-        recommendedStreamLength: durationMinutes < 60 ? `Extend next stream to 60+ minutes to maximize algorithm push.` : `Optimal broadcast length (${durationMinutes} mins).`,
-        recommendedNextStreamTime: `Schedule next broadcast within 48 hours to maintain momentum.`,
-        topViewerTopics: snapshots.flatMap((s: any) => s.metrics?.topWords || []).slice(0, 5).map((w: any) => w.word),
-      };
-    }
+    // Step 7: Generate Canonical Session Intelligence (Executes ONCE)
+    const { SessionIntelligenceEngine } = await import("@/lib/intelligence/SessionIntelligenceEngine");
+    const canonicalIntelligence = await SessionIntelligenceEngine.generate(sessionId, creatorId);
 
-    // Step 8: Publish Timeline Events
+    // Final AI Report derived from canonical intelligence
+    const finalAIReport: FinalAIReport = {
+      biggestAudienceSpike: canonicalIntelligence.discoveries[0]?.discovery || `Peak engagement reached ${canonicalIntelligence.telemetry.peakMomentum}/100.`,
+      mostAskedQuestions: canonicalIntelligence.audience.frequentlyAskedQuestions.slice(0, 3),
+      bestEngagementWindow: canonicalIntelligence.highlights[0]
+        ? `Highlight #1 (${canonicalIntelligence.highlights[0].timestamp})`
+        : `Full Stream`,
+      suggestedShorts: canonicalIntelligence.highlights.slice(0, 3).map((h) => `${h.title}: "${h.triggerReason}"`),
+      recommendedStreamLength: durationMinutes < 60 ? `Extend next stream to 60+ minutes to maximize algorithm push.` : `Optimal broadcast length (${durationMinutes} mins).`,
+      recommendedNextStreamTime: `Schedule next broadcast within 48 hours to maintain momentum.`,
+      topViewerTopics: canonicalIntelligence.audience.mostDiscussedTopics,
+    };
+
+    // Step 8: Publish Timeline Events (Internal diagnostic archive)
     await TimelinePublisher.publish(
       sessionId,
       platform,
@@ -162,12 +162,12 @@ export class SessionFinalizer {
       platform,
       "SESSION_COMPLETED",
       "🏁 Session Summary Archived",
-      `Saved ${totalMessages} messages, ${snapshots.length} snapshots, ${insights.length} AI recommendations, and ${highlights.length} highlight candidates.`,
+      `Saved ${totalMessages} messages, ${canonicalIntelligence.highlights.length} approved highlights, and full Canonical Session Intelligence.`,
       "success"
     ).catch(() => {});
 
     // Step 9: Build Final Session Summary Payload
-    const finalSummary: FinalSessionSummary & { integrityReport?: any; intelligence?: any } = {
+    const finalSummary: FinalSessionSummary & { integrityReport?: any; intelligence?: any; sessionIntelligence?: any } = {
       sessionId,
       creatorId,
       platform,
@@ -179,31 +179,31 @@ export class SessionFinalizer {
       endedAt: nowIso,
       completedAt: nowIso,
 
-      peakViewers: sessionType === "EMPTY" ? 0 : peakViewers,
-      averageViewers: sessionType === "EMPTY" ? 0 : averageViewers,
-      totalMessagesCollected: totalMessages,
+      peakViewers: sessionType === "EMPTY" ? 0 : canonicalIntelligence.telemetry.peakViewers,
+      averageViewers: sessionType === "EMPTY" ? 0 : canonicalIntelligence.telemetry.averageViewers,
+      totalMessagesCollected: canonicalIntelligence.telemetry.totalMessages,
       snapshotsGeneratedCount: snapshots.length,
-      aiRecommendationsCount: insights.length,
-      highlightsGeneratedCount: highlights.length,
+      aiRecommendationsCount: canonicalIntelligence.recommendations.length,
+      highlightsGeneratedCount: canonicalIntelligence.highlights.length,
 
-      avgSentiment: sessionType === "EMPTY" ? 0 : avgSentiment,
-      peakMomentum: sessionType === "EMPTY" ? 0 : peakMomentum,
-      peakHype: sessionType === "EMPTY" ? 0 : peakHype,
-      questionsDetectedCount: questionsDetected,
-      uniqueChattersCount: snapshots.reduce((acc, s: any) => Math.max(acc, s.metrics?.uniqueChattersCount || 0), 0),
-      healthScore: integrityFlags.healthScoreValid ? 98 : 0,
+      avgSentiment: sessionType === "EMPTY" ? 0 : canonicalIntelligence.telemetry.avgSentiment,
+      peakMomentum: sessionType === "EMPTY" ? 0 : canonicalIntelligence.telemetry.peakMomentum,
+      peakHype: sessionType === "EMPTY" ? 0 : canonicalIntelligence.telemetry.peakHype,
+      questionsDetectedCount: canonicalIntelligence.telemetry.questionsDetected,
+      uniqueChattersCount: canonicalIntelligence.telemetry.uniqueChatters,
+      healthScore: canonicalIntelligence.telemetry.healthScore,
       quotaUsedYoutube: platform === "youtube" ? 360 : 0,
 
       finalAIReport,
       integrityReport,
-      intelligence,
+      intelligence: canonicalIntelligence,
+      sessionIntelligence: canonicalIntelligence,
 
       // Session Integrity Engine Metadata
       sessionType,
       integrityFlags,
       integrityReason: reason,
     };
-
 
     // Step 10: Persist to MongoDB
     try {
@@ -238,9 +238,21 @@ export class SessionFinalizer {
         { upsert: true }
       );
 
-      // Step 12: Sprint 18.7 Update Long-Term Creator Memory & Profile
+      // Step 12: Update Long-Term Creator Memory & Profile
       const { CreatorMemoryEngine } = await import("../memory/engine");
       await CreatorMemoryEngine.updateMemoryAfterSession(sessionId);
+
+      // Step 13: Evolve the living DNA and mission only from validated canonical intelligence.
+      try {
+        const { resolveCreator } = await import("@/lib/creatorAudit/persistence");
+        const { IdentityUpdateEngine } = await import("@/lib/identity/IdentityUpdateEngine");
+        const resolved = await resolveCreator(creatorId);
+        if (resolved.canonicalCreatorId) {
+          await IdentityUpdateEngine.processSession(resolved.canonicalCreatorId, canonicalIntelligence);
+        }
+      } catch (identityError: any) {
+        console.warn(`[SessionFinalizer] Living identity update skipped: ${identityError.message}`);
+      }
 
       console.log(`[SessionFinalizer] Persisted immutable CompletedSessionBundle & Updated Creator Memory for session '${sessionId}' ✅`);
     } catch (err: any) {
@@ -250,5 +262,3 @@ export class SessionFinalizer {
     return finalSummary;
   }
 }
-
-

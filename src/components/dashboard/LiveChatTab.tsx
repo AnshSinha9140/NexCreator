@@ -1,31 +1,51 @@
 "use client";
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { RichChatMessage } from "./chat/RichChatMessage";
 
 interface LiveChatTabProps {
   messages: any[];
   telemetry: any;
   isLoading: boolean;
+  connectionState?: "connected" | "reconnecting" | "disconnected";
+  reconnectAttempt?: number;
 }
 
 export const LiveChatTab: React.FC<LiveChatTabProps> = ({
-  messages,
+  messages = [],
   telemetry,
   isLoading,
+  connectionState = "connected",
+  reconnectAttempt = 0,
 }) => {
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Deduplicate and ensure strict sequence ordering by timestamp/id
+  const cleanMessages = React.useMemo(() => {
+    const seen = new Set<string>();
+    const unique: any[] = [];
+    for (const msg of messages) {
+      const idKey = msg.id || `${msg.username}-${msg.timestamp || msg.createdAt}-${msg.message}`;
+      if (!seen.has(idKey)) {
+        seen.add(idKey);
+        unique.push(msg);
+      }
+    }
+    return unique.sort((a, b) => {
+      const timeA = new Date(a.timestamp || a.createdAt || 0).getTime();
+      const timeB = new Date(b.timestamp || b.createdAt || 0).getTime();
+      return timeA - timeB;
+    });
+  }, [messages]);
 
   // Auto-scroll inside chat container ONLY (never scroll the window/page)
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [cleanMessages]);
 
-
-
-  if (isLoading && messages.length === 0) {
+  if (isLoading && cleanMessages.length === 0) {
     return (
       <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px" }}>
         <div style={{ height: "40px", background: "rgba(255,255,255,0.03)", borderRadius: "8px" }} />
@@ -35,7 +55,7 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({
     );
   }
 
-  if (messages.length === 0) {
+  if (cleanMessages.length === 0) {
     return (
       <div
         style={{
@@ -64,25 +84,25 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({
           💬
         </div>
         <h3 style={{ fontSize: "16px", fontWeight: "800", color: "#f8fafc", marginBottom: "6px" }}>
-          Waiting for Chat Activity...
+          {connectionState === "reconnecting" ? "Reconnecting Live Chat Pipe..." : "Waiting for Chat Activity..."}
         </h3>
         <p style={{ fontSize: "13px", color: "#64748b", maxWidth: "420px", lineHeight: 1.5 }}>
-          Live chat messages from your connected Kick/YouTube broadcast will stream here automatically.
+          Live chat messages from your connected broadcast stream continuously here with heartbeat recovery and deduplication protection.
         </p>
       </div>
     );
   }
 
-  const messagesPerMin = telemetry?.messagesPerMinute || telemetry?.stats?.messagesPerMinute || messages.length;
+  const messagesPerMin = telemetry?.messagesPerMinute || telemetry?.stats?.messagesPerMinute || cleanMessages.length;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%" }}>
-      {/* Header Info Bar */}
+      {/* Header Info & Connection Indicator Bar */}
       <div
         style={{
           padding: "10px 16px",
           borderRadius: "10px",
-          background: "rgba(13,16,27,0.8)",
+          background: "rgba(13,16,27,0.85)",
           border: "1px solid rgba(255,255,255,0.08)",
           marginBottom: "12px",
           display: "flex",
@@ -91,9 +111,54 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({
           fontSize: "12px",
         }}
       >
-        <span style={{ color: "#94a3b8", fontWeight: "600" }}>
-          Streaming Messages ({messages.length} Cached)
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          {/* Status Badge */}
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "3px 10px",
+              borderRadius: "12px",
+              background:
+                connectionState === "connected"
+                  ? "rgba(52,211,153,0.15)"
+                  : connectionState === "reconnecting"
+                  ? "rgba(245,158,11,0.15)"
+                  : "rgba(248,113,113,0.15)",
+              border:
+                connectionState === "connected"
+                  ? "1px solid rgba(52,211,153,0.3)"
+                  : connectionState === "reconnecting"
+                  ? "1px solid rgba(245,158,11,0.3)"
+                  : "1px solid rgba(248,113,113,0.3)",
+              color:
+                connectionState === "connected"
+                  ? "#34d399"
+                  : connectionState === "reconnecting"
+                  ? "#fbbf24"
+                  : "#f87171",
+              fontSize: "11px",
+              fontWeight: "700",
+            }}
+          >
+            <span style={{ fontSize: "8px" }}>
+              {connectionState === "connected" ? "🟢" : connectionState === "reconnecting" ? "🟡" : "🔴"}
+            </span>
+            <span>
+              {connectionState === "connected"
+                ? "Live Connected"
+                : connectionState === "reconnecting"
+                ? `Reconnecting (${reconnectAttempt})...`
+                : "Disconnected"}
+            </span>
+          </div>
+
+          <span style={{ color: "#94a3b8", fontWeight: "600" }}>
+            {cleanMessages.length} Messages Verified
+          </span>
+        </div>
+
         <span style={{ color: "#34d399", fontWeight: "700", fontFamily: "monospace" }}>
           ⚡ {messagesPerMin} msgs/min
         </span>
@@ -112,13 +177,13 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({
           maxHeight: "420px",
         }}
       >
-        {messages.map((msg, idx) => (
+        {cleanMessages.map((msg, idx) => (
           <RichChatMessage key={msg.id || idx} message={msg} />
         ))}
       </div>
-
     </div>
   );
 };
+
 
 

@@ -62,6 +62,13 @@ export async function POST(request: NextRequest) {
     if (complete) {
       // Merge answers into Knowledge Graph, finalize verification status
       await mergeCreatorAlignment(canonicalCreatorId, answers);
+      
+      // Trigger background identity initialization pipeline
+      const { IdentityInitializationService } = await import("@/lib/identity/IdentityInitializationService");
+      IdentityInitializationService.initialize(canonicalCreatorId, answers).catch((err) => {
+        console.error("Failed to auto-start IdentityInitializationService:", err);
+      });
+
       return NextResponse.json({ success: true, completed: true });
     } else {
       // Save progress so user can resume later

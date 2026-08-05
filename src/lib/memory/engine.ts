@@ -6,6 +6,10 @@ import {
   PersonalBenchmarks,
   PatternDetection,
   CreatorPlaybook,
+  CreatorSkillProfile,
+  CreatorSkillDimension,
+  CreatorSkillName,
+  CreatorSkillEntry,
 } from "./types";
 import { PatternDetector } from "./patterns";
 import { PlaybookEngine } from "./playbook";
@@ -223,6 +227,109 @@ export class CreatorMemoryEngine {
       console.log(`[CreatorMemoryEngine] Updated Creator Profile, Patterns, and Playbook for '${creatorId}' after session '${sessionId}' ✅`);
     } catch (err: any) {
       console.warn(`[CreatorMemoryEngine] updateMemoryAfterSession error:`, err.message);
+    }
+  }
+
+  // =============================================================================
+  // Sprint 24.5 — Longitudinal Creator Skill Memory
+  // =============================================================================
+
+  /**
+   * Updates the creator's longitudinal skill profile after a session.
+   * Appends new value to each skill's history (never overwrites). Capped at 30.
+   */
+  public static async updateSkillHistory(
+    creatorId: string,
+    sessionId: string,
+    sessionMetrics: {
+      avgSentiment: number;
+      messagesPerMinute: number;
+      questionsDetected: number;
+      peakViewers: number;
+      averageViewers: number;
+      durationMinutes: number;
+      highlights: Array<{ score: number; category: string }>;
+    }
+  ): Promise<void> {
+    try {
+      const client = await clientPromise;
+      const db = client.db("nexcreator");
+
+      const profileDoc: any = await db
+        .collection("creator_skill_history")
+        .findOne({ creatorId });
+
+      const now = new Date().toISOString();
+      const { avgSentiment, messagesPerMinute, questionsDetected, peakViewers, durationMinutes, highlights } = sessionMetrics;
+
+      const SKILL_NAMES: CreatorSkillName[] = [
+        "humor", "conversation", "energy", "pacing", "storytelling",
+        "audienceInteraction", "communityBuilding", "retention", "consistency",
+      ];
+
+      const derived: Record<CreatorSkillName, number> = {
+        humor: Math.min(100, Math.round(
+          avgSentiment * 0.5 +
+          (highlights.some(h => h.category.toLowerCase().includes("funny") || h.category.toLowerCase().includes("comedy")) ? 20 : 5) +
+          15
+        )),
+        conversation: Math.min(100, Math.round(Math.min(80, questionsDetected * 6) + Math.min(20, messagesPerMinute * 1.5))),
+        energy: Math.min(100, Math.round(Math.min(70, messagesPerMinute * 5) + avgSentiment * 0.3)),
+        pacing: Math.min(100, Math.round(Math.max(40, 100 - Math.abs(messagesPerMinute - 10) * 3))),
+        storytelling: Math.min(100, Math.round(durationMinutes > 60 ? 78 : durationMinutes > 30 ? 63 : 45)),
+        audienceInteraction: Math.min(100, Math.round(Math.min(70, questionsDetected * 8) + Math.min(30, messagesPerMinute * 2))),
+        communityBuilding: Math.min(100, Math.round(avgSentiment * 0.7 + 15)),
+        retention: Math.min(100, Math.round(peakViewers > 0 ? (sessionMetrics.averageViewers / peakViewers) * 100 : 50)),
+        consistency: Math.min(100, Math.round(durationMinutes > 40 ? 82 : durationMinutes > 20 ? 65 : 48)),
+      };
+
+      const newEntry = (value: number): CreatorSkillEntry => ({
+        sessionId,
+        value,
+        recordedAt: now,
+      });
+
+      const computeTrend = (history: CreatorSkillEntry[]): CreatorSkillDimension["trend"] => {
+        if (history.length < 2) return "INSUFFICIENT_DATA";
+        const last3 = history.slice(-3).map((e: CreatorSkillEntry) => e.value);
+        const avg = last3.reduce((a: number, b: number) => a + b, 0) / last3.length;
+        const latest = last3[last3.length - 1];
+        if (latest - avg >= 4) return "IMPROVING";
+        if (avg - latest >= 4) return "DECLINING";
+        return "STABLE";
+      };
+
+      const existingSkills = profileDoc?.skills || {};
+      const updatedSkills: Record<string, CreatorSkillDimension> = {};
+
+      for (const skillName of SKILL_NAMES) {
+        const existingDim: Partial<CreatorSkillDimension> = existingSkills[skillName] || {};
+        const existingHistory: CreatorSkillEntry[] = existingDim.history || [];
+        const newHistory = [...existingHistory, newEntry(derived[skillName])].slice(-30);
+
+        updatedSkills[skillName] = {
+          skillName,
+          current: derived[skillName],
+          history: newHistory,
+          trend: computeTrend(newHistory),
+          lastUpdated: now,
+        };
+      }
+
+      const updatedProfile: CreatorSkillProfile = {
+        creatorId,
+        skills: updatedSkills as CreatorSkillProfile["skills"],
+        streamsAnalyzed: (profileDoc?.streamsAnalyzed || 0) + 1,
+        lastUpdated: now,
+      };
+
+      await db
+        .collection("creator_skill_history")
+        .updateOne({ creatorId }, { $set: updatedProfile }, { upsert: true });
+
+      console.log(`[CreatorMemoryEngine] Skill profile updated for '${creatorId}' after session '${sessionId}' ✅`);
+    } catch (err: any) {
+      console.warn(`[CreatorMemoryEngine] updateSkillHistory error:`, err.message);
     }
   }
 }

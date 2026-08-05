@@ -57,10 +57,37 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Session not found" }, { status: 404 });
     }
 
-    // Generate report (works for any session, not just completed)
-    const report = await ExecutiveProducer.generateReport(sessionId, authUser.email);
+    // Generate report via canonical SessionIntelligenceEngine
+    const { SessionIntelligenceEngine } = await import("@/lib/intelligence/SessionIntelligenceEngine");
+    const canonicalIntelligence = await SessionIntelligenceEngine.generate(sessionId, authUser.email);
+    const report = {
+      id: `rep_${sessionId}`,
+      sessionId,
+      creatorId: authUser.email,
+      createdAt: canonicalIntelligence.createdAt,
+      streamTitle: session.streamTitle || canonicalIntelligence.session.streamTitle,
+      platform: session.platform || canonicalIntelligence.session.platform,
+      executiveSummary: canonicalIntelligence.executiveSummary,
+      threeDiscoveries: canonicalIntelligence.discoveries,
+      bestMoments: canonicalIntelligence.highlights.map((h) => ({
+        id: h.highlightId,
+        title: h.title,
+        timestamp: h.timestamp,
+        duration: h.durationFormatted,
+        confidence: h.confidence,
+        evidence: `${h.viewerEvidence.description} | ${h.chatEvidence.description}`,
+        quote: h.chatEvidence.representativeMessages[0] || "",
+        snapshotTimestamp: h.timestamp,
+      })),
+      managerJournal: canonicalIntelligence.coaching.managerJournal,
+      personalizedCoaching: canonicalIntelligence.coaching.personalizedCoaching,
+      actionChecklist: canonicalIntelligence.actionPlan,
+      experiment: canonicalIntelligence.executiveSummary.experiment,
+      creatorMemory: canonicalIntelligence.creatorMemory,
+      confidence: canonicalIntelligence.confidence,
+    };
 
-    return NextResponse.json({ success: true, report, cached: false });
+    return NextResponse.json({ success: true, report, sessionIntelligence: canonicalIntelligence, cached: false });
   } catch (error: any) {
     console.error("[API] Error fetching executive report:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
@@ -90,10 +117,41 @@ export async function POST(req: NextRequest) {
       sessionId,
       creatorId: authUser.email,
     });
+    await db.collection("session_intelligence").deleteOne({
+      sessionId,
+    });
 
-    const report = await ExecutiveProducer.generateReport(sessionId, authUser.email);
+    const { SessionIntelligenceEngine } = await import("@/lib/intelligence/SessionIntelligenceEngine");
+    const canonicalIntelligence = await SessionIntelligenceEngine.generate(sessionId, authUser.email, true);
 
-    return NextResponse.json({ success: true, report });
+    const report = {
+      id: `rep_${sessionId}`,
+      sessionId,
+      creatorId: authUser.email,
+      createdAt: canonicalIntelligence.createdAt,
+      streamTitle: canonicalIntelligence.session.streamTitle,
+      platform: canonicalIntelligence.session.platform,
+      executiveSummary: canonicalIntelligence.executiveSummary,
+      threeDiscoveries: canonicalIntelligence.discoveries,
+      bestMoments: canonicalIntelligence.highlights.map((h) => ({
+        id: h.highlightId,
+        title: h.title,
+        timestamp: h.timestamp,
+        duration: h.durationFormatted,
+        confidence: h.confidence,
+        evidence: `${h.viewerEvidence.description} | ${h.chatEvidence.description}`,
+        quote: h.chatEvidence.representativeMessages[0] || "",
+        snapshotTimestamp: h.timestamp,
+      })),
+      managerJournal: canonicalIntelligence.coaching.managerJournal,
+      personalizedCoaching: canonicalIntelligence.coaching.personalizedCoaching,
+      actionChecklist: canonicalIntelligence.actionPlan,
+      experiment: canonicalIntelligence.executiveSummary.experiment,
+      creatorMemory: canonicalIntelligence.creatorMemory,
+      confidence: canonicalIntelligence.confidence,
+    };
+
+    return NextResponse.json({ success: true, report, sessionIntelligence: canonicalIntelligence });
   } catch (error: any) {
     console.error("[API] Error generating executive report:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

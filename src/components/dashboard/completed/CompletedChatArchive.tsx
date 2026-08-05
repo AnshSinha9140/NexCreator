@@ -1,7 +1,21 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { RichChatMessage } from "../chat/RichChatMessage";
+import { TimelineNavigator } from "@/lib/timeline/navigator";
+
+export type ChatFilterType =
+  | "all"
+  | "questions"
+  | "vip"
+  | "mods"
+  | "subscribers"
+  | "spam"
+  | "funny"
+  | "toxic"
+  | "commands"
+  | "highlighted"
+  | "first_time";
 
 interface CompletedChatArchiveProps {
   messages?: any[];
@@ -13,21 +27,75 @@ export const CompletedChatArchive: React.FC<CompletedChatArchiveProps> = ({
   session,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeFilter, setActiveFilter] = useState<"all" | "questions" | "members" | "mods" | "spam">("all");
+  const [activeFilter, setActiveFilter] = useState<ChatFilterType>("all");
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const totalCollected = session?.summary?.totalMessagesCollected || messages.length;
 
+  // Auto-scroll chat to target timestamp whenTimelineNavigator seeks or custom event fires
+  useEffect(() => {
+    const handleScrollTarget = (targetTimestamp: string) => {
+      if (!containerRef.current) return;
+      const targetElement = containerRef.current.querySelector(`[data-timestamp="${targetTimestamp}"]`);
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
+        (targetElement as HTMLElement).style.outline = "2px solid #38bdf8";
+        setTimeout(() => {
+          (targetElement as HTMLElement).style.outline = "none";
+        }, 2000);
+      }
+    };
+
+    const unsubscribe = TimelineNavigator.subscribe((target) => {
+      if (target.timestamp) {
+        handleScrollTarget(target.timestamp);
+      }
+    });
+
+    const customListener = (e: any) => {
+      if (e.detail?.timestamp) {
+        handleScrollTarget(e.detail.timestamp);
+      }
+    };
+    window.addEventListener("chatScrollToTimestamp", customListener);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener("chatScrollToTimestamp", customListener);
+    };
+  }, []);
+
   const filteredMessages = useMemo(() => {
     return messages.filter((msg) => {
-      const matchText = (msg.message || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        (msg.username || "").toLowerCase().includes(searchTerm.toLowerCase());
+      const text = (msg.message || "").toLowerCase();
+      const username = (msg.username || "").toLowerCase();
+      const matchText = text.includes(searchTerm.toLowerCase()) || username.includes(searchTerm.toLowerCase());
       if (!matchText) return false;
 
-      if (activeFilter === "questions") return msg.isQuestion || (msg.message && msg.message.includes("?"));
-      if (activeFilter === "members") return msg.isSubscriber;
-      if (activeFilter === "mods") return msg.isMod;
-      if (activeFilter === "spam") return msg.isSpam;
-      return true;
+      switch (activeFilter) {
+        case "questions":
+          return msg.isQuestion || text.includes("?");
+        case "vip":
+          return msg.isVip || msg.isVipUser;
+        case "mods":
+          return msg.isMod || msg.isModerator;
+        case "subscribers":
+          return msg.isSubscriber || msg.badges?.some((b: any) => (typeof b === "string" ? b : b.type)?.includes("subscriber"));
+        case "spam":
+          return msg.isSpam;
+        case "funny":
+          return text.includes("lol") || text.includes("lmao") || text.includes("haha") || text.includes("kekw") || text.includes("😂") || text.includes("🤣");
+        case "toxic":
+          return msg.isToxic || msg.toxicityScore > 0.6;
+        case "commands":
+          return text.startsWith("!");
+        case "highlighted":
+          return msg.isHighlighted || msg.isFirstTimeChatter || msg.isQuestion || msg.isVip;
+        case "first_time":
+          return msg.isFirstTimeChatter;
+        default:
+          return true;
+      }
     });
   }, [messages, searchTerm, activeFilter]);
 
@@ -57,6 +125,19 @@ export const CompletedChatArchive: React.FC<CompletedChatArchiveProps> = ({
     );
   }
 
+  const filtersList: { id: ChatFilterType; label: string; icon: string }[] = [
+    { id: "all", label: "All", icon: "💬" },
+    { id: "questions", label: "Questions", icon: "❓" },
+    { id: "vip", label: "VIP", icon: "⭐" },
+    { id: "mods", label: "Mods", icon: "🛡️" },
+    { id: "subscribers", label: "Subscribers", icon: "💎" },
+    { id: "spam", label: "Spam", icon: "⚠️" },
+    { id: "funny", label: "Funny", icon: "🤣" },
+    { id: "toxic", label: "Toxic", icon: "☣️" },
+    { id: "commands", label: "Commands", icon: "🤖" },
+    { id: "highlighted", label: "Highlighted", icon: "✨" },
+    { id: "first_time", label: "First Time", icon: "🆕" },
+  ];
 
   return (
     <div
@@ -98,112 +179,114 @@ export const CompletedChatArchive: React.FC<CompletedChatArchiveProps> = ({
       </div>
 
       {/* Toolbar & Filters */}
-      <div
-        style={{
-          padding: "16px",
-          borderRadius: "14px",
-          background: "rgba(13, 16, 27, 0.85)",
-          border: "1px solid rgba(255, 255, 255, 0.08)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "14px",
-        }}
-      >
-        {/* Search Box */}
-        <div style={{ position: "relative", flex: 1 }}>
-          <input
-            type="text"
-            placeholder="Search chat messages or usernames..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "8px 12px 8px 34px",
-              borderRadius: "10px",
-              background: "rgba(255, 255, 255, 0.04)",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
-              color: "#f8fafc",
-              fontSize: "13px",
-              outline: "none",
-            }}
-          />
-          <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#64748b", fontSize: "13px" }}>
-            🔍
-          </span>
-        </div>
-
-        {/* Filter Buttons */}
-        <div style={{ display: "flex", gap: "6px" }}>
-          {(["all", "questions", "members", "mods", "spam"] as const).map((filterKey) => (
-            <button
-              key={filterKey}
-              onClick={() => setActiveFilter(filterKey)}
-              style={{
-                padding: "6px 12px",
-                borderRadius: "8px",
-                fontSize: "11px",
-                fontWeight: "700",
-                textTransform: "capitalize",
-                background: activeFilter === filterKey ? "rgba(52, 211, 153, 0.15)" : "rgba(255,255,255,0.03)",
-                border: activeFilter === filterKey ? "1px solid rgba(52, 211, 153, 0.3)" : "1px solid rgba(255,255,255,0.06)",
-                color: activeFilter === filterKey ? "#34d399" : "#94a3b8",
-                cursor: "pointer",
-              }}
-            >
-              {filterKey}
-            </button>
-          ))}
-        </div>
-
-        {/* Export Button (Disabled) */}
-        <button
-          disabled
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        {/* Search */}
+        <input
+          type="text"
+          placeholder="Search by username or message content..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
           style={{
-            padding: "6px 12px",
-            borderRadius: "8px",
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.06)",
-            color: "#475569",
-            fontSize: "11px",
-            fontWeight: "600",
-            cursor: "not-allowed",
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
+            width: "100%",
+            padding: "10px 14px",
+            borderRadius: "10px",
+            background: "rgba(13, 16, 27, 0.85)",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            color: "#f8fafc",
+            fontSize: "13px",
+            outline: "none",
           }}
-        >
-          📥 Export
-          <span style={{ fontSize: "8px", padding: "1px 4px", borderRadius: "3px", background: "rgba(255,255,255,0.06)" }}>
-            Soon
-          </span>
-        </button>
+        />
+
+        {/* Filter Pills */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+          {filtersList.map((f) => {
+            const isActive = activeFilter === f.id;
+            return (
+              <button
+                key={f.id}
+                onClick={() => setActiveFilter(f.id)}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  border: isActive ? "1px solid rgba(52,211,153,0.4)" : "1px solid rgba(255,255,255,0.06)",
+                  background: isActive ? "rgba(52,211,153,0.15)" : "rgba(0,0,0,0.3)",
+                  color: isActive ? "#34d399" : "#94a3b8",
+                  fontSize: "11px",
+                  fontWeight: isActive ? "700" : "500",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <span>{f.icon}</span>
+                <span>{f.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Chat Log Feed */}
+      {/* Message List */}
       <div
+        ref={containerRef}
         style={{
-          padding: "16px",
-          borderRadius: "14px",
-          background: "rgba(13, 16, 27, 0.85)",
-          border: "1px solid rgba(255, 255, 255, 0.08)",
           display: "flex",
           flexDirection: "column",
-          gap: "10px",
-          maxHeight: "480px",
+          gap: "8px",
+          maxHeight: "650px",
           overflowY: "auto",
+          paddingRight: "6px",
         }}
       >
-        {filteredMessages.length === 0 ? (
-          <div style={{ padding: "30px", textAlign: "center", color: "#64748b", fontSize: "13px" }}>
-            No chat messages match your active filter.
-          </div>
-        ) : (
-          filteredMessages.map((msg, idx) => (
-            <RichChatMessage key={msg.id || idx} message={msg} />
-          ))
-        )}
+        {filteredMessages.map((msg, idx) => {
+          const timestamp = msg.timestamp
+            ? new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+            : msg.createdAt
+            ? new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+            : "00:00:00";
 
+          return (
+            <div
+              key={msg.id || idx}
+              data-timestamp={timestamp}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "8px 12px",
+                borderRadius: "10px",
+                background: "rgba(13, 16, 27, 0.7)",
+                border: "1px solid rgba(255, 255, 255, 0.05)",
+                transition: "all 0.2s ease",
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <RichChatMessage message={msg} />
+              </div>
+              <button
+                title="Click to seek stream video to this message"
+                onClick={() => TimelineNavigator.seek(timestamp, `Chat by @${msg.username}`, "Chat Archive")}
+                style={{
+                  padding: "4px 8px",
+                  borderRadius: "6px",
+                  background: "rgba(56, 189, 248, 0.1)",
+                  border: "1px solid rgba(56, 189, 248, 0.2)",
+                  color: "#38bdf8",
+                  fontSize: "10px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  marginLeft: "12px",
+                  flexShrink: 0,
+                }}
+              >
+                ⏱️ {timestamp}
+              </button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -111,6 +111,92 @@ export interface AIReportMetadata {
   totalMessagesAnalyzed: number;
 }
 
+export interface ThreeBigDiscoveryItem {
+  id: string;
+  discovery: string;
+  evidence: string;
+  confidence: number;
+  snapshotTimestamp?: string;
+  sourceSnapshotId?: string;
+}
+
+export interface BeliefChangeItem {
+  previousBelief: string;
+  updatedBelief: string;
+  confidence: number;
+  reasoning: string;
+}
+
+export interface CreatorMemoryUpdate {
+  todayILearned: string[];
+  becomingConfidentAbout: string[];
+  stillTesting: string[];
+  changedMyMind: BeliefChangeItem[];
+}
+
+export interface CreatorEvolutionItem {
+  metric: string;
+  change: string; // e.g. "+18%"
+  direction: "up" | "down" | "stable";
+  isPositive: boolean;
+}
+
+export interface RecurringPatternItem {
+  id: string;
+  title: string;
+  type: "strength" | "weakness";
+  confidence: number;
+  frequencyStreams: number;
+}
+
+export interface DNAChangeItem {
+  attribute: string;
+  previousValue: number;
+  newValue: number;
+  reason: string;
+}
+
+export interface MissionProgressData {
+  missionTitle: string;
+  currentProgressPercent: number;
+  todayContributionPercent: number;
+  reason: string;
+}
+
+export interface AIConfidenceBreakdown {
+  audienceBehaviour: number;
+  contentStyle: number;
+  editingPreferences: number;
+  postingSchedule: number;
+  thumbnailStyle: number;
+}
+
+export interface NextStreamExperiment {
+  experimentNumber: number;
+  purpose: string;
+  testInstruction: string;
+  expectedImprovement: string;
+  evidence: string;
+}
+
+export interface AIDecisionLogItem {
+  id: string;
+  action: string; // "Generated", "Rejected", "Recommended"
+  item: string;
+  reason: string;
+}
+
+export interface ManagerJournalData {
+  entryText: string; // max 180 words
+  signedBy: string;
+}
+
+export interface KnowledgeGraphUpdateItem {
+  category: "Audience" | "Creator" | "Publishing" | "Pacing";
+  memory: string;
+  confidence: number;
+}
+
 export interface ExecutiveReport {
   id: string;
   sessionId: string;
@@ -123,7 +209,28 @@ export interface ExecutiveReport {
   startedAt?: string;
   completedAt?: string;
 
-  // Content
+  // Sprint 23.0 Intelligence Fields
+  sessionHealth?: "Optimal" | "Good" | "Needs Attention";
+  peakViewers?: number;
+  averageViewers?: number;
+  totalMessages?: number;
+  highlightsCount?: number;
+  reportsCount?: number;
+  aiConfidenceScore?: number;
+
+  threeDiscoveries?: ThreeBigDiscoveryItem[];
+  memoryUpdate?: CreatorMemoryUpdate;
+  creatorEvolution?: CreatorEvolutionItem[];
+  recurringPatterns?: RecurringPatternItem[];
+  dnaChanges?: DNAChangeItem[];
+  missionProgress?: MissionProgressData;
+  aiConfidence?: AIConfidenceBreakdown;
+  experiment?: NextStreamExperiment;
+  decisionLog?: AIDecisionLogItem[];
+  managerJournal?: ManagerJournalData;
+  knowledgeGraphUpdates?: KnowledgeGraphUpdateItem[];
+
+  // Legacy Fields (retained for backward compatibility)
   executiveSummary: ExecutiveSummaryData;
   scores: StreamScores;
   biggestWins: BiggestWinItem[];
@@ -142,3 +249,4 @@ export interface ExecutiveReport {
   createdAt: string;
   updatedAt: string;
 }
+

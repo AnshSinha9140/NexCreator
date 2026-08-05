@@ -17,6 +17,7 @@ import { CreatorOnboardingView } from "@/components/creatorAudit/CreatorOnboardi
 import { CreatorDNAView } from "@/components/CreatorDNAView";
 import { CreatorMissionView } from "@/components/CreatorMissionView";
 import { CreatorManagerProfile } from "@/lib/creatorAudit/types";
+import { CreatorDNA } from "@/lib/creatorDNA/CreatorDNATypes";
 
 export default function DashboardPage() {
   const { currentUser } = useApp();
@@ -24,6 +25,7 @@ export default function DashboardPage() {
   const [onboardingAudit, setOnboardingAudit] = useState<any>(null);
   const [profile, setProfile] = useState<CreatorManagerProfile | null>(null);
   const [knowledgeGraph, setKnowledgeGraph] = useState<any>(null);
+  const [creatorDNA, setCreatorDNA] = useState<CreatorDNA | null>(null);
   const [creatorMission, setCreatorMission] = useState<any>(null);
   const [completedSessionsCount, setCompletedSessionsCount] = useState<number>(0);
   const [hydrationError, setHydrationError] = useState(false);
@@ -42,6 +44,7 @@ export default function DashboardPage() {
         }
         setProfile(data.profile || null);
         setKnowledgeGraph(data.knowledgeGraph || null);
+        setCreatorDNA(data.creatorDNA || null);
         setCreatorMission(data.creatorMission || null);
         setCompletedSessionsCount(data.completedSessionsCount ?? 0);
         if (typeof window !== "undefined") {
@@ -74,6 +77,7 @@ export default function DashboardPage() {
                 if (data.success) {
                   setProfile(data.profile);
                   setKnowledgeGraph(data.knowledgeGraph);
+                  setCreatorDNA(data.creatorDNA || null);
                   setCreatorMission(data.creatorMission);
                   setCompletedSessionsCount(data.completedSessionsCount ?? 0);
                   if (typeof window !== "undefined") {
@@ -90,8 +94,8 @@ export default function DashboardPage() {
   const renderContent = () => {
     switch (activeTab) {
       case "command_center": return <CommandCenterView setActiveTab={setActiveTab} profile={profile} completedSessionsCount={completedSessionsCount} />;
-      case "dna":            return <CreatorDNAView knowledgeGraph={knowledgeGraph} />;
-      case "mission":        return <CreatorMissionView creatorMission={creatorMission} knowledgeGraph={knowledgeGraph} />;
+      case "dna":            return <CreatorDNAView creatorDNA={creatorDNA} onNavigate={setActiveTab} />;
+      case "mission":        return <CreatorMissionView creatorMission={creatorMission} knowledgeGraph={knowledgeGraph} onNavigate={setActiveTab} />;
       case "copilot":        return <AICopilotPanel onNavigateToLive={() => setActiveTab("live")} />;
       case "reports":        return <ExecutiveReportView />;
       case "live":           return <DashboardView setActiveTab={setActiveTab} completedSessionsCount={completedSessionsCount} />;
@@ -135,17 +139,6 @@ export default function DashboardPage() {
           }}
         >
           {renderContent()}
-          {process.env.NODE_ENV !== "production" && !currentUser?.isAdmin && (
-            <div style={{ marginTop: 16, padding: 12, border: "1px dashed #64748b", color: "#cbd5e1", fontSize: 12 }}>
-              <strong>Creator Hydration Diagnostics</strong><br />
-              {currentUser ? "✓ Creator Loaded" : "✗ Missing Creator"} · {profile ? "✓ Audit Loaded · ✓ Relationship Loaded · ✓ Executive Letter Loaded · ✓ Dashboard Hydrated" : "✗ Missing Creator Profile · ✗ Using Fallback Content"}{hydrationError ? " · hydration request failed" : ""}
-              {hydrationDiagnostics && (
-                <div style={{ marginTop: 8, color: "#fca5a5" }}>
-                  Missing: {hydrationDiagnostics.missingCollections?.join(", ")}
-                </div>
-              )}
-            </div>
-          )}
         </main>
       </div>
     </div>

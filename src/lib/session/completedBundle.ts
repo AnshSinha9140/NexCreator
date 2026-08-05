@@ -2,10 +2,12 @@ import clientPromise from "@/lib/mongodb";
 import { SessionArtifactRegistry } from "./artifactRegistry";
 import { SessionArtifactValidator, SessionIntegrityReport } from "./artifactValidator";
 import { CreatorIntelligenceBundle } from "@/lib/intelligence/types";
+import { SessionIntelligence } from "@/lib/intelligence/canonicalTypes";
 
 export interface CompletedSessionBundle {
   sessionId: string;
   summary: any;
+  sessionIntelligence?: SessionIntelligence;
   overview: {
     durationMinutes: number;
     startedAt: string;
@@ -31,6 +33,8 @@ export interface CompletedSessionBundle {
   highlights: any[];
   aiReport: any;
   creatorIntelligence: CreatorIntelligenceBundle;
+  publishing?: any;
+  executiveReport?: any;
   evidence?: any[];
   moodTimeline?: any[];
   topicEvolution?: any[];
@@ -45,7 +49,7 @@ export interface CompletedSessionBundle {
     categoryExplanations?: any;
   } | null;
   integrityReport: SessionIntegrityReport;
-  // Sprint 18.7 Memory Extensions
+  // Memory Extensions
   creatorProfileSnapshot?: any;
   personalBenchmarks?: any;
   patternDetections?: any[];
@@ -62,7 +66,7 @@ export interface CompletedSessionBundle {
 
 export class CompletedSessionBundleBuilder {
   /**
-   * Constructs an immutable CompletedSessionBundle from canonical SessionArtifactRegistry
+   * Constructs an immutable CompletedSessionBundle from canonical SessionIntelligenceEngine and SessionArtifactRegistry
    */
   public static async build(sessionId: string): Promise<CompletedSessionBundle> {
     console.log(`[CompletedSessionBundleBuilder] 📦 Building single CompletedSessionBundle for session '${sessionId}'...`);
@@ -74,37 +78,47 @@ export class CompletedSessionBundleBuilder {
     const artifacts = await SessionArtifactRegistry.fetchFullSessionArtifacts(sessionId);
     const integrityReport = await SessionArtifactValidator.validate(sessionId);
 
+    // Fetch or generate canonical SessionIntelligence (single source of truth)
+    const { SessionIntelligenceEngine } = await import("@/lib/intelligence/SessionIntelligenceEngine");
+    const sessionIntelligence = await SessionIntelligenceEngine.generate(
+      sessionId,
+      sessionDoc?.userId || sessionDoc?.creatorId
+    );
+
     const messages = artifacts?.messages || [];
-    const highlights = artifacts?.highlights || [];
-    const timelineEvents = artifacts?.timelineEvents || [];
+    const highlights = sessionIntelligence.highlights;
+    const timelineEvents = sessionIntelligence.timeline.events;
     const insights = artifacts?.insights || [];
     const intel: any = artifacts?.intelligence || {
-      coach: [],
+      coach: sessionIntelligence.coaching.personalizedCoaching,
       mood: null,
-      topics: [],
-      opportunities: [],
-      risks: [],
-      score: null,
+      topics: sessionIntelligence.audience.mostDiscussedTopics,
+      opportunities: sessionIntelligence.executiveSummary.biggestWins,
+      risks: sessionIntelligence.executiveSummary.missedOpportunities,
+      score: {
+        overallScore: sessionIntelligence.executiveSummary.overallScore,
+        overallGrade: sessionIntelligence.executiveSummary.streamGrade,
+        breakdown: sessionIntelligence.executiveSummary.scores,
+      },
       story: null,
-      actions: [],
-      creatorProfile: null,
-      personalBenchmarks: null,
-      detectedPatterns: [],
+      actions: sessionIntelligence.actionPlan,
+      creatorProfile: sessionIntelligence.creatorMemory.creatorProfile,
+      personalBenchmarks: sessionIntelligence.creatorMemory.personalBenchmarks,
+      detectedPatterns: sessionIntelligence.patterns,
       creatorPlaybook: null,
     };
 
-
-    const totalMessagesCount = messages.length;
-    const highlightsCount = highlights.length;
+    const totalMessagesCount = sessionIntelligence.telemetry.totalMessages;
+    const highlightsCount = sessionIntelligence.highlights.length;
     const timelineEventsCount = timelineEvents.length;
-    const aiReportsCount = insights.length;
+    const aiReportsCount = sessionIntelligence.recommendations.length;
 
     const overview = {
-      durationMinutes: sessionDoc?.summary?.durationMinutes || 1,
-      startedAt: sessionDoc?.startedAt || sessionDoc?.createdAt || new Date().toISOString(),
-      endedAt: sessionDoc?.endedAt || new Date().toISOString(),
-      peakViewers: sessionDoc?.summary?.peakViewers || sessionDoc?.peakViewerCount || 0,
-      averageViewers: sessionDoc?.summary?.averageViewers || sessionDoc?.viewerCount || 0,
+      durationMinutes: sessionIntelligence.session.durationMinutes,
+      startedAt: sessionIntelligence.session.startedAt,
+      endedAt: sessionIntelligence.session.endedAt,
+      peakViewers: sessionIntelligence.telemetry.peakViewers,
+      averageViewers: sessionIntelligence.telemetry.averageViewers,
       totalMessagesCount,
       highlightsCount,
       timelineEventsCount,
@@ -112,34 +126,33 @@ export class CompletedSessionBundleBuilder {
     };
 
     const analytics = {
-      avgSentiment: sessionDoc?.summary?.avgSentiment || 50,
-      peakMomentum: sessionDoc?.summary?.peakMomentum || 50,
-      peakHype: sessionDoc?.summary?.peakHype || 0,
-      questionsCount: sessionDoc?.summary?.questionsDetectedCount || 0,
-      uniqueChattersCount: sessionDoc?.summary?.uniqueChattersCount || 0,
+      avgSentiment: sessionIntelligence.telemetry.avgSentiment,
+      peakMomentum: sessionIntelligence.telemetry.peakMomentum,
+      peakHype: sessionIntelligence.telemetry.peakHype,
+      questionsCount: sessionIntelligence.telemetry.questionsDetected,
+      uniqueChattersCount: sessionIntelligence.telemetry.uniqueChatters,
     };
 
-    const broadcastScore = intel.score
-      ? {
-          overallScore: intel.score.overallScore,
-          overallGrade: intel.score.overallGrade,
-          breakdown: intel.score.breakdown,
-          categoryExplanations: intel.score.categoryExplanations,
-        }
-      : {
-          overallScore: 85,
-          overallGrade: "B+",
-          breakdown: { entertainment: 85, interaction: 85, energy: 85, consistency: 90, audienceHealth: 85, responsiveness: 85 },
-        };
+    const broadcastScore = {
+      overallScore: sessionIntelligence.executiveSummary.overallScore,
+      overallGrade: sessionIntelligence.executiveSummary.streamGrade,
+      breakdown: sessionIntelligence.executiveSummary.scores,
+      categoryExplanations: {
+        overall: `Overall stream performance evaluated at ${sessionIntelligence.executiveSummary.overallScore}/100.`,
+      },
+    };
 
     const bundle: CompletedSessionBundle = {
       sessionId,
       summary: sessionDoc?.summary || null,
+      sessionIntelligence,
       overview,
       analytics,
       timeline: { events: timelineEvents },
       chatArchive: messages,
       highlights,
+      publishing: sessionIntelligence.publishing,
+      executiveReport: sessionIntelligence.executiveSummary,
       aiReport: sessionDoc?.summary?.finalAIReport || null,
       creatorIntelligence: intel,
       moodTimeline: intel.mood?.moodTimeline || [],
@@ -156,14 +169,13 @@ export class CompletedSessionBundleBuilder {
       patternDetections: intel.detectedPatterns || [],
       playbookSnapshot: intel.creatorPlaybook || null,
       metadata: {
-        platform: sessionDoc?.platform || "kick",
-        streamTitle: sessionDoc?.streamTitle || "Live Broadcast",
-        streamCategory: sessionDoc?.streamCategory || "Gaming",
+        platform: sessionIntelligence.session.platform,
+        streamTitle: sessionIntelligence.session.streamTitle,
+        streamCategory: sessionIntelligence.session.streamCategory,
         createdAt: new Date().toISOString(),
-        bundleVersion: 3,
+        bundleVersion: 4,
       },
     };
-
 
     return bundle;
   }
