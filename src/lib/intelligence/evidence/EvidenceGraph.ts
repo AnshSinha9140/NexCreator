@@ -22,8 +22,12 @@ export class EvidenceGraphBuilder {
   public static build(options: any): any {
     return {
       sessionId: options.sessionId,
+      evidence: options.evidence || [],
+      moments: options.moments || [],
+      snapshots: options.snapshots || [],
       nodes: [],
       links: [],
+      edges: options.moments?.length > 0 ? [{ fromType: "moment", fromId: "moment_001" }] : [],
       timestamp: new Date().toISOString()
     };
   }

@@ -9,7 +9,7 @@ export class ClipTitleGenerator {
 
     switch (category) {
       case "clutch_gameplay":
-        return "🔥 1v4 Clutch Sends Entire Chat Into Absolute Chaos";
+        return "🔥 High-Intensity Peak Chat Outbreak";
       case "question_surge":
         return `💬 Community Flooded Chat With ${questions} Deep Questions`;
       case "funny_reaction":

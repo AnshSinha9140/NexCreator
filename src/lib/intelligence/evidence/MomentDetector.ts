@@ -1,23 +1,30 @@
 // =============================================================================
-// MomentDetector.ts — Sprint 24.5
+// MomentDetector.ts — Sprint 24.5 (Updated with Primary Anchor Requirement & 15s Clamps)
 // =============================================================================
 // Converts validated RawEvidence[] into MomentCandidate[].
 // Groups overlapping evidence within a time window. Scores each candidate.
 // AI does NOT detect highlights directly — evidence triggers moments.
 // =============================================================================
 
-import { RawEvidence, MomentCandidate, MomentCategory, EvidenceScorecard } from "./EvidenceTypes";
+import { RawEvidence, MomentCandidate, MomentCategory, EvidenceScorecard, RawEvidenceType } from "./EvidenceTypes";
 import { EvidenceScore } from "./EvidenceScore";
 
 export class MomentDetector {
-  // Grouping window: evidence within this many seconds is merged into one moment
-  private static readonly GROUPING_WINDOW_SECONDS = 90;
+  // Primary anchors required to trigger a moment candidate cluster alone
+  private static readonly PRIMARY_ANCHORS: Set<RawEvidenceType> = new Set([
+    "CHAT_EXPLOSION",
+    "VIEWER_SPIKE",
+    "REACTION_BURST",
+  ]);
+
+  // Grouping window: evidence within 3 minutes (180s) is aggressively merged into one moment cluster
+  private static readonly GROUPING_WINDOW_SECONDS = 180;
   // Pre-roll: start clip this many seconds before first evidence signal
   private static readonly PRE_ROLL_SECONDS = 5;
   // Post-roll: end clip this many seconds after last evidence signal
   private static readonly POST_ROLL_SECONDS = 8;
-  // Minimum clip duration
-  private static readonly MIN_DURATION_SECONDS = 20;
+  // Minimum clip duration (lowered to 15s to capture rapid, high-density inside jokes/clutches)
+  private static readonly MIN_DURATION_SECONDS = 15;
   // Maximum clip duration
   private static readonly MAX_DURATION_SECONDS = 60;
 
@@ -41,8 +48,13 @@ export class MomentDetector {
     // Group overlapping evidence into clusters
     const clusters = this.groupIntoWindows(sorted);
 
-    // Build a MomentCandidate from each cluster
-    const candidates: MomentCandidate[] = clusters
+    // Filter clusters: MUST contain at least one Primary Anchor
+    const validClusters = clusters.filter((cluster) =>
+      cluster.some((ev) => this.PRIMARY_ANCHORS.has(ev.type))
+    );
+
+    // Build a MomentCandidate from each valid cluster
+    const candidates: MomentCandidate[] = validClusters
       .map((cluster, idx) => this.buildCandidate(cluster, idx, chatMessages, evidence, sessionBaseline))
       .filter((c): c is MomentCandidate => c !== null);
 
@@ -110,18 +122,11 @@ export class MomentDetector {
       ev.confidence > best.confidence ? ev : best
     );
 
-    // Parse timestamps from evidence
-    const firstIso = new Date(firstEvidence.isoTimestamp).getTime();
-    const lastIso = new Date(lastEvidence.isoTimestamp).getTime();
-    const peakIso = new Date(peakEvidence.isoTimestamp).getTime();
-
-    // Compute seconds from session start — we use relative timestamps from the evidence
-    // If we have HH:MM:SS timestamps, parse them; otherwise use index-based
     const startSec = Math.max(0, this.parseToSeconds(firstEvidence.timestamp) - this.PRE_ROLL_SECONDS);
     const rawEndSec = this.parseToSeconds(lastEvidence.timestamp) + this.POST_ROLL_SECONDS;
     const peakSec = this.parseToSeconds(peakEvidence.timestamp);
 
-    // Clamp clip duration
+    // Clamp clip duration (minimum 15s allowed)
     const clampedDuration = Math.min(
       this.MAX_DURATION_SECONDS,
       Math.max(this.MIN_DURATION_SECONDS, rawEndSec - startSec)
@@ -157,7 +162,7 @@ export class MomentDetector {
       evidenceIds: sortedCluster.map((ev) => ev.id),
       relatedSnapshotIds: [...new Set(sortedCluster.map((ev) => ev.relatedSnapshotId))],
       chatRange,
-      score: 0, // computed below
+      score: 0,
       scorecard: {} as EvidenceScorecard,
       validationStatus: "PENDING",
     };
@@ -200,8 +205,6 @@ export class MomentDetector {
       return { startIndex: 0, endIndex: 0, messages: [] };
     }
 
-    // Find messages within the time window
-    // If no timestamps, use a proportional slice of the message array
     const messagesWithTimestamps = chatMessages.filter((m) => m.timestamp);
 
     let startIndex = 0;
@@ -209,8 +212,7 @@ export class MomentDetector {
     let windowMessages: string[] = [];
 
     if (messagesWithTimestamps.length > 5) {
-      // Try to find messages by timestamp range
-      const filtered = chatMessages.filter((m, i) => {
+      const filtered = chatMessages.filter((m) => {
         if (!m.timestamp) return false;
         const secVal = this.parseToSeconds(m.timestamp);
         return secVal >= startSec && secVal <= endSec;
@@ -227,9 +229,8 @@ export class MomentDetector {
       }
     }
 
-    // Proportional fallback
     if (windowMessages.length === 0 && chatMessages.length > 0) {
-      const totalDurationGuess = 45 * 60; // Assume 45-min stream if no timestamps
+      const totalDurationGuess = 45 * 60;
       const startRatio = startSec / totalDurationGuess;
       const endRatio = endSec / totalDurationGuess;
       startIndex = Math.floor(startRatio * chatMessages.length);
@@ -248,17 +249,17 @@ export class MomentDetector {
     };
   }
 
-  // ---------------------------------------------------------------------------
-  // Timestamp utilities
-  // ---------------------------------------------------------------------------
-
   private static parseToSeconds(timestamp: any): number {
-    if (!timestamp) return 0;
-    if (typeof timestamp === "number") return timestamp;
+    if (timestamp === null || timestamp === undefined) return 0;
+    if (typeof timestamp === "number") return Math.max(0, Math.floor(timestamp));
+    if (timestamp instanceof Date) {
+      return !isNaN(timestamp.getTime()) ? Math.floor(timestamp.getTime() / 1000) : 0;
+    }
     const str = String(timestamp).trim();
+    if (!str) return 0;
     const parts = str.split(":").map(Number);
-    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-    if (parts.length === 2) return parts[0] * 60 + parts[1];
+    if (parts.length === 3 && !parts.some(isNaN)) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    if (parts.length === 2 && !parts.some(isNaN)) return parts[0] * 60 + parts[1];
     if (parts.length === 1 && !isNaN(parts[0])) return parts[0];
     return 0;
   }

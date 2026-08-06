@@ -130,6 +130,18 @@ export class HighlightGenerator {
         { highlightId: highlightDoc.id, type, score }
       );
 
+      // ASYNCHRONOUS PHASE 5 ENRICHMENT DISPATCH (Live Monitoring AI Trigger)
+      if (score >= 65) {
+        import("@/lib/intelligence/SessionIntelligenceEngine").then(({ SessionIntelligenceEngine }) => {
+          console.log(`[HighlightGenerator] 🚀 Asynchronously dispatching AI enrichment for session '${sessionId}'...`);
+          SessionIntelligenceEngine.generate({ sessionId, creatorId, forceRegenerate: true }).catch((err: any) => {
+            console.warn(`[HighlightGenerator] Background AI enrichment warning:`, err?.message || err);
+          });
+        }).catch((err: any) => {
+          console.warn(`[HighlightGenerator] Async module import error:`, err?.message || err);
+        });
+      }
+
       return highlightDoc;
     } catch (err: any) {
       console.warn(`[HighlightGenerator] Failed to persist highlight for session '${sessionId}':`, err.message);

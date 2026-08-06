@@ -56,7 +56,9 @@ export async function analyzeCommentsWithGemini(comments: string[]): Promise<Gem
 
   // 1. Try Gemini Models first
   const GEMINI_MODELS = [
+    "gemini-2.5-flash",
     "gemini-2.0-flash",
+    "gemini-1.5-flash",
     "gemini-2.0-flash-lite",
   ];
   let lastError: Error | null = null;
@@ -71,6 +73,7 @@ export async function analyzeCommentsWithGemini(comments: string[]): Promise<Gem
           const response = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            signal: AbortSignal.timeout(12000),
             body: JSON.stringify({
               contents: [{ parts: [{ text: prompt }] }],
               generationConfig: { responseMimeType: "application/json" }

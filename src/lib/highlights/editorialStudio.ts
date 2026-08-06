@@ -252,21 +252,27 @@ export class EditorialHighlightComposer {
     const category = this.determineCategory(classifiedType);
 
     // Timestamps formatting (HH:MM:SS)
-    const formatTime = (d: Date) => {
-      if (isNaN(d.getTime())) return "Timestamp unavailable";
-      return d.toTimeString().split(" ")[0];
+    const formatTime = (d: Date | string | number) => {
+      if (d === null || d === undefined) return "00:00:00";
+      if (typeof d === "string" && /^\d{2}:\d{2}:\d{2}$/.test(d)) return d;
+      const dateObj = typeof d === "string" || typeof d === "number" ? new Date(d) : d;
+      if (!isNaN(dateObj.getTime())) {
+        return dateObj.toTimeString().split(" ")[0];
+      }
+      return "00:00:00";
     };
 
-    const streamStartTimestamp = formatTime(startTime);
-    const streamEndTimestamp = formatTime(endTime);
+    const streamStartTimestamp = formatTime(group[0]?.windowStart || primary.windowStart);
+    const streamEndTimestamp = formatTime(group[group.length - 1]?.windowEnd || primary.windowEnd);
 
     // Find peak moment candidate
     const peakTime = new Date(primary.windowStart);
-    const peakTimestamp = formatTime(peakTime);
+    const peakTimestamp = formatTime(primary.windowStart);
 
     // Platform-appropriate clip windows (YouTube Shorts: 15-60s, TikTok: 20-45s, Instagram: 20-60s)
-    const clipDuration = Math.min(45, Math.max(25, Math.round(durationSeconds * 0.4)));
-    const clipStart = new Date(peakTime.getTime() - Math.round(clipDuration * 0.3) * 1000);
+    const clipDuration = Math.min(45, Math.max(15, Math.round(durationSeconds * 0.4)));
+    const validPeakMs = isNaN(peakTime.getTime()) ? Date.now() : peakTime.getTime();
+    const clipStart = new Date(validPeakMs - Math.round(clipDuration * 0.3) * 1000);
     const clipEnd = new Date(clipStart.getTime() + clipDuration * 1000);
 
     const clipStartTimestamp = formatTime(clipStart);

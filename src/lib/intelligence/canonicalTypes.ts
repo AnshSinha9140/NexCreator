@@ -482,6 +482,7 @@ export interface SessionIntelligence {
   creatorId: string;
   version: number;
   createdAt: string;
+  processingState?: "live_monitoring" | "finalized"; // Sprint 24.5 — state flag
 
   session: CanonicalSessionMeta;
   telemetry: CanonicalTelemetry;

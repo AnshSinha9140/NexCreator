@@ -1,5 +1,5 @@
 // =============================================================================
-// EvidenceScore.ts — Sprint 24.5
+// EvidenceScore.ts — Sprint 24.5 (Updated with Participation Density Math)
 // =============================================================================
 // Computes EvidenceScorecard from a MomentCandidate and its related evidence.
 // Every score dimension must trace to a measured metric. No fabrication.
@@ -15,17 +15,14 @@ import {
 export class EvidenceScore {
   /**
    * Computes a full EvidenceScorecard from a MomentCandidate and its evidence chain.
-   * Returns the scorecard and a flat overall score for backward compatibility.
    */
   public static compute(
     candidate: MomentCandidate,
     evidence: RawEvidence[],
     sessionBaseline: { avgVelocity: number; avgSentiment: number; peakViewers: number }
   ): EvidenceScorecard {
-    // Resolve only the evidence for this moment
     const momentEvidence = evidence.filter((ev) => candidate.evidenceIds.includes(ev.id));
 
-    // Gather peak metrics from the evidence chain
     const peakVelocity = Math.max(0, ...momentEvidence.map((ev) => ev.sourceMetrics.velocity ?? 0));
     const peakViewerDelta = Math.max(0, ...momentEvidence.map((ev) => ev.sourceMetrics.viewerDelta ?? 0));
     const peakSentiment = Math.max(0, ...momentEvidence.map((ev) => ev.sourceMetrics.sentimentScore ?? 0));
@@ -42,27 +39,16 @@ export class EvidenceScore {
     const baseline = sessionBaseline;
     const evidenceTypes = new Set(momentEvidence.map((ev) => ev.type));
 
-    // ----------------------------------------------------------------
-    // 1. Viewer Impact — based on viewer delta relative to peak
-    // ----------------------------------------------------------------
-    const viewerImpact = this.computeViewerImpact(
-      peakViewerDelta,
-      baseline.peakViewers
-    );
+    // 1. Viewer Impact
+    const viewerImpact = this.computeViewerImpact(peakViewerDelta, baseline.peakViewers);
 
-    // ----------------------------------------------------------------
-    // 2. Chat Velocity — based on velocity relative to session baseline
-    // ----------------------------------------------------------------
+    // 2. Chat Velocity
     const chatVelocity = this.computeChatVelocity(peakVelocity, baseline.avgVelocity);
 
-    // ----------------------------------------------------------------
-    // 3. Sentiment — based on measured sentiment score
-    // ----------------------------------------------------------------
+    // 3. Sentiment
     const sentiment = this.computeSentiment(peakSentiment, baseline.avgSentiment);
 
-    // ----------------------------------------------------------------
-    // 4. Replay Value — composite of velocity × sentiment × uniqueness
-    // ----------------------------------------------------------------
+    // 4. Replay Value
     const replayValue = this.computeReplayValue(
       chatVelocity.score,
       sentiment.score,
@@ -70,28 +56,24 @@ export class EvidenceScore {
       candidate.chatRange.messages
     );
 
-    // ----------------------------------------------------------------
-    // 5. Uniqueness — entropy of chat content
-    // ----------------------------------------------------------------
+    // 5. Uniqueness
     const uniqueness = this.computeUniqueness(candidate.chatRange.messages, emoteRatio);
 
-    // ----------------------------------------------------------------
-    // 6. Conversation Quality — ratio of questions and thoughtful messages
-    // ----------------------------------------------------------------
+    // 6. Conversation Quality
     const conversationQuality = this.computeConversationQuality(
       questionCount,
       uniqueChatters,
       candidate.chatRange.messages
     );
 
-    // ----------------------------------------------------------------
-    // 7. Confidence — from evidence count and diversity
-    // ----------------------------------------------------------------
-    const confidence = this.computeConfidence(momentEvidence.length, evidenceTypes.size);
+    // 7. Relative Density Confidence Score
+    const confidence = this.computeConfidence(
+      momentEvidence,
+      uniqueChatters,
+      candidate.chatRange.messages.length
+    );
 
-    // ----------------------------------------------------------------
-    // Overall — weighted composite
-    // ----------------------------------------------------------------
+    // Overall weighted score
     const overall = Math.min(
       99,
       Math.round(
@@ -117,17 +99,9 @@ export class EvidenceScore {
     };
   }
 
-  /**
-   * Flat score accessor for backward compatibility with UI components that
-   * read highlight.score as a number.
-   */
   public static flatScore(scorecard: EvidenceScorecard): number {
     return scorecard.overall;
   }
-
-  // ---------------------------------------------------------------------------
-  // Dimension Computers
-  // ---------------------------------------------------------------------------
 
   private static computeViewerImpact(
     viewerDelta: number,
@@ -191,8 +165,7 @@ export class EvidenceScore {
     emoteRatio: number,
     messages: string[]
   ): EvidenceScorecardDimension {
-    // High replay = fast chat + positive + distinct content (not pure spam)
-    const uniquenessBoost = emoteRatio < 0.8 ? 15 : 0; // reward non-emote-only bursts
+    const uniquenessBoost = emoteRatio < 0.8 ? 15 : 0;
     const score = Math.min(99, Math.round(
       chatVelocityScore * 0.4 + sentimentScore * 0.4 + uniquenessBoost + (messages.length > 2 ? 10 : 0)
     ));
@@ -209,7 +182,6 @@ export class EvidenceScore {
     if (messages.length === 0) {
       return { score: 30, why: "No chat messages sampled for uniqueness analysis." };
     }
-    // Measure content diversity — lower emote ratio = more unique conversational content
     const uniqueWords = new Set(
       messages.join(" ").toLowerCase().split(/\s+/).filter((w) => w.length > 2)
     ).size;
@@ -242,18 +214,39 @@ export class EvidenceScore {
     return { score, why };
   }
 
+  /**
+   * Computes confidence score using Relative Density / Participation Ratio
+   * rather than pure absolute volume.
+   */
   private static computeConfidence(
-    evidenceCount: number,
-    evidenceTypeCount: number
+    momentEvidence: RawEvidence[],
+    uniqueChatters: number,
+    sampleMessageCount: number
   ): EvidenceScorecardDimension {
-    const base = Math.min(80, evidenceCount * 15 + evidenceTypeCount * 10);
-    const score = Math.min(99, Math.max(30, base));
+    const evidenceCount = momentEvidence.length;
+    const evidenceTypes = new Set(momentEvidence.map((ev) => ev.type));
+
+    // Calculate participation density ratio
+    const participationRatio = uniqueChatters > 0
+      ? Math.min(1, sampleMessageCount / Math.max(1, uniqueChatters))
+      : 0.5;
+
+    // Highest signal confidence from primary anchors
+    const maxSignalConfidence = momentEvidence.length > 0
+      ? Math.max(...momentEvidence.map((ev) => ev.confidence))
+      : 70;
+
+    // Density boosted base confidence
+    const densityBoost = Math.round(participationRatio * 20);
+    const diversityBoost = Math.min(15, evidenceTypes.size * 5);
+
+    const score = Math.min(99, Math.max(65, Math.round(maxSignalConfidence * 0.6 + densityBoost + diversityBoost)));
+
     const why =
-      evidenceCount >= 4
-        ? `High confidence — ${evidenceCount} evidence signals across ${evidenceTypeCount} distinct types.`
-        : evidenceCount >= 2
-        ? `Moderate confidence — ${evidenceCount} supporting evidence items across ${evidenceTypeCount} type(s).`
-        : `Low confidence — only ${evidenceCount} supporting evidence item(s). More data needed.`;
+      participationRatio >= 0.7
+        ? `High confidence (${score}%) — high relative chatter participation (${uniqueChatters} active chatters) across ${evidenceTypes.size} signal type(s).`
+        : `Moderate confidence (${score}%) — ${evidenceCount} signal(s) with ${uniqueChatters} active chatter(s).`;
+
     return { score, why };
   }
 }

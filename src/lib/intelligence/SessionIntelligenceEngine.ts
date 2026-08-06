@@ -48,6 +48,8 @@ export interface GenerateIntelligenceOptions {
   snapshots?: any[];
   chatMessages?: any[];
   existingHighlights?: any[];
+  processingState?: "live_monitoring" | "finalized";
+  isLive?: boolean;
 }
 
 export class SessionIntelligenceEngine {
@@ -68,6 +70,8 @@ export class SessionIntelligenceEngine {
     let chatMessagesOverride: any[] | null = null;
     let existingHighlightsOverride: any[] | null = null;
 
+    let processingState: "live_monitoring" | "finalized" = "finalized";
+
     if (typeof sessionIdOrOptions === "object") {
       sessionId = sessionIdOrOptions.sessionId;
       creatorId = sessionIdOrOptions.creatorId || creatorId;
@@ -76,6 +80,11 @@ export class SessionIntelligenceEngine {
       snapshotsOverride = sessionIdOrOptions.snapshots || null;
       chatMessagesOverride = sessionIdOrOptions.chatMessages || null;
       existingHighlightsOverride = sessionIdOrOptions.existingHighlights || null;
+      if (sessionIdOrOptions.processingState) {
+        processingState = sessionIdOrOptions.processingState;
+      } else if (sessionIdOrOptions.isLive) {
+        processingState = "live_monitoring";
+      }
     } else {
       sessionId = sessionIdOrOptions;
     }
@@ -349,10 +358,17 @@ export class SessionIntelligenceEngine {
     // Step 7D. Detect moment candidates from validated evidence
     const momentCandidatesRaw = MomentDetector.detect(validatedEvidence, chatMessages, sessionBaseline);
 
-    // Step 7E. Validate moment candidates — enforce duration, evidence count, overlap, confidence
+    // Step 7E. Validate moment candidates — enforce duration, evidence count, overlap, confidence (MIN_MOMENT_CONFIDENCE = 75)
     const validatedMomentsRaw = EvidenceValidator.validateMoments(momentCandidatesRaw);
     // Qualify via TruthEngine (enforce strict quality/evidence count gates)
-    const validatedMoments = TruthEngine.qualifyHighlights(validatedMomentsRaw, validatedEvidence);
+    const qualifiedMoments = TruthEngine.qualifyHighlights(validatedMomentsRaw, validatedEvidence);
+
+    // Enforce 2-clips-per-hour density cap based on session duration
+    const maxAllowedClips = Math.max(1, Math.ceil(durationMinutes / 60) * 2);
+    const validatedMoments = [...qualifiedMoments]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, maxAllowedClips);
+
     const rejectedMoments = momentCandidatesRaw.filter(m => !validatedMoments.some(vm => vm.momentId === m.momentId));
 
     // Part 1: Event Detection Layer
@@ -583,8 +599,9 @@ export class SessionIntelligenceEngine {
     const canonicalIntelligence: SessionIntelligence = {
       sessionId,
       creatorId: resolvedCreatorId,
-      version: 3, // Sprint 27.0 Truth Engine
+      version: 2, // Sprint 24.5
       createdAt: new Date().toISOString(),
+      processingState,
       session: sessionMeta,
       telemetry,
       audience,
@@ -736,8 +753,33 @@ export class SessionIntelligenceEngine {
       // Real emotes from snapshot data
       const realEmotes = this.extractEmotesFromSnapshots(snapshots, moment.startSeconds, moment.endSeconds);
 
-      // Derive meaningful title from evidence type deterministically (Part 4)
-      const title = ClaimValidator.generateTitleFromEvidence(momentEvidence);
+      // Helper to sanitize title (strip metadata/confidence suffixes)
+      const sanitizeTitleStr = (raw: string) => {
+        return raw.replace(/\s*\([^)]*Confidence[^)]*\)/gi, "").replace(/\s*\(Confidence:?\s*\d+%\)/gi, "").trim();
+      };
+
+      // Derive meaningful, unique title from evidence and chat telemetry
+      let baseTitle = sanitizeTitleStr(ClaimValidator.generateTitleFromEvidence(momentEvidence));
+      
+      // Enforce title uniqueness across highlights using top emotes or timestamps
+      const titleTracker = (this as any)._usedTitles || new Set<string>();
+      if (idx === 0) titleTracker.clear();
+      (this as any)._usedTitles = titleTracker;
+
+      let uniqueTitle = baseTitle;
+      if (titleTracker.has(uniqueTitle)) {
+        if (realEmotes.length > 0) {
+          uniqueTitle = `${baseTitle} (${realEmotes[0]} Spam)`;
+        } else if (realMessages.length > 0) {
+          const sampleWord = realMessages[0].split(" ").slice(0, 3).join(" ");
+          uniqueTitle = `${baseTitle} — "${sampleWord}..."`;
+        } else {
+          uniqueTitle = `${baseTitle} [${moment.peakTimestamp}]`;
+        }
+      }
+      titleTracker.add(uniqueTitle);
+      const title = uniqueTitle;
+
       const rawTrigger = momentEvidence.map(ev => ev.description).filter(d => d.length > 0).join(" | ") ||
         `${moment.category.replace(/_/g, " ").toLowerCase()} detected at ${moment.peakTimestamp}.`;
       const triggerReason = TruthEngine.validateTextClaim(rawTrigger, momentEvidence);
@@ -913,15 +955,26 @@ export class SessionIntelligenceEngine {
       ? scorecard.chatVelocity.why.split(".")[0] + "."
       : `Live moment from ${game} stream.`;
 
+    // Dynamic Hook variations based on highlight category & telemetry signals
+    let dynamicHook = `Watch this live ${game} moment...`;
+    const cat = moment.category;
+    if (cat === "QUESTION_SURGE") {
+      dynamicHook = "Chat asked an unbelievable question live on stream...";
+    } else if (cat === "VIRAL_MOMENT" || cat === "EMOTIONAL_PEAK") {
+      dynamicHook = "The entire chat went wild when this happened...";
+    } else if (cat === "CONVERSATION_BURST" || scorecard.chatVelocity?.score > 70) {
+      dynamicHook = "Chat velocity exploded in seconds...";
+    } else if (cat === "COMMUNITY_REACTION" || realEmotes.length > 0) {
+      dynamicHook = `Watch chat spam ${realEmotes[0] || "emotes"} during this stream moment...`;
+    }
+
     return {
       highlightId,
       youtubeTitle: `${title} | ${game} Stream Highlight`,
       tiktokTitle: `${title} #${gameSlug} #gaming`,
       instagramTitle: `This happened live on ${platform} 🔥 #${gameSlug}`,
       seoTitle,
-      hook: scorecard.chatVelocity?.score > 70
-        ? "Watch what chat does when this happens..."
-        : `You won't believe this ${game} moment...`,
+      hook: dynamicHook,
       description: `Uncut live moment from ${platform} stream of ${game}. ${evidenceCaption} Watch full VOD on channel.`,
       caption: `${evidenceCaption} Clip from live ${game} stream on ${platform}. ${hashtags.slice(0, 5).join(" ")}`,
       thumbnailIdea: {

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { ConnectedPlatformAccount, MonitoringSession } from "@/types";
@@ -33,7 +34,16 @@ export const CommandCenterView: React.FC<{
   };
 
   const displayName = profile?.audit.creatorName || currentUser?.name || currentUser?.email?.split("@")[0] || "Creator";
-  const managerNote = profile?.audit.managerImpression?.firstImpression || "Your Creator Intelligence profile is dynamically calibrating across your broadcast activity.";
+  const latestIntel = workspaceState?.latestSessionIntelligence;
+  const latestSession = workspaceState?.latestCompletedSession;
+  const managerNote =
+    latestIntel?.coaching?.nextAdvice?.recommendation ||
+    latestIntel?.managerJournal?.nextStreamPriority ||
+    latestSession?.coaching?.nextAdvice?.recommendation ||
+    latestSession?.managerJournal?.nextStreamPriority ||
+    workspaceState?.nextRecommendedAction ||
+    profile?.audit?.managerImpression?.firstImpression ||
+    "Focus on increasing audience chat engagement during high-intensity moments in your next stream.";
 
   // Fetch Single Source of Truth Workspace State & Connected Platforms
   useEffect(() => {
@@ -426,7 +436,7 @@ export const CommandCenterView: React.FC<{
               Monitored Streams
             </div>
             <div style={{ fontSize: "36px", fontWeight: "900", color: "#34d399", margin: "4px 0 2px" }}>
-              {completedSessionsCount}
+              {totalCompleted}
             </div>
           </div>
           <p style={{ fontSize: "11px", color: "#64748b", lineHeight: 1.4, marginTop: "6px" }}>
@@ -451,32 +461,73 @@ export const CommandCenterView: React.FC<{
 
         {recentSessions.length > 0 ? (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {recentSessions.map((sess: any) => (
-              <div
-                key={sess.id || sess._id}
+            {recentSessions.map((sess: any) => {
+              const sessionId = sess.id || sess._id;
+              const peakViewers = sess.peakViewerCount ?? sess.peakViewers ?? sess.overview?.peakViewers ?? 0;
+              const highlightsList = sess.highlights || sess.latestHighlights || [];
+              const clipsCount = highlightsList.length > 0 ? highlightsList.length : (sess.highlightsCount ?? sess.overview?.highlightsCount ?? 0);
 
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: "10px",
-                  background: "rgba(255,255,255,0.02)",
-                  border: "1px solid rgba(255,255,255,0.05)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  height: "auto",
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: "13px", fontWeight: "600", color: "#f8fafc" }}>{sess.streamTitle}</div>
-                  <div style={{ fontSize: "11px", color: "#64748b", fontFamily: "'JetBrains Mono', monospace", marginTop: "2px" }}>
-                    {sess.platform.toUpperCase()} · Peak Viewers: {sess.peakViewerCount}
+              return (
+                <Link
+                  key={sessionId}
+                  href={`/dashboard/sessions/${sessionId}`}
+                  style={{ textDecoration: "none" }}
+                >
+                  <div
+                    style={{
+                      padding: "12px 14px",
+                      borderRadius: "10px",
+                      background: "rgba(255,255,255,0.02)",
+                      border: "1px solid rgba(255,255,255,0.06)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      height: "auto",
+                      transition: "all 0.15s ease-in-out",
+                      cursor: "pointer",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLDivElement).style.background = "rgba(168, 85, 247, 0.08)";
+                      (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(168, 85, 247, 0.3)";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.02)";
+                      (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(255,255,255,0.06)";
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <span style={{ fontSize: "16px" }}>🎥</span>
+                      <div>
+                        <div style={{ fontSize: "13px", fontWeight: "600", color: "#f8fafc" }}>
+                          {sess.streamTitle || "Monitored Stream"}
+                        </div>
+                        <div style={{ fontSize: "11px", color: "#64748b", fontFamily: "'JetBrains Mono', monospace", marginTop: "2px" }}>
+                          {(sess.platform || "KICK").toUpperCase()} · Peak Viewers: <strong style={{ color: "#60a5fa" }}>{peakViewers.toLocaleString()}</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span style={{ fontSize: "11px", fontWeight: "600", padding: "3px 8px", borderRadius: "6px", background: "rgba(59, 130, 246, 0.12)", color: "#60a5fa", border: "1px solid rgba(59, 130, 246, 0.25)", fontFamily: "monospace" }}>
+                        👥 {peakViewers.toLocaleString()} Peak
+                      </span>
+
+                      {clipsCount > 0 ? (
+                        <span style={{ fontSize: "11px", fontWeight: "700", padding: "3px 8px", borderRadius: "6px", background: "rgba(168, 85, 247, 0.15)", color: "#c084fc", border: "1px solid rgba(168, 85, 247, 0.3)", fontFamily: "monospace" }}>
+                          🎬 {clipsCount} {clipsCount === 1 ? "Clip" : "Clips"}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: "10px", fontWeight: "700", padding: "3px 8px", borderRadius: "99px", background: "rgba(16,185,129,0.1)", color: "#34d399", fontFamily: "monospace" }}>
+                          {(sess.status || "COMPLETED").toUpperCase()}
+                        </span>
+                      )}
+
+                      <span style={{ fontSize: "12px", color: "#64748b", marginLeft: "4px" }}>→</span>
+                    </div>
                   </div>
-                </div>
-                <span style={{ fontSize: "10px", fontWeight: "700", padding: "3px 8px", borderRadius: "99px", background: "rgba(16,185,129,0.1)", color: "#34d399", fontFamily: "monospace" }}>
-                  {sess.status.toUpperCase()}
-                </span>
-              </div>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         ) : (
           /* Empty State for Recent Sessions */

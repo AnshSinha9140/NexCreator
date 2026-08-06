@@ -18,7 +18,10 @@ export const CompletedCreatorIntelligence: React.FC<CompletedCreatorIntelligence
   const sessionType = summary?.sessionType || "EMPTY";
   const isValid = summary?.integrityFlags?.reportValid ?? (sessionType === "COMPLETE");
 
-  if (!isValid || !intelligence || (intelligence.coach.length === 0 && !intelligence.score)) {
+  const hasCoach = Array.isArray(intelligence?.coach) && intelligence.coach.length > 0;
+  const hasScore = Boolean(intelligence?.score);
+
+  if (!isValid || !intelligence || (!hasCoach && !hasScore)) {
     return (
       <div
         style={{

@@ -77,21 +77,52 @@ export class ClaimValidator {
     const sorted = [...evidenceList].sort((a, b) => b.confidence - a.confidence);
     const primary = sorted[0];
 
+    // Extract real sample text or emote triggers dynamically
+    const sampleMsgs = primary.chatSample || [];
+    const firstMsg = sampleMsgs.length > 0 ? sampleMsgs[0].replace(/[^\w\s!?]/gi, "").trim() : "";
+    const firstWords = firstMsg ? `"${firstMsg.split(" ").slice(0, 4).join(" ")}..."` : "";
+
+    // Extract velocity / metrics
+    const vel = primary.sourceMetrics?.velocity ? `${primary.sourceMetrics.velocity} msgs/min` : "";
+    const questions = primary.sourceMetrics?.questionCount ?? 0;
+
     switch (primary.type) {
       case "QUESTION_WAVE":
-        return `Viewer Questions Surge During Discussion (Confidence: ${primary.confidence}%)`;
+        return questions > 0
+          ? `Viewer Q&A Surge: ${questions} Questions Asked in Chat`
+          : `Community Q&A Discussion Wave`;
+
       case "CHAT_EXPLOSION":
-        return `Community Engagement Velocity Peaks (Confidence: ${primary.confidence}%)`;
+        return firstWords
+          ? `Chat Explosion: ${firstWords}`
+          : vel
+          ? `Community Velocity Spike at ${vel}`
+          : `Massive Chat Velocity Explosion`;
+
       case "VIEWER_SPIKE":
-        return `Broadcast Viewer Count Outbreak (Confidence: ${primary.confidence}%)`;
+        return primary.sourceMetrics?.viewerDelta && primary.sourceMetrics.viewerDelta > 0
+          ? `Viewer Influx Surge (+${primary.sourceMetrics.viewerDelta} Viewers)`
+          : `Broadcast Audience Arrival Spike`;
+
       case "SENTIMENT_SHIFT":
-        return `Audience Sentiment Shift Detected (Confidence: ${primary.confidence}%)`;
+        return firstWords
+          ? `Audience Sentiment Shift: ${firstWords}`
+          : `Audience Reaction & Sentiment Outbreak`;
+
       case "CONVERSATION_BURST":
-        return `Audience Discussion Generates High Dialogue Diversity (Confidence: ${primary.confidence}%)`;
+        return firstWords
+          ? `Community Discussion: ${firstWords}`
+          : `High Dialogue Diversity & Discussion Burst`;
+
       case "REACTION_BURST":
-        return `Community Emote Expression Wave (Confidence: ${primary.confidence}%)`;
+        return sampleMsgs.length > 0
+          ? `Emote & Reaction Surge — Chat Reacts Live`
+          : `Community Emote Expression Wave`;
+
       default:
-        return `Audience Activity Focus Window (Confidence: ${primary.confidence}%)`;
+        return firstWords
+          ? `Stream Focus Window: ${firstWords}`
+          : `Peak Broadcast Engagement Window`;
     }
   }
 }

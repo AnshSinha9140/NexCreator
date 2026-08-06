@@ -1,5 +1,5 @@
 // =============================================================================
-// EvidenceExtractor.ts — Sprint 24.5
+// EvidenceExtractor.ts — Sprint 24.5 (Updated with Absolute Minimum Pre-Gate & Participation Density)
 // =============================================================================
 // Converts raw PulseSnapshot[] and ChatMessage[] into normalized RawEvidence[].
 // RULE: Never fabricate evidence. Only emit when measured metrics cross thresholds.
@@ -61,8 +61,11 @@ interface ChatMessageInput {
 }
 
 export class EvidenceExtractor {
+  // Absolute minimum volume gate
+  private static readonly MIN_TOTAL_MESSAGES_PREGATE = 10;
+
   // Signal thresholds
-  private static readonly VIEWER_SPIKE_PCT = 0.15;         // 15% viewer delta
+  private static readonly VIEWER_SPIKE_PCT = 0.10;         // 10% viewer delta
   private static readonly CHAT_EXPLOSION_MULTIPLIER = 1.4; // 1.4x baseline velocity
   private static readonly QUESTION_WAVE_MIN = 2;           // ≥ 2 questions in window
   private static readonly SENTIMENT_SHIFT_DELTA = 8;       // 8-point delta
@@ -70,7 +73,6 @@ export class EvidenceExtractor {
   private static readonly SILENCE_MAX_VELOCITY = 2;        // msgs/min
   private static readonly REACTION_BURST_EMOTE_RATIO = 0.5;// 50% emote messages
   private static readonly MOMENTUM_SHIFT_DELTA = 15;       // 15-point change
-
 
   /**
    * Main extraction pipeline. Takes raw monitoring data and returns
@@ -112,6 +114,28 @@ export class EvidenceExtractor {
       const timestamp = this.getTimestamp(snap, i);
       const isoTimestamp = this.getIsoTimestamp(snap, i);
       const messages = this.getSampleMessages(snap);
+      const totalMsgs = this.getTotalMessages(snap);
+
+      // Check for Viewer Spike first (used in pre-gate exception)
+      let viewerSpikeDetected = false;
+      let viewerDelta = 0;
+      let viewerDeltaPct = 0;
+      if (prevViewers !== null && prevViewers > 0 && viewers > 0) {
+        viewerDelta = viewers - prevViewers;
+        viewerDeltaPct = viewerDelta / prevViewers;
+        if (viewerDeltaPct >= this.VIEWER_SPIKE_PCT) {
+          viewerSpikeDetected = true;
+        }
+      }
+
+      // ----------------------------------------------------------------
+      // ABSOLUTE MINIMUM PRE-GATE (Phase 1 Fix)
+      // Discard low-volume noise unless a viewer spike, silence, or audience exit occurs
+      const isSilenceCandidate = velocity <= this.SILENCE_MAX_VELOCITY && i > 0;
+      const effectiveMsgCount = totalMsgs > 0 ? totalMsgs : velocity;
+      if (effectiveMsgCount < this.MIN_TOTAL_MESSAGES_PREGATE && !viewerSpikeDetected && !isSilenceCandidate && i > 0) {
+        continue; // Discard snapshot immediately; do not compute multipliers
+      }
 
       // ----------------------------------------------------------------
       // 1. AUDIENCE_ARRIVAL — first snapshot with meaningful viewer presence
@@ -138,29 +162,25 @@ export class EvidenceExtractor {
       // ----------------------------------------------------------------
       // 2. VIEWER_SPIKE — significant viewer count increase
       // ----------------------------------------------------------------
-      if (prevViewers !== null && prevViewers > 0 && viewers > 0) {
-        const delta = viewers - prevViewers;
-        const deltaPct = delta / prevViewers;
-        if (deltaPct >= this.VIEWER_SPIKE_PCT) {
-          evidence.push({
-            id: makeId("VIEWER_SPIKE", ++evidenceCounter),
-            type: "VIEWER_SPIKE",
-            timestamp,
-            isoTimestamp,
-            durationSeconds: 60,
-            confidence: Math.min(98, Math.round(60 + deltaPct * 200)),
-            relatedSnapshotId: snapId,
-            sourceMetrics: {
-              viewerCount: viewers,
-              viewerDelta: delta,
-              viewerDeltaPct: Math.round(deltaPct * 100),
-              velocity,
-              baselineVelocity,
-            },
-            chatSample: messages.slice(0, 3),
-            description: `+${delta} viewers joined (+${Math.round(deltaPct * 100)}% spike) during this window.`,
-          });
-        }
+      if (viewerSpikeDetected) {
+        evidence.push({
+          id: makeId("VIEWER_SPIKE", ++evidenceCounter),
+          type: "VIEWER_SPIKE",
+          timestamp,
+          isoTimestamp,
+          durationSeconds: 60,
+          confidence: Math.min(98, Math.round(60 + viewerDeltaPct * 200)),
+          relatedSnapshotId: snapId,
+          sourceMetrics: {
+            viewerCount: viewers,
+            viewerDelta,
+            viewerDeltaPct: Math.round(viewerDeltaPct * 100),
+            velocity,
+            baselineVelocity,
+          },
+          chatSample: messages.slice(0, 3),
+          description: `+${viewerDelta} viewers joined (+${Math.round(viewerDeltaPct * 100)}% spike) during this window.`,
+        });
       }
 
       // ----------------------------------------------------------------
@@ -184,7 +204,6 @@ export class EvidenceExtractor {
           description: `Chat exploded at ${velocity} msgs/min — ${Math.round(velocity / baselineVelocity)}x the session baseline.`,
         });
       } else if (baselineVelocity === 0 && velocity >= 8) {
-        // No baseline yet — first high-velocity snapshot
         evidence.push({
           id: makeId("CHAT_EXPLOSION", ++evidenceCounter),
           type: "CHAT_EXPLOSION",
@@ -194,7 +213,6 @@ export class EvidenceExtractor {
           confidence: 75,
           relatedSnapshotId: snapId,
           sourceMetrics: { velocity, sentimentScore: sentiment },
-
           chatSample: messages.slice(0, 5),
           description: `High chat velocity at ${velocity} msgs/min observed.`,
         });
@@ -275,43 +293,47 @@ export class EvidenceExtractor {
       }
 
       // ----------------------------------------------------------------
-      // 7. REACTION_BURST — high emote density
+      // 7. REACTION_BURST — participation density driven confidence
       // ----------------------------------------------------------------
       const emoteRatio = this.getEmoteRatio(snap);
-      if (emoteRatio >= this.REACTION_BURST_EMOTE_RATIO && velocity >= 5) {
+      const uniqueChatters = this.getUniqueChatters(snap);
+      if (emoteRatio >= this.REACTION_BURST_EMOTE_RATIO && (velocity >= 3 || totalMsgs >= 5)) {
+        // Compute relative participation density
+        const participationPct = uniqueChatters > 0 ? Math.min(1, totalMsgs / uniqueChatters) : 0.8;
+        const participationConfidence = Math.min(98, Math.round(75 + emoteRatio * 15 + participationPct * 10));
+
         evidence.push({
           id: makeId("REACTION_BURST", ++evidenceCounter),
           type: "REACTION_BURST",
           timestamp,
           isoTimestamp,
           durationSeconds: 45,
-          confidence: Math.min(95, Math.round(70 + emoteRatio * 30)),
+          confidence: participationConfidence,
           relatedSnapshotId: snapId,
           sourceMetrics: {
             emoteRatio,
             velocity,
             sentimentScore: sentiment,
+            uniqueChatterCount: uniqueChatters,
           },
           chatSample: messages.slice(0, 5),
-          description: `${Math.round(emoteRatio * 100)}% emote-heavy chat — chat reacted hard to something happening on screen.`,
+          description: `${Math.round(emoteRatio * 100)}% emote-heavy chat (${uniqueChatters} active chatters) — audience reaction burst.`,
         });
       }
 
       // ----------------------------------------------------------------
-      // 8. CONVERSATION_BURST — high unique chatter diversity
+      // 8. CONVERSATION_BURST — high chatter diversity
       // ----------------------------------------------------------------
-      const uniqueChatters = this.getUniqueChatters(snap);
-      const totalMsgs = this.getTotalMessages(snap);
-      if (uniqueChatters >= 5 && totalMsgs > 0) {
+      if (uniqueChatters >= 3 && totalMsgs > 0) {
         const diversityRatio = uniqueChatters / totalMsgs;
-        if (diversityRatio >= 0.5 && velocity >= 8) {
+        if (diversityRatio >= 0.4 && (velocity >= 4 || totalMsgs >= 8)) {
           evidence.push({
             id: makeId("CONVERSATION_BURST", ++evidenceCounter),
             type: "CONVERSATION_BURST",
             timestamp,
             isoTimestamp,
             durationSeconds: 90,
-            confidence: Math.min(94, Math.round(65 + diversityRatio * 40)),
+            confidence: Math.min(94, Math.round(65 + diversityRatio * 30)),
             relatedSnapshotId: snapId,
             sourceMetrics: {
               uniqueChatterCount: uniqueChatters,
@@ -319,16 +341,15 @@ export class EvidenceExtractor {
               sentimentScore: sentiment,
             },
             chatSample: messages.slice(0, 4),
-            description: `${uniqueChatters} unique chatters active — real community conversation sparked.`,
+            description: `${uniqueChatters} unique chatters active — active community dialogue.`,
           });
         }
       }
 
       // ----------------------------------------------------------------
-      // 9. SILENCE — very low chat velocity over extended period
+      // 9. SILENCE — dead-air detection
       // ----------------------------------------------------------------
       if (velocity <= this.SILENCE_MAX_VELOCITY && velocity >= 0 && i > 0 && totalMsgs > 0) {
-        // Only flag silence if we're past the opening and chat was active before
         const prevVelocity = prevSnap ? this.getVelocity(prevSnap) : 0;
         if (prevVelocity > 5) {
           evidence.push({
@@ -344,13 +365,13 @@ export class EvidenceExtractor {
               baselineVelocity,
             },
             chatSample: [],
-            description: `Chat quieted to ${velocity} msgs/min — potential dead-air or low-commentary segment.`,
+            description: `Chat quieted to ${velocity} msgs/min — potential dead-air segment.`,
           });
         }
       }
 
       // ----------------------------------------------------------------
-      // 10. MOMENTUM_SHIFT — momentum index changed significantly
+      // 10. MOMENTUM_SHIFT — energy change
       // ----------------------------------------------------------------
       if (prevMomentum !== null && momentum > 0) {
         const momentumDelta = momentum - prevMomentum;
@@ -370,7 +391,7 @@ export class EvidenceExtractor {
               sentimentScore: sentiment,
             },
             chatSample: messages.slice(0, 3),
-            description: `Broadcast momentum ${momentumDelta > 0 ? "surged" : "dropped"} ${Math.abs(Math.round(momentumDelta))} points — energy shift detected.`,
+            description: `Momentum ${momentumDelta > 0 ? "surged" : "dropped"} ${Math.abs(Math.round(momentumDelta))} points — energy shift detected.`,
           });
         }
       }
@@ -437,13 +458,10 @@ export class EvidenceExtractor {
     if (raw) {
       const d = new Date(raw);
       if (!isNaN(d.getTime())) {
-        // Return as relative HH:MM:SS from a base if it looks like an absolute ISO date
-        // otherwise treat it as already a HH:MM:SS string
         const str = String(raw);
         if (/^\d{2}:\d{2}:\d{2}$/.test(str)) return str;
       }
     }
-    // Fallback: derive from snapshot index
     const sec = idx * 60 + 45;
     const hh = String(Math.floor(sec / 3600)).padStart(2, "0");
     const mm = String(Math.floor((sec % 3600) / 60)).padStart(2, "0");
@@ -457,7 +475,6 @@ export class EvidenceExtractor {
       const d = new Date(raw);
       if (!isNaN(d.getTime())) return d.toISOString();
     }
-    // Fallback: relative from epoch start
     return new Date(Date.now() - (999 - idx) * 60000).toISOString();
   }
 
@@ -467,7 +484,6 @@ export class EvidenceExtractor {
     snapIdx: number,
     totalSnaps: number
   ): string[] {
-    // Try to pull actual question messages from representative messages first
     const fromRep = (snap.representativeMessages || [])
       .filter((m) => m.category === "question")
       .map((m) => m.text || m.message || m.content || "")
@@ -475,7 +491,6 @@ export class EvidenceExtractor {
 
     if (fromRep.length > 0) return fromRep;
 
-    // Fallback: sample from full chat log proportionally
     const chunkSize = Math.ceil(allMessages.length / Math.max(1, totalSnaps));
     const start = snapIdx * chunkSize;
     return allMessages

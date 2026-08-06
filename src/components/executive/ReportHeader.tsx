@@ -115,7 +115,7 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
                 ⏱️ {formatDuration(report.streamDurationSeconds)}
               </span>
               <span style={{ fontSize: "13px", color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>
-                🔍 {report.aiMetadata.snapshotsAnalyzed} snapshots analyzed
+                🔍 {report.aiMetadata?.snapshotsAnalyzed ?? 0} snapshots analyzed
               </span>
             </div>
           </div>
@@ -199,17 +199,21 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
           flexWrap: "wrap",
         }}
       >
-        <span>
-          <span style={{ color: "#10b981" }}>●</span> {report.aiMetadata.model}
-        </span>
-        <span>•</span>
-        <span>{report.aiMetadata.latencyMs}ms generation</span>
-        <span>•</span>
-        <span>{report.aiMetadata.insightsAnalyzed} insights processed</span>
-        {report.aiMetadata.fallbackUsed && (
+        {report.aiMetadata && (
           <>
+            <span>
+              <span style={{ color: "#10b981" }}>●</span> {report.aiMetadata.model || "Gemini Flash"}
+            </span>
             <span>•</span>
-            <span style={{ color: "#f59e0b" }}>⚠ Fallback Used</span>
+            <span>{report.aiMetadata.latencyMs ?? 0}ms generation</span>
+            <span>•</span>
+            <span>{report.aiMetadata.insightsAnalyzed ?? 0} insights processed</span>
+            {report.aiMetadata.fallbackUsed && (
+              <>
+                <span>•</span>
+                <span style={{ color: "#f59e0b" }}>⚠ Fallback Used</span>
+              </>
+            )}
           </>
         )}
       </div>

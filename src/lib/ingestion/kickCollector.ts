@@ -39,7 +39,9 @@ export class KickChatCollector implements ChatCollector {
   };
 
   private pingTimer: NodeJS.Timeout | null = null;
+  private pongTimeoutTimer: NodeJS.Timeout | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
+  private lastPongReceivedAt: number = Date.now();
   private backoffDelay = 1000; // Exponential backoff starts at 1s
   private isIntentionallyClosed = false;
   private hasAttemptedRefresh = false; // Guard: only refresh once per connection lifecycle
@@ -238,17 +240,38 @@ export class KickChatCollector implements ChatCollector {
 
   private startHeartbeat() {
     this.stopHeartbeat();
+    this.lastPongReceivedAt = Date.now();
+
+    // 15-second heartbeat ping interval to maintain active Pusher WS connection
     this.pingTimer = setInterval(() => {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.ws.send(JSON.stringify({ event: "pusher:ping", data: {} }));
+        try {
+          this.ws.send(JSON.stringify({ event: "pusher:ping", data: {} }));
+        } catch (err: any) {
+          console.warn(`[KickCollector] ⚠️ Failed to send ping:`, err.message);
+        }
+
+        // 10-second pong response check guard
+        if (this.pongTimeoutTimer) clearTimeout(this.pongTimeoutTimer);
+        this.pongTimeoutTimer = setTimeout(() => {
+          const timeSinceLastPong = Date.now() - this.lastPongReceivedAt;
+          if (timeSinceLastPong > 25000 && this.ws && this.status === "connected") {
+            console.warn(`[KickCollector] ⚠️ Heartbeat pong timeout (${Math.round(timeSinceLastPong / 1000)}s since last pong). Force reconnecting WS...`);
+            this.ws.terminate(); // Force close socket to trigger reconnect loop
+          }
+        }, 10000);
       }
-    }, 30000);
+    }, 15000);
   }
 
   private stopHeartbeat() {
     if (this.pingTimer) {
       clearInterval(this.pingTimer);
       this.pingTimer = null;
+    }
+    if (this.pongTimeoutTimer) {
+      clearTimeout(this.pongTimeoutTimer);
+      this.pongTimeoutTimer = null;
     }
   }
 
@@ -288,6 +311,7 @@ export class KickChatCollector implements ChatCollector {
       }
 
       if (eventName === "pusher:pong" || eventName === "pusher_internal:subscription_succeeded") {
+        this.lastPongReceivedAt = Date.now();
         if (eventName === "pusher_internal:subscription_succeeded") {
           DiagnosticsLogger.log("Collector", "Subscription", `Subscription confirmed for ${channel}`);
           DiagnosticsState.updateSubsystem("collector", { subscriptionConfirmed: true, status: "healthy", lastSuccess: new Date().toISOString() });

@@ -13,17 +13,18 @@ export interface ReliabilityReport {
 }
 
 export class ReliabilityEngine {
-  // Backward compatibility mock methods for test scripts (Part 12)
   public static compute(options: any): any {
+    const isLow = options.chatMessageCount < 10 || options.snapshotCount < 2;
+    const overallReliability = isLow ? 20 : 85;
     return {
-      overallReliability: 85,
-      snapshotCoverage: 90,
-      chatCoverage: 80,
-      viewerCoverage: 75,
-      densityIndex: 1.2,
-      reliabilityLabel: "HIGH",
-      disclaimerText: "",
-      showLimitedDisclaimer: false,
+      overallReliability,
+      snapshotCoverage: isLow ? 20 : 90,
+      chatCoverage: isLow ? 10 : 80,
+      viewerCoverage: isLow ? 0 : 75,
+      densityIndex: isLow ? 0.1 : 1.2,
+      reliabilityLabel: isLow ? "Limited" : "Strong",
+      disclaimerText: isLow ? "Recommendations are based on limited evidence." : undefined,
+      showLimitedDisclaimer: isLow,
     };
   }
 

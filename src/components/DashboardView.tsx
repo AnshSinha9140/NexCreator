@@ -289,7 +289,6 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void; comp
   const executeStartSession = useCallback(async (targetPlatformChoice?: string) => {
     setErrorState(null);
     setStartStep("starting");
-    setIsSelectModalOpen(false);
 
     const platformToUse = targetPlatformChoice || selectedPlatformChoice || "auto";
 
@@ -341,6 +340,7 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void; comp
       }
 
       setStartStep("active");
+      setIsSelectModalOpen(false);
       await new Promise((r) => setTimeout(r, 500));
 
       if (data.session) {
@@ -968,6 +968,7 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void; comp
               {/* Modal Footer / Action Button */}
               <div style={{ paddingTop: "8px" }}>
                 <button
+                  disabled={startStep !== "idle"}
                   onClick={() => executeStartSession(selectedPlatformChoice)}
                   className="btn btn-primary"
                   style={{
@@ -979,15 +980,40 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void; comp
                     background: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)",
                     color: "#ffffff",
                     border: "none",
-                    cursor: "pointer",
+                    cursor: startStep !== "idle" ? "not-allowed" : "pointer",
+                    opacity: startStep !== "idle" ? 0.7 : 1,
                     boxShadow: "0 8px 24px rgba(168, 85, 247, 0.4)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: "8px",
+                    gap: "10px",
                   }}
                 >
-                  Start Live Monitoring Session →
+                  {startStep !== "idle" ? (
+                    <>
+                      <div
+                        style={{
+                          width: "18px",
+                          height: "18px",
+                          borderRadius: "50%",
+                          border: "2px solid #ffffff",
+                          borderTopColor: "transparent",
+                          animation: "spin 0.8s linear infinite",
+                        }}
+                      />
+                      <span>
+                        {startStep === "starting"
+                          ? "Starting Session Engine..."
+                          : startStep === "connecting"
+                          ? "Connecting WebSockets..."
+                          : startStep === "initializing"
+                          ? "Initializing Telemetry..."
+                          : "Preparing Dashboard..."}
+                      </span>
+                    </>
+                  ) : (
+                    <span>Start Live Monitoring Session →</span>
+                  )}
                 </button>
               </div>
             </motion.div>

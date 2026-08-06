@@ -12,7 +12,7 @@ export class EvidenceValidator {
   private static readonly MIN_EVIDENCE_CONFIDENCE = 70;
   private static readonly MIN_MOMENT_DURATION_SECONDS = 15;
   private static readonly MIN_EVIDENCE_PER_MOMENT = 1;
-  private static readonly MIN_MOMENT_CONFIDENCE = 65;
+  private static readonly MIN_MOMENT_CONFIDENCE = 75;
   private static readonly MAX_CLIP_OVERLAP_SECONDS = 10;
 
 
