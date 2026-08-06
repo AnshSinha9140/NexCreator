@@ -2,6 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
+import { Activity, Flame, MessageSquare, Radio, Sparkles, TrendingUp } from "lucide-react";
 
 export interface CreatorProfileMetrics {
   totalStreamsAnalyzed: number;
@@ -16,84 +17,114 @@ export interface CreatorDNAWidgetProps {
 
 export const CreatorDNAWidget: React.FC<CreatorDNAWidgetProps> = ({ creatorProfile }) => {
   const profile: CreatorProfileMetrics = creatorProfile || {
-    totalStreamsAnalyzed: 12,
+    totalStreamsAnalyzed: 6,
     avgBroadcastScore: 85,
     avgMessagesPerMinute: 10,
     typicalAudienceMood: "Hyped & Engaged",
   };
 
-  const metrics = [
-    {
-      id: "career-streams",
-      label: "Career Streams",
-      value: profile.totalStreamsAnalyzed,
-      format: (val: number | string) => `${val}`,
-      icon: "📡",
-      subtext: "Total Analyzed",
-    },
-    {
-      id: "avg-health",
-      label: "Avg Health",
-      value: profile.avgBroadcastScore,
-      format: (val: number | string) => `${val}/100`,
-      icon: "💚",
-      subtext: "Broadcast Quality",
-    },
-    {
-      id: "baseline-velocity",
-      label: "Baseline Velocity",
-      value: profile.avgMessagesPerMinute,
-      format: (val: number | string) => `${val} msgs/min`,
-      icon: "💬",
-      subtext: "Audience Engagement",
-    },
-    {
-      id: "audience-mood",
-      label: "Audience Mood",
-      value: profile.typicalAudienceMood,
-      format: (val: number | string) => `${val}`,
-      icon: "🔥",
-      subtext: "Calibrated Sentiment",
-    },
-  ];
-
   return (
-    <div className="w-full rounded-2xl bg-slate-900/60 border border-white/10 p-4 backdrop-blur-xl shadow-xl flex flex-col justify-between gap-3 min-h-full">
+    <div className="w-full rounded-2xl bg-[#0d101b]/90 border border-purple-500/20 p-5 backdrop-blur-xl shadow-2xl flex flex-col justify-between gap-4 min-h-full">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-[11px] text-purple-400 uppercase tracking-widest font-extrabold font-mono flex items-center gap-1.5">
-          <span>🧬</span> Creator DNA & Telemetry Benchmarks
+        <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2 font-sans">
+          <Sparkles className="w-4 h-4 text-purple-400" />
+          <span>Creator DNA & Telemetry</span>
         </h3>
-        <span className="text-[9px] font-mono font-bold text-purple-300 bg-purple-500/15 border border-purple-500/30 px-2 py-0.5 rounded-full uppercase">
+        <span className="px-2.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-400 text-[10px] font-bold font-mono tracking-wider uppercase">
           Live Profile
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-2.5 flex-1">
-        {metrics.map((m) => (
-          <motion.div
-            key={m.id}
-            whileHover={{ scale: 1.015 }}
-            className="rounded-xl bg-slate-950/70 border border-white/5 p-3 flex flex-col justify-between gap-1 shadow-sm hover:border-purple-500/30 transition-all duration-150"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider font-extrabold font-mono truncate">
-                {m.label}
-              </span>
-              <span className="text-sm">{m.icon}</span>
+      {/* 2x2 Metric Grid */}
+      <div className="grid grid-cols-2 gap-3 flex-1">
+        {/* Metric 1: Career Streams */}
+        <motion.div
+          whileHover={{ y: -1 }}
+          className="rounded-xl bg-slate-900/60 hover:bg-slate-900/90 border border-white/5 hover:border-purple-500/30 p-3.5 flex flex-col justify-between gap-1.5 transition-all duration-200 shadow-sm"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-sans">
+              Career Streams
+            </span>
+            <div className="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+              <Radio className="w-3.5 h-3.5" />
             </div>
+          </div>
+          <div className="text-xl font-extrabold text-white tracking-tight">
+            {profile.totalStreamsAnalyzed}
+          </div>
+          <div className="text-[10px] text-slate-500 font-medium font-sans">
+            Total Analyzed
+          </div>
+        </motion.div>
 
-            <div
-              className="text-lg font-black text-white tracking-tight leading-snug truncate"
-              title={m.format(m.value)}
-            >
-              {m.format(m.value)}
+        {/* Metric 2: Avg Health */}
+        <motion.div
+          whileHover={{ y: -1 }}
+          className="rounded-xl bg-slate-900/60 hover:bg-slate-900/90 border border-white/5 hover:border-purple-500/30 p-3.5 flex flex-col justify-between gap-1.5 transition-all duration-200 shadow-sm"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-sans">
+              Avg Health
+            </span>
+            <div className="w-6 h-6 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center">
+              <TrendingUp className="w-3.5 h-3.5" />
             </div>
+          </div>
+          <div className="text-xl font-extrabold text-emerald-400 tracking-tight">
+            {profile.avgBroadcastScore}
+            <span className="text-xs font-semibold text-slate-500">/100</span>
+          </div>
+          <div className="text-[10px] text-slate-500 font-medium font-sans">
+            Broadcast Quality
+          </div>
+        </motion.div>
 
-            <div className="text-[9px] font-mono text-slate-500 truncate">
-              {m.subtext}
+        {/* Metric 3: Baseline Velocity */}
+        <motion.div
+          whileHover={{ y: -1 }}
+          className="rounded-xl bg-slate-900/60 hover:bg-slate-900/90 border border-white/5 hover:border-purple-500/30 p-3.5 flex flex-col justify-between gap-1.5 transition-all duration-200 shadow-sm"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-sans">
+              Baseline Velocity
+            </span>
+            <div className="w-6 h-6 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
+              <MessageSquare className="w-3.5 h-3.5" />
             </div>
-          </motion.div>
-        ))}
+          </div>
+          <div className="text-xl font-extrabold text-blue-400 tracking-tight">
+            {profile.avgMessagesPerMinute}
+            <span className="text-xs font-bold text-slate-400 ml-1">msgs/min</span>
+          </div>
+          <div className="text-[10px] text-slate-500 font-medium font-sans">
+            Audience Engagement
+          </div>
+        </motion.div>
+
+        {/* Metric 4: Audience Mood */}
+        <motion.div
+          whileHover={{ y: -1 }}
+          className="rounded-xl bg-slate-900/60 hover:bg-slate-900/90 border border-white/5 hover:border-purple-500/30 p-3.5 flex flex-col justify-between gap-1.5 transition-all duration-200 shadow-sm"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-sans">
+              Audience Mood
+            </span>
+            <div className="w-6 h-6 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+              <Flame className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="my-0.5">
+            <span className="text-xs sm:text-sm font-extrabold text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 inline-block max-w-full truncate">
+              {profile.typicalAudienceMood}
+            </span>
+          </div>
+          <div className="text-[10px] text-slate-500 font-medium font-sans">
+            Calibrated Sentiment
+          </div>
+        </motion.div>
       </div>
     </div>
   );
