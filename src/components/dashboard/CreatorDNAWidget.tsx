@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { Activity, Flame, MessageSquare, Radio, Sparkles, TrendingUp } from "lucide-react";
+import { Flame, MessageSquare, Radio, Sparkles, TrendingUp } from "lucide-react";
 
 export interface CreatorProfileMetrics {
   totalStreamsAnalyzed: number;
@@ -24,37 +24,78 @@ export const CreatorDNAWidget: React.FC<CreatorDNAWidgetProps> = ({ creatorProfi
   };
 
   return (
-    <div className="w-full rounded-2xl bg-[#0d101b]/90 border border-purple-500/20 p-5 backdrop-blur-xl shadow-2xl flex flex-col justify-between gap-4 min-h-full">
+    <div
+      style={{
+        padding: "16px",
+        borderRadius: "16px",
+        background: "rgba(13,16,27,0.7)",
+        border: "1px solid rgba(255,255,255,0.07)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "12px",
+        height: "100%",
+        boxSizing: "border-box",
+      }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2 font-sans">
-          <Sparkles className="w-4 h-4 text-purple-400" />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div
+          style={{
+            fontSize: "12px",
+            fontWeight: "700",
+            color: "#c084fc",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+          }}
+        >
+          <Sparkles style={{ width: "14px", height: "14px", color: "#a855f7" }} />
           <span>Creator DNA & Telemetry</span>
-        </h3>
-        <span className="px-2.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-400 text-[10px] font-bold font-mono tracking-wider uppercase">
-          Live Profile
+        </div>
+        <span
+          style={{
+            fontSize: "9px",
+            fontWeight: "700",
+            padding: "2px 8px",
+            borderRadius: "99px",
+            background: "rgba(168, 85, 247, 0.15)",
+            color: "#c084fc",
+            border: "1px solid rgba(168, 85, 247, 0.3)",
+            fontFamily: "monospace",
+          }}
+        >
+          LIVE PROFILE
         </span>
       </div>
 
       {/* 2x2 Metric Grid */}
-      <div className="grid grid-cols-2 gap-3 flex-1">
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", flex: 1 }}>
         {/* Metric 1: Career Streams */}
         <motion.div
           whileHover={{ y: -1 }}
-          className="rounded-xl bg-slate-900/60 hover:bg-slate-900/90 border border-white/5 hover:border-purple-500/30 p-3.5 flex flex-col justify-between gap-1.5 transition-all duration-200 shadow-sm"
+          style={{
+            padding: "10px 12px",
+            borderRadius: "10px",
+            background: "rgba(255,255,255,0.02)",
+            border: "1px solid rgba(255,255,255,0.05)",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            gap: "4px",
+          }}
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-sans">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: "10px", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
               Career Streams
             </span>
-            <div className="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-              <Radio className="w-3.5 h-3.5" />
-            </div>
+            <Radio style={{ width: "12px", height: "12px", color: "#34d399" }} />
           </div>
-          <div className="text-xl font-extrabold text-white tracking-tight">
+          <div style={{ fontSize: "18px", fontWeight: "900", color: "#f8fafc", margin: "2px 0" }}>
             {profile.totalStreamsAnalyzed}
           </div>
-          <div className="text-[10px] text-slate-500 font-medium font-sans">
+          <div style={{ fontSize: "10px", color: "#64748b" }}>
             Total Analyzed
           </div>
         </motion.div>
@@ -62,21 +103,28 @@ export const CreatorDNAWidget: React.FC<CreatorDNAWidgetProps> = ({ creatorProfi
         {/* Metric 2: Avg Health */}
         <motion.div
           whileHover={{ y: -1 }}
-          className="rounded-xl bg-slate-900/60 hover:bg-slate-900/90 border border-white/5 hover:border-purple-500/30 p-3.5 flex flex-col justify-between gap-1.5 transition-all duration-200 shadow-sm"
+          style={{
+            padding: "10px 12px",
+            borderRadius: "10px",
+            background: "rgba(255,255,255,0.02)",
+            border: "1px solid rgba(255,255,255,0.05)",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            gap: "4px",
+          }}
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-sans">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: "10px", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
               Avg Health
             </span>
-            <div className="w-6 h-6 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center">
-              <TrendingUp className="w-3.5 h-3.5" />
-            </div>
+            <TrendingUp style={{ width: "12px", height: "12px", color: "#c084fc" }} />
           </div>
-          <div className="text-xl font-extrabold text-emerald-400 tracking-tight">
-            {profile.avgBroadcastScore}
-            <span className="text-xs font-semibold text-slate-500">/100</span>
+          <div style={{ fontSize: "18px", fontWeight: "900", color: "#34d399", margin: "2px 0", display: "flex", alignItems: "baseline" }}>
+            <span>{profile.avgBroadcastScore}</span>
+            <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600", marginLeft: "3px" }}>/100</span>
           </div>
-          <div className="text-[10px] text-slate-500 font-medium font-sans">
+          <div style={{ fontSize: "10px", color: "#64748b" }}>
             Broadcast Quality
           </div>
         </motion.div>
@@ -84,21 +132,28 @@ export const CreatorDNAWidget: React.FC<CreatorDNAWidgetProps> = ({ creatorProfi
         {/* Metric 3: Baseline Velocity */}
         <motion.div
           whileHover={{ y: -1 }}
-          className="rounded-xl bg-slate-900/60 hover:bg-slate-900/90 border border-white/5 hover:border-purple-500/30 p-3.5 flex flex-col justify-between gap-1.5 transition-all duration-200 shadow-sm"
+          style={{
+            padding: "10px 12px",
+            borderRadius: "10px",
+            background: "rgba(255,255,255,0.02)",
+            border: "1px solid rgba(255,255,255,0.05)",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            gap: "4px",
+          }}
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-sans">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: "10px", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
               Baseline Velocity
             </span>
-            <div className="w-6 h-6 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
-              <MessageSquare className="w-3.5 h-3.5" />
-            </div>
+            <MessageSquare style={{ width: "12px", height: "12px", color: "#60a5fa" }} />
           </div>
-          <div className="text-xl font-extrabold text-blue-400 tracking-tight">
-            {profile.avgMessagesPerMinute}
-            <span className="text-xs font-bold text-slate-400 ml-1">msgs/min</span>
+          <div style={{ fontSize: "18px", fontWeight: "900", color: "#60a5fa", margin: "2px 0", display: "flex", alignItems: "baseline" }}>
+            <span>{profile.avgMessagesPerMinute}</span>
+            <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "600", marginLeft: "4px" }}>msgs/min</span>
           </div>
-          <div className="text-[10px] text-slate-500 font-medium font-sans">
+          <div style={{ fontSize: "10px", color: "#64748b" }}>
             Audience Engagement
           </div>
         </motion.div>
@@ -106,22 +161,44 @@ export const CreatorDNAWidget: React.FC<CreatorDNAWidgetProps> = ({ creatorProfi
         {/* Metric 4: Audience Mood */}
         <motion.div
           whileHover={{ y: -1 }}
-          className="rounded-xl bg-slate-900/60 hover:bg-slate-900/90 border border-white/5 hover:border-purple-500/30 p-3.5 flex flex-col justify-between gap-1.5 transition-all duration-200 shadow-sm"
+          style={{
+            padding: "10px 12px",
+            borderRadius: "10px",
+            background: "rgba(255,255,255,0.02)",
+            border: "1px solid rgba(255,255,255,0.05)",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            gap: "4px",
+          }}
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider font-sans">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: "10px", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
               Audience Mood
             </span>
-            <div className="w-6 h-6 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
-              <Flame className="w-3.5 h-3.5" />
-            </div>
+            <Flame style={{ width: "12px", height: "12px", color: "#fbbf24" }} />
           </div>
-          <div className="my-0.5">
-            <span className="text-xs sm:text-sm font-extrabold text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 inline-block max-w-full truncate">
+          <div style={{ margin: "2px 0" }}>
+            <span
+              style={{
+                fontSize: "11px",
+                fontWeight: "800",
+                color: "#fbbf24",
+                background: "rgba(245, 158, 11, 0.12)",
+                border: "1px solid rgba(245, 158, 11, 0.25)",
+                padding: "2px 6px",
+                borderRadius: "5px",
+                display: "inline-block",
+                maxWidth: "100%",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
               {profile.typicalAudienceMood}
             </span>
           </div>
-          <div className="text-[10px] text-slate-500 font-medium font-sans">
+          <div style={{ fontSize: "10px", color: "#64748b" }}>
             Calibrated Sentiment
           </div>
         </motion.div>

@@ -373,7 +373,10 @@ export const CommandCenterView: React.FC<{
             borderRadius: "16px",
             background: "rgba(13,16,27,0.7)",
             border: "1px solid rgba(255,255,255,0.07)",
-            height: "auto",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            height: "100%",
           }}
         >
           <div style={{ fontSize: "13px", fontWeight: "700", color: "#f8fafc", marginBottom: "10px" }}>

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Check, Copy, Film, Flame, Sparkles } from "lucide-react";
+import { Check, Copy, Flame, Sparkles } from "lucide-react";
 
 export interface ClipCandidate {
   id: string;
@@ -57,20 +57,31 @@ export const UnpublishedClipsStudio: React.FC<UnpublishedClipsStudioProps> = ({ 
   };
 
   return (
-    <div className="w-full flex flex-col gap-3 font-sans">
+    <div
+      style={{
+        padding: "16px",
+        borderRadius: "16px",
+        background: "rgba(13,16,27,0.7)",
+        border: "1px solid rgba(255,255,255,0.07)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "12px",
+        height: "auto",
+      }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-xs text-purple-400 uppercase tracking-wider font-extrabold flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-purple-400" />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ fontSize: "12px", fontWeight: "700", color: "#c084fc", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
+          <Sparkles style={{ width: "14px", height: "14px", color: "#a855f7" }} />
           <span>Ready to Publish (Top Highlights)</span>
-        </h3>
-        <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider font-semibold">
-          {clipList.length} Clip Candidates
+        </div>
+        <span style={{ fontSize: "10px", color: "#64748b", fontFamily: "monospace" }}>
+          {clipList.length} CLIP CANDIDATES
         </span>
       </div>
 
       {/* Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "12px" }}>
         {clipList.map((clip) => {
           const score = clip.viralityScore ?? 90;
           const isCopied = copiedId === clip.id;
@@ -79,45 +90,70 @@ export const UnpublishedClipsStudio: React.FC<UnpublishedClipsStudioProps> = ({ 
             <motion.div
               key={clip.id}
               whileHover={{ y: -2 }}
-              className="rounded-2xl bg-[#0d101b]/90 border border-white/10 p-4 sm:p-5 flex flex-col justify-between gap-4 shadow-xl hover:border-purple-500/40 transition-all duration-200"
+              style={{
+                padding: "14px",
+                borderRadius: "12px",
+                background: "rgba(255, 255, 255, 0.02)",
+                border: "1px solid rgba(255, 255, 255, 0.06)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+                justifyContent: "space-between",
+              }}
             >
               {/* Header Badges */}
-              <div className="flex items-center justify-between gap-2">
-                <span className="px-2.5 py-1 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-300 text-[10px] font-extrabold font-mono uppercase tracking-wider">
-                  {clip.platform || "Shorts"}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: "9px", padding: "2px 7px", borderRadius: "4px", background: "rgba(168,85,247,0.15)", color: "#c084fc", fontFamily: "monospace", fontWeight: "bold" }}>
+                  {(clip.platform || "SHORTS").toUpperCase()}
                 </span>
 
-                <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold font-mono flex items-center gap-1.5">
-                  <Flame className="w-3 h-3 text-emerald-400" />
+                <span style={{ fontSize: "10px", padding: "2px 7px", borderRadius: "6px", background: "rgba(16,185,129,0.1)", color: "#34d399", border: "1px solid rgba(16,185,129,0.2)", fontFamily: "monospace", fontWeight: "bold", display: "flex", alignItems: "center", gap: "4px" }}>
+                  <Flame style={{ width: "10px", height: "10px", color: "#10b981" }} />
                   <span>Virality: {score}/100</span>
                 </span>
               </div>
 
-              {/* Title & Context */}
-              <div className="flex flex-col gap-1 my-1">
-                <h4 className="line-clamp-2 text-slate-100 font-bold text-sm sm:text-base leading-snug min-h-[2.6rem]">
+              {/* Title & Reason */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div style={{ fontSize: "13px", fontWeight: "700", color: "#f8fafc", lineHeight: 1.4, minHeight: "36px" }}>
                   {clip.title}
-                </h4>
+                </div>
                 {clip.reason && (
-                  <p className="text-[11px] text-slate-400 line-clamp-1 italic mt-1">
+                  <div style={{ fontSize: "11px", color: "#64748b", fontStyle: "italic", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {clip.reason}
-                  </p>
+                  </div>
                 )}
               </div>
 
-              {/* Primary Action Button */}
+              {/* Primary Copy Button */}
               <button
                 onClick={() => handleCopy(clip)}
-                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-extrabold tracking-wide shadow-md shadow-purple-950/40 hover:shadow-purple-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all duration-200 active:scale-[0.98]"
+                style={{
+                  width: "100%",
+                  padding: "9px 12px",
+                  borderRadius: "8px",
+                  background: "linear-gradient(135deg, #a855f7 0%, #6366f1 100%)",
+                  border: "none",
+                  color: "#ffffff",
+                  fontSize: "12px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                  marginTop: "4px",
+                  boxShadow: "0 4px 12px rgba(168,85,247,0.3)",
+                }}
               >
                 {isCopied ? (
                   <>
-                    <Check className="w-3.5 h-3.5 text-emerald-300" />
-                    <span className="text-emerald-200">Copied Title & Hook!</span>
+                    <Check style={{ width: "14px", height: "14px" }} />
+                    <span>Copied Title & Hook!</span>
                   </>
                 ) : (
                   <>
-                    <Copy className="w-3.5 h-3.5" />
+                    <Copy style={{ width: "14px", height: "14px" }} />
                     <span>Copy Title & Hook</span>
                   </>
                 )}
