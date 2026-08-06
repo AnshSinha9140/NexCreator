@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useApp } from "@/context/AppContext";
 import { NextStreamExperiment } from "@/lib/ai/executiveTypes";
 
 interface ExperimentCardProps {
@@ -8,6 +9,9 @@ interface ExperimentCardProps {
 }
 
 export const ExperimentCard: React.FC<ExperimentCardProps> = ({ experiment }) => {
+  const { theme } = useApp();
+  const isDark = theme === "dark";
+
   const exp = experiment || {
     experimentNumber: 12,
     purpose: "Increase Chat Participation during Gameplay",
@@ -21,8 +25,11 @@ export const ExperimentCard: React.FC<ExperimentCardProps> = ({ experiment }) =>
       style={{
         padding: "24px",
         borderRadius: "20px",
-        background: "linear-gradient(135deg, rgba(168, 85, 247, 0.12) 0%, rgba(99, 102, 241, 0.08) 100%)",
-        border: "1px solid rgba(168, 85, 247, 0.3)",
+        background: isDark
+          ? "linear-gradient(135deg, rgba(168, 85, 247, 0.12) 0%, rgba(99, 102, 241, 0.08) 100%)"
+          : "#ffffff",
+        border: isDark ? "1px solid rgba(168, 85, 247, 0.3)" : "1px solid #e2e8f0",
+        boxShadow: isDark ? "none" : "0 1px 3px rgba(0, 0, 0, 0.05)",
         display: "flex",
         flexDirection: "column",
         gap: "14px",
@@ -32,7 +39,7 @@ export const ExperimentCard: React.FC<ExperimentCardProps> = ({ experiment }) =>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span style={{ fontSize: "18px" }}>🧪</span>
-          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#f8fafc" }}>
+          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a" }}>
             Experiment for Next Stream
           </h3>
         </div>
@@ -43,8 +50,8 @@ export const ExperimentCard: React.FC<ExperimentCardProps> = ({ experiment }) =>
               fontWeight: "700",
               padding: "3px 8px",
               borderRadius: "99px",
-              background: "rgba(56, 189, 248, 0.15)",
-              color: "#38bdf8",
+              background: isDark ? "rgba(56, 189, 248, 0.15)" : "rgba(37, 99, 235, 0.1)",
+              color: isDark ? "#38bdf8" : "#2563eb",
             }}
           >
             🧬 Aligns with DNA
@@ -55,8 +62,8 @@ export const ExperimentCard: React.FC<ExperimentCardProps> = ({ experiment }) =>
               fontWeight: "700",
               padding: "3px 8px",
               borderRadius: "99px",
-              background: "rgba(99, 102, 241, 0.15)",
-              color: "#818cf8",
+              background: isDark ? "rgba(99, 102, 241, 0.15)" : "rgba(99, 102, 241, 0.1)",
+              color: isDark ? "#818cf8" : "#4f46e5",
             }}
           >
             🎯 Supports Mission
@@ -67,8 +74,8 @@ export const ExperimentCard: React.FC<ExperimentCardProps> = ({ experiment }) =>
               fontWeight: "800",
               padding: "3px 10px",
               borderRadius: "99px",
-              background: "rgba(168, 85, 247, 0.2)",
-              color: "#c084fc",
+              background: isDark ? "rgba(168, 85, 247, 0.2)" : "rgba(168, 85, 247, 0.1)",
+              color: isDark ? "#c084fc" : "#9333ea",
               fontFamily: "monospace",
             }}
           >
@@ -78,14 +85,14 @@ export const ExperimentCard: React.FC<ExperimentCardProps> = ({ experiment }) =>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        <div style={{ fontSize: "13px", color: "#cbd5e1" }}>
+        <div style={{ fontSize: "13px", color: isDark ? "#cbd5e1" : "#334155" }}>
           <strong>Purpose:</strong> {exp.purpose}
         </div>
-        <div style={{ fontSize: "14px", fontWeight: "700", color: "#f8fafc", background: "rgba(0,0,0,0.3)", padding: "12px", borderRadius: "10px", borderLeft: "4px solid #a855f7" }}>
+        <div style={{ fontSize: "14px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a", background: isDark ? "rgba(0,0,0,0.3)" : "#f8fafc", border: isDark ? "none" : "1px solid #e2e8f0", padding: "12px", borderRadius: "10px", borderLeft: "4px solid #a855f7" }}>
           <strong>Test:</strong> {exp.testInstruction}
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#94a3b8", flexWrap: "wrap", gap: "8px", marginTop: "4px" }}>
-          <span>📈 <strong>Expected Improvement:</strong> <span style={{ color: "#34d399" }}>{exp.expectedImprovement}</span></span>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", flexWrap: "wrap", gap: "8px", marginTop: "4px" }}>
+          <span>📈 <strong>Expected Improvement:</strong> <span style={{ color: isDark ? "#34d399" : "#059669" }}>{exp.expectedImprovement}</span></span>
           <span>🔍 <strong>Evidence:</strong> {exp.evidence}</span>
         </div>
       </div>

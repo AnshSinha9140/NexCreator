@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useApp } from "@/context/AppContext";
 import { ConfidenceBadge } from "./ConfidenceBadge";
 import { PriorityBadge, CopilotPriority } from "./PriorityBadge";
 import { ReasonList } from "./ReasonList";
@@ -81,6 +82,9 @@ export const InsightCard: React.FC<InsightCardProps> = ({
   onComplete,
   onSave,
 }) => {
+  const { theme } = useApp();
+  const isDark = theme === "dark";
+
   const catKey = (insight.type || "general_insight").toLowerCase();
   const category = CATEGORY_MAP[catKey] || { label: insight.type || "General Insight", icon: "✨", color: "#a855f7" };
 
@@ -89,11 +93,13 @@ export const InsightCard: React.FC<InsightCardProps> = ({
       style={{
         padding: "20px",
         borderRadius: "16px",
-        background: insight.isPinned ? "rgba(168, 85, 247, 0.06)" : "rgba(11, 13, 22, 0.6)",
+        background: insight.isPinned
+          ? (isDark ? "rgba(168, 85, 247, 0.1)" : "rgba(168, 85, 247, 0.05)")
+          : (isDark ? "rgba(11, 13, 22, 0.6)" : "#ffffff"),
         border: insight.isPinned
-          ? "1px solid rgba(168, 85, 247, 0.35)"
-          : "1px solid rgba(255, 255, 255, 0.08)",
-        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
+          ? (isDark ? "1px solid rgba(168, 85, 247, 0.35)" : "1px solid rgba(168, 85, 247, 0.3)")
+          : (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0"),
+        boxShadow: isDark ? "0 8px 32px rgba(0, 0, 0, 0.3)" : "0 1px 3px rgba(0, 0, 0, 0.05)",
         backdropFilter: "blur(16px)",
         transition: "all 0.2s ease",
         display: "flex",
@@ -127,7 +133,7 @@ export const InsightCard: React.FC<InsightCardProps> = ({
 
           <PriorityBadge priority={insight.priority} size="sm" />
 
-          {/* Source Badge Pill (Instant Rule vs AI Analysis vs Pattern Learned) */}
+          {/* Source Badge Pill */}
           {insight.sourceBadge && (
             <span
               style={{
@@ -150,10 +156,10 @@ export const InsightCard: React.FC<InsightCardProps> = ({
                     : "1px solid rgba(16, 185, 129, 0.35)",
                 color:
                   insight.sourceBadge === "ai_analysis"
-                    ? "#818cf8"
+                    ? (isDark ? "#818cf8" : "#4f46e5")
                     : insight.sourceBadge === "pattern_learned"
-                    ? "#fbbf24"
-                    : "#34d399",
+                    ? (isDark ? "#fbbf24" : "#d97706")
+                    : (isDark ? "#34d399" : "#059669"),
               }}
             >
               {insight.sourceBadge === "ai_analysis"
@@ -167,7 +173,7 @@ export const InsightCard: React.FC<InsightCardProps> = ({
 
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <ConfidenceBadge confidence={insight.confidence} size="sm" />
-          <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b" }}>
+          <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: isDark ? "#64748b" : "#64748b" }}>
             {formatTime(insight.timestamp)}
           </span>
         </div>
@@ -175,10 +181,10 @@ export const InsightCard: React.FC<InsightCardProps> = ({
 
       {/* Title & Summary */}
       <div>
-        <h4 style={{ margin: "0 0 6px", fontSize: "16px", fontWeight: 700, color: "#f1f5f9", lineHeight: 1.3 }}>
+        <h4 style={{ margin: "0 0 6px", fontSize: "16px", fontWeight: 700, color: isDark ? "#f1f5f9" : "#0f172a", lineHeight: 1.3 }}>
           {insight.title}
         </h4>
-        <p style={{ margin: 0, fontSize: "13px", color: "#94a3b8", lineHeight: 1.5 }}>
+        <p style={{ margin: 0, fontSize: "13px", color: isDark ? "#94a3b8" : "#475569", lineHeight: 1.5 }}>
           {insight.summary}
         </p>
       </div>
@@ -186,10 +192,13 @@ export const InsightCard: React.FC<InsightCardProps> = ({
       {/* Primary Recommendation Box */}
       <div
         style={{
-          padding: "12px 14px",
-          borderRadius: "10px",
-          background: "linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(99, 102, 241, 0.08) 100%)",
-          border: "1px solid rgba(168, 85, 247, 0.25)",
+          padding: "14px 16px",
+          borderRadius: "12px",
+          background: isDark ? "rgba(30, 58, 138, 0.2)" : "#eff6ff",
+          border: isDark ? "1px solid rgba(59, 130, 246, 0.3)" : "1px solid #bfdbfe",
+          display: "flex",
+          flexDirection: "column",
+          gap: "4px",
         }}
       >
         <span
@@ -197,24 +206,22 @@ export const InsightCard: React.FC<InsightCardProps> = ({
             fontSize: "10px",
             fontWeight: 800,
             fontFamily: "'JetBrains Mono', monospace",
-            color: "#c084fc",
+            color: isDark ? "#93c5fd" : "#1d4ed8",
             textTransform: "uppercase",
-            letterSpacing: "0.08em",
-            display: "block",
-            marginBottom: "4px",
+            letterSpacing: "0.5px",
           }}
         >
-          RECOMMENDATION
+          Recommendation
         </span>
-        <p style={{ margin: 0, fontSize: "13px", fontWeight: 600, color: "#f8fafc", lineHeight: 1.4 }}>
+        <p style={{ margin: 0, fontSize: "13px", fontWeight: 700, color: isDark ? "#eff6ff" : "#1e3a8a", lineHeight: 1.5 }}>
           {insight.recommendation}
         </p>
       </div>
 
-      {/* Why This Recommendation */}
-      {insight.why && <ReasonList reasons={insight.why} />}
+      {/* Why Reasons Accordion */}
+      {insight.why && insight.why.length > 0 && <ReasonList reasons={insight.why} />}
 
-      {/* Action Bar */}
+      {/* Action Buttons Bar */}
       <ActionBar
         isPinned={insight.isPinned}
         isCompleted={insight.isCompleted}

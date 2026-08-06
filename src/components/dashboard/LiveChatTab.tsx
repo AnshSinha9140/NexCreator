@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect } from "react";
 import { RichChatMessage } from "./chat/RichChatMessage";
+import { useApp } from "@/context/AppContext";
 
 interface LiveChatTabProps {
   messages: any[];
@@ -18,6 +19,8 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({
   connectionState = "connected",
   reconnectAttempt = 0,
 }) => {
+  const { theme } = useApp();
+  const isDark = theme === "dark";
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Deduplicate and ensure strict sequence ordering by timestamp/id
@@ -48,9 +51,9 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({
   if (isLoading && cleanMessages.length === 0) {
     return (
       <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "12px" }}>
-        <div style={{ height: "40px", background: "rgba(255,255,255,0.03)", borderRadius: "8px" }} />
-        <div style={{ height: "40px", background: "rgba(255,255,255,0.03)", borderRadius: "8px" }} />
-        <div style={{ height: "40px", background: "rgba(255,255,255,0.03)", borderRadius: "8px" }} />
+        <div style={{ height: "40px", background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)", borderRadius: "8px" }} />
+        <div style={{ height: "40px", background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)", borderRadius: "8px" }} />
+        <div style={{ height: "40px", background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)", borderRadius: "8px" }} />
       </div>
     );
   }
@@ -83,17 +86,15 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({
         >
           💬
         </div>
-        <h3 style={{ fontSize: "16px", fontWeight: "800", color: "#f8fafc", marginBottom: "6px" }}>
+        <h3 style={{ fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: "6px" }}>
           {connectionState === "reconnecting" ? "Reconnecting Live Chat Pipe..." : "Waiting for Chat Activity..."}
         </h3>
-        <p style={{ fontSize: "13px", color: "#64748b", maxWidth: "420px", lineHeight: 1.5 }}>
+        <p style={{ fontSize: "13px", color: isDark ? "#64748b" : "#64748b", maxWidth: "420px", lineHeight: 1.5 }}>
           Live chat messages from your connected broadcast stream continuously here with heartbeat recovery and deduplication protection.
         </p>
       </div>
     );
   }
-
-  const messagesPerMin = telemetry?.messagesPerMinute || telemetry?.stats?.messagesPerMinute || cleanMessages.length;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%" }}>
@@ -102,8 +103,9 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({
         style={{
           padding: "10px 16px",
           borderRadius: "10px",
-          background: "rgba(13,16,27,0.85)",
-          border: "1px solid rgba(255,255,255,0.08)",
+          background: isDark ? "rgba(13,16,27,0.85)" : "#ffffff",
+          border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",
+          boxShadow: isDark ? "none" : "0 2px 8px rgba(0,0,0,0.04)",
           marginBottom: "12px",
           display: "flex",
           justifyContent: "space-between",
@@ -134,10 +136,10 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({
                   : "1px solid rgba(248,113,113,0.3)",
               color:
                 connectionState === "connected"
-                  ? "#34d399"
+                  ? (isDark ? "#34d399" : "#059669")
                   : connectionState === "reconnecting"
-                  ? "#fbbf24"
-                  : "#f87171",
+                  ? (isDark ? "#fbbf24" : "#d97706")
+                  : (isDark ? "#f87171" : "#dc2626"),
               fontSize: "11px",
               fontWeight: "700",
             }}
@@ -154,17 +156,13 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({
             </span>
           </div>
 
-          <span style={{ color: "#94a3b8", fontWeight: "600" }}>
+          <span style={{ color: isDark ? "#94a3b8" : "#475569", fontWeight: "600" }}>
             {cleanMessages.length} Messages Verified
           </span>
         </div>
-
-        <span style={{ color: "#34d399", fontWeight: "700", fontFamily: "monospace" }}>
-          ⚡ {messagesPerMin} msgs/min
-        </span>
       </div>
 
-      {/* Auto-Scrolling Messages Feed */}
+      {/* Message List */}
       <div
         ref={chatContainerRef}
         style={{
@@ -172,9 +170,10 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({
           overflowY: "auto",
           display: "flex",
           flexDirection: "column",
-          gap: "8px",
-          paddingRight: "6px",
-          maxHeight: "420px",
+          borderRadius: "12px",
+          background: isDark ? "rgba(13,16,27,0.85)" : "#ffffff",
+          border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",
+          boxShadow: isDark ? "none" : "0 2px 8px rgba(0,0,0,0.04)",
         }}
       >
         {cleanMessages.map((msg, idx) => (

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { ManagerThought } from "@/lib/conversation/types";
+import { useApp } from "@/context/AppContext";
 
 interface ManagerThoughtCardProps {
   thought: ManagerThought;
@@ -33,6 +34,22 @@ export const ManagerThoughtCard: React.FC<ManagerThoughtCardProps> = ({
 }) => {
   const [expanded, setExpanded] = useState(isPrimary);
   const s = TONE_STYLES[thought.tone] ?? TONE_STYLES.observing;
+  const { theme } = useApp();
+  const isDark = theme === "dark";
+
+  const accentColor = isDark
+    ? s.accent
+    : s.accent === "#60a5fa"
+    ? "#2563eb"
+    : s.accent === "#34d399"
+    ? "#059669"
+    : s.accent === "#fb7185"
+    ? "#e11d48"
+    : s.accent === "#c084fc"
+    ? "#7c3aed"
+    : s.accent === "#eab308"
+    ? "#d97706"
+    : s.accent;
 
   return (
     <div
@@ -40,9 +57,12 @@ export const ManagerThoughtCard: React.FC<ManagerThoughtCardProps> = ({
         padding: "20px 22px",
         borderRadius: "16px",
         background: isPrimary
-          ? `linear-gradient(135deg, ${s.bg} 0%, rgba(13,16,27,0.9) 100%)`
-          : "rgba(13,16,27,0.85)",
-        border: `1px solid ${isPrimary ? s.border : "rgba(255,255,255,0.07)"}`,
+          ? (isDark
+              ? `linear-gradient(135deg, ${s.bg} 0%, rgba(13,16,27,0.9) 100%)`
+              : `linear-gradient(135deg, ${s.bg} 0%, #ffffff 100%)`)
+          : (isDark ? "rgba(13,16,27,0.85)" : "#ffffff"),
+        border: `1px solid ${isPrimary ? s.border : (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)")}`,
+        boxShadow: isDark ? "none" : "0 4px 16px rgba(0, 0, 0, 0.04)",
         display: "flex",
         flexDirection: "column",
         gap: "12px",
@@ -58,7 +78,7 @@ export const ManagerThoughtCard: React.FC<ManagerThoughtCardProps> = ({
               width: "7px",
               height: "7px",
               borderRadius: "50%",
-              background: s.dot,
+              background: accentColor,
               display: "inline-block",
               flexShrink: 0,
             }}
@@ -67,7 +87,7 @@ export const ManagerThoughtCard: React.FC<ManagerThoughtCardProps> = ({
             style={{
               fontSize: "10px",
               fontWeight: "800",
-              color: s.accent,
+              color: accentColor,
               textTransform: "uppercase",
               letterSpacing: "0.08em",
             }}
@@ -75,28 +95,14 @@ export const ManagerThoughtCard: React.FC<ManagerThoughtCardProps> = ({
             {isPrimary ? "Primary Advice" : TONE_LABEL[thought.tone]}
           </span>
         </div>
-        <span
-          style={{
-            fontSize: "11px",
-            color: "#475569",
-            fontStyle: "italic",
-          }}
-        >
+        <span className="text-xs text-slate-500 italic dark:text-slate-400">
           {thought.confidencePhrase}
         </span>
       </div>
 
       {/* Memory note — "I mentioned this 8 minutes ago" */}
       {thought.memoryNote && (
-        <div
-          style={{
-            fontSize: "11px",
-            color: "#64748b",
-            fontStyle: "italic",
-            paddingLeft: "15px",
-            borderLeft: "2px solid rgba(255,255,255,0.08)",
-          }}
-        >
+        <div className="text-xs text-slate-500 italic dark:text-slate-400 pl-3.5 border-l-2 border-slate-200 dark:border-slate-800/80">
           {thought.memoryNote}
         </div>
       )}
@@ -106,7 +112,7 @@ export const ManagerThoughtCard: React.FC<ManagerThoughtCardProps> = ({
         style={{
           fontSize: "16px",
           fontWeight: "700",
-          color: "#f1f5f9",
+          color: isDark ? "#f1f5f9" : "#0f172a",
           lineHeight: 1.4,
           cursor: thought.why || thought.whatToDo ? "pointer" : "default",
         }}
@@ -120,7 +126,7 @@ export const ManagerThoughtCard: React.FC<ManagerThoughtCardProps> = ({
         style={{
           margin: 0,
           fontSize: "13px",
-          color: "#cbd5e1",
+          color: isDark ? "#cbd5e1" : "#334155",
           lineHeight: 1.7,
         }}
       >
@@ -135,13 +141,13 @@ export const ManagerThoughtCard: React.FC<ManagerThoughtCardProps> = ({
             style={{
               background: "none",
               border: "none",
-              color: s.accent,
+              color: accentColor,
               fontSize: "11px",
               fontWeight: "700",
               cursor: "pointer",
               padding: 0,
               textAlign: "left",
-              opacity: 0.8,
+              opacity: 0.9,
             }}
           >
             {expanded ? "▲ Less detail" : "▼ More detail"}
@@ -154,7 +160,7 @@ export const ManagerThoughtCard: React.FC<ManagerThoughtCardProps> = ({
                 flexDirection: "column",
                 gap: "10px",
                 paddingTop: "4px",
-                borderTop: "1px solid rgba(255,255,255,0.05)",
+                borderTop: isDark ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.06)",
               }}
             >
               {thought.why && (
@@ -163,7 +169,7 @@ export const ManagerThoughtCard: React.FC<ManagerThoughtCardProps> = ({
                     style={{
                       fontSize: "10px",
                       fontWeight: "800",
-                      color: "#64748b",
+                      color: isDark ? "#64748b" : "#64748b",
                       textTransform: "uppercase",
                       letterSpacing: "0.06em",
                       marginBottom: "4px",
@@ -171,7 +177,7 @@ export const ManagerThoughtCard: React.FC<ManagerThoughtCardProps> = ({
                   >
                     Why I'm noticing this
                   </div>
-                  <p style={{ margin: 0, fontSize: "12px", color: "#94a3b8", lineHeight: 1.6 }}>
+                  <p style={{ margin: 0, fontSize: "12px", color: isDark ? "#94a3b8" : "#475569", lineHeight: 1.6 }}>
                     {thought.why}
                   </p>
                 </div>
@@ -183,7 +189,7 @@ export const ManagerThoughtCard: React.FC<ManagerThoughtCardProps> = ({
                     style={{
                       fontSize: "10px",
                       fontWeight: "800",
-                      color: s.accent,
+                      color: accentColor,
                       textTransform: "uppercase",
                       letterSpacing: "0.06em",
                       marginBottom: "4px",
@@ -191,7 +197,7 @@ export const ManagerThoughtCard: React.FC<ManagerThoughtCardProps> = ({
                   >
                     What I'd do
                   </div>
-                  <p style={{ margin: 0, fontSize: "12px", color: "#cbd5e1", lineHeight: 1.6 }}>
+                  <p style={{ margin: 0, fontSize: "12px", color: isDark ? "#cbd5e1" : "#334155", lineHeight: 1.6 }}>
                     {thought.whatToDo}
                   </p>
                 </div>
@@ -203,7 +209,7 @@ export const ManagerThoughtCard: React.FC<ManagerThoughtCardProps> = ({
                     style={{
                       fontSize: "10px",
                       fontWeight: "800",
-                      color: "#34d399",
+                      color: isDark ? "#34d399" : "#059669",
                       textTransform: "uppercase",
                       letterSpacing: "0.06em",
                       marginBottom: "4px",
@@ -211,7 +217,7 @@ export const ManagerThoughtCard: React.FC<ManagerThoughtCardProps> = ({
                   >
                     Expected result
                   </div>
-                  <p style={{ margin: 0, fontSize: "12px", color: "#94a3b8", lineHeight: 1.6 }}>
+                  <p style={{ margin: 0, fontSize: "12px", color: isDark ? "#94a3b8" : "#475569", lineHeight: 1.6 }}>
                     {thought.expectedResult}
                   </p>
                 </div>
@@ -223,7 +229,7 @@ export const ManagerThoughtCard: React.FC<ManagerThoughtCardProps> = ({
                     style={{
                       fontSize: "10px",
                       fontWeight: "800",
-                      color: "#fb7185",
+                      color: isDark ? "#fb7185" : "#e11d48",
                       textTransform: "uppercase",
                       letterSpacing: "0.06em",
                       marginBottom: "4px",
@@ -231,7 +237,7 @@ export const ManagerThoughtCard: React.FC<ManagerThoughtCardProps> = ({
                   >
                     If you leave this
                   </div>
-                  <p style={{ margin: 0, fontSize: "12px", color: "#94a3b8", lineHeight: 1.6 }}>
+                  <p style={{ margin: 0, fontSize: "12px", color: isDark ? "#94a3b8" : "#475569", lineHeight: 1.6 }}>
                     {thought.ifIgnored}
                   </p>
                 </div>

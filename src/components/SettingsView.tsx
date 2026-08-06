@@ -7,7 +7,8 @@ import { ConnectedPlatformAccount, VerifiedChannelMeta } from "@/types";
 import { ConnectedPlatformManager } from "@/lib/connectedPlatformManager";
 
 export const SettingsView: React.FC = () => {
-  const { currentUser } = useApp();
+  const { currentUser, theme } = useApp();
+  const isDark = theme === "dark";
   const [activeTab, setActiveTab] = useState<"connections" | "general">("connections");
 
   // State
@@ -66,66 +67,49 @@ export const SettingsView: React.FC = () => {
     }
 
     try {
-      let clientChatroomId = "";
-      if (platform === "kick") {
-        try {
-          const cleanUser = inputUrl.trim().replace(/^.*kick\.com\//, "").replace("@", "").split("/")[0];
-          const chatroomRes = await fetch(`/api/kick/chatroom?slug=${encodeURIComponent(cleanUser.toLowerCase())}`);
-          if (chatroomRes.ok) {
-            const chatroomData = await chatroomRes.json();
-            if (chatroomData?.chatroomId) clientChatroomId = String(chatroomData.chatroomId);
-          }
-        } catch (e) {}
+      const vRes = await fetch("/api/platforms/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform, channelUrl: inputUrl }),
+      });
+      const vData = await vRes.json();
+      if (!vRes.ok || !vData.success || !vData.verifiedMeta) {
+        throw new Error(vData.error?.message || `Could not resolve channel details for ${platform}.`);
       }
+      const verifiedMeta: VerifiedChannelMeta = vData.verifiedMeta;
 
-      // 1. Verify Channel Metadata & resolve chatroomId via Official API
-      const verifyRes = await fetch(
-        `/api/platforms/verify?platform=${platform}&url=${encodeURIComponent(inputUrl.trim())}${clientChatroomId ? `&chatroomId=${clientChatroomId}` : ""}`
-      );
-      const verifyData = await verifyRes.json();
-
-      if (!verifyRes.ok || !verifyData.success) {
-        const errorMsg =
-          typeof verifyData.error === "string"
-            ? verifyData.error
-            : verifyData.error?.message || `Could not verify ${platform} channel.`;
-        throw new Error(errorMsg);
-      }
-
-      const verifiedMeta: VerifiedChannelMeta = verifyData.channel;
-      const newAccount = ConnectedPlatformManager.createAccountFromVerification(verifiedMeta);
-
-      // 2. Add / Save to Database via Connected Platforms API
-      const saveRes = await fetch("/api/platforms/connected", {
+      const res = await fetch("/api/platforms/connected", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "add",
-          account: newAccount,
+          platform,
+          channelUrl: inputUrl,
+          verifiedMeta,
         }),
       });
 
-      const saveData = await saveRes.json();
-      if (!saveRes.ok || !saveData.success) {
-        const saveError =
-          typeof saveData.error === "string"
-            ? saveData.error
-            : saveData.error?.message || "Failed to save connected platform.";
-        throw new Error(saveError);
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        const errorMsg =
+          typeof data.error === "string"
+            ? data.error
+            : data.error?.message || `Failed to connect ${platform} channel.`;
+        throw new Error(errorMsg);
       }
 
       if (platform === "kick") {
-        setKickSuccess(`Successfully connected @${newAccount.username}!`);
+        setKickSuccess(`Successfully connected @${verifiedMeta.username}!`);
         setKickInput("");
       } else {
-        setYoutubeSuccess(`Successfully connected ${newAccount.displayName}!`);
+        setYoutubeSuccess(`Successfully connected ${verifiedMeta.displayName}!`);
         setYoutubeInput("");
       }
 
       await fetchConnections();
     } catch (err: any) {
-      if (platform === "kick") setKickError(err.message || "Failed to connect Kick channel.");
-      else setYoutubeError(err.message || "Failed to connect YouTube channel.");
+      if (platform === "kick") setKickError(err.message || "Verification failed.");
+      else setYoutubeError(err.message || "Verification failed.");
     } finally {
       if (platform === "kick") setKickLoading(false);
       else setYoutubeLoading(false);
@@ -176,7 +160,7 @@ export const SettingsView: React.FC = () => {
     }
   };
 
-  // Re-verify / Sync Channel Helper (Populates/Updates chatroomId without disconnecting)
+  // Re-verify / Sync Channel Helper
   const handleReverify = async (platform: "kick" | "youtube", username: string) => {
     if (platform === "kick") {
       setKickLoading(true);
@@ -189,52 +173,31 @@ export const SettingsView: React.FC = () => {
     }
 
     try {
-      let clientChatroomId = "";
-      if (platform === "kick") {
-        try {
-          const cleanUser = username.trim().replace(/^.*kick\.com\//, "").replace("@", "").split("/")[0];
-          const chatroomRes = await fetch(`/api/kick/chatroom?slug=${encodeURIComponent(cleanUser.toLowerCase())}`);
-          if (chatroomRes.ok) {
-            const chatroomData = await chatroomRes.json();
-            if (chatroomData?.chatroomId) clientChatroomId = String(chatroomData.chatroomId);
-          }
-        } catch (e) {}
+      const channelUrl = platform === "kick" ? `https://kick.com/${username}` : username;
+      const vRes = await fetch("/api/platforms/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform, channelUrl }),
+      });
+      const vData = await vRes.json();
+      if (!vRes.ok || !vData.success || !vData.verifiedMeta) {
+        throw new Error(vData.error?.message || `Could not re-verify channel details for ${platform}.`);
       }
+      const verifiedMeta: VerifiedChannelMeta = vData.verifiedMeta;
 
-      const verifyRes = await fetch(
-        `/api/platforms/verify?platform=${platform}&username=${encodeURIComponent(username)}${clientChatroomId ? `&chatroomId=${clientChatroomId}` : ""}`
-      );
-      const verifyData = await verifyRes.json();
-
-      if (!verifyRes.ok || !verifyData.success) {
-        const errorMsg =
-          typeof verifyData.error === "string"
-            ? verifyData.error
-            : verifyData.error?.message || `Could not re-verify ${platform} channel.`;
-        throw new Error(errorMsg);
-      }
-
-      const verifiedMeta: VerifiedChannelMeta = verifyData.channel;
-      const updatedAccount = ConnectedPlatformManager.createAccountFromVerification(verifiedMeta);
-
-      const saveRes = await fetch("/api/platforms/connected", {
+      const res = await fetch("/api/platforms/connected", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "update",
+          action: "add",
           platform,
-          account: updatedAccount,
+          channelUrl,
+          verifiedMeta,
         }),
       });
 
-      const saveData = await saveRes.json();
-      if (!saveRes.ok || !saveData.success) {
-        const saveError =
-          typeof saveData.error === "string"
-            ? saveData.error
-            : saveData.error?.message || "Failed to update platform verification.";
-        throw new Error(saveError);
-      }
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error?.message || "Failed to sync metadata.");
 
       if (platform === "kick") {
         setKickSuccess(`Re-synced metadata for @${username}! Chatroom ID: #${verifiedMeta.kickMetadata?.chatroomId || "N/A"}`);
@@ -260,24 +223,24 @@ export const SettingsView: React.FC = () => {
       style={{ display: "flex", flexDirection: "column", gap: "24px" }}
     >
       <div>
-        <h1 style={{ fontSize: "24px", fontWeight: "800", color: "#f8fafc", marginBottom: "4px" }}>
+        <h1 style={{ fontSize: "24px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: "4px" }}>
           Workspace Settings
         </h1>
-        <p style={{ fontSize: "13px", color: "#94a3b8" }}>
+        <p style={{ fontSize: "13px", color: isDark ? "#94a3b8" : "#475569" }}>
           Manage your connected platform channels, verification badges, and monitoring preferences.
         </p>
       </div>
 
       {/* Navigation Tabs */}
-      <div style={{ display: "flex", gap: "8px", borderBottom: "1px solid rgba(255,255,255,0.07)", paddingBottom: "12px" }}>
+      <div style={{ display: "flex", gap: "8px", borderBottom: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid #e2e8f0", paddingBottom: "12px" }}>
         <button
           onClick={() => setActiveTab("connections")}
           className="btn"
           style={{
             padding: "8px 16px",
             fontSize: "12px",
-            background: activeTab === "connections" ? "rgba(168,85,247,0.15)" : "transparent",
-            color: activeTab === "connections" ? "#c084fc" : "#64748b",
+            background: activeTab === "connections" ? (isDark ? "rgba(168,85,247,0.15)" : "rgba(168,85,247,0.1)") : "transparent",
+            color: activeTab === "connections" ? (isDark ? "#c084fc" : "#9333ea") : (isDark ? "#64748b" : "#64748b"),
             border: activeTab === "connections" ? "1px solid rgba(168,85,247,0.3)" : "1px solid transparent",
           }}
         >
@@ -289,8 +252,8 @@ export const SettingsView: React.FC = () => {
           style={{
             padding: "8px 16px",
             fontSize: "12px",
-            background: activeTab === "general" ? "rgba(168,85,247,0.15)" : "transparent",
-            color: activeTab === "general" ? "#c084fc" : "#64748b",
+            background: activeTab === "general" ? (isDark ? "rgba(168,85,247,0.15)" : "rgba(168,85,247,0.1)") : "transparent",
+            color: activeTab === "general" ? (isDark ? "#c084fc" : "#9333ea") : (isDark ? "#64748b" : "#64748b"),
             border: activeTab === "general" ? "1px solid rgba(168,85,247,0.3)" : "1px solid transparent",
           }}
         >
@@ -301,11 +264,11 @@ export const SettingsView: React.FC = () => {
       {/* ─── 1. CONNECTED PLATFORMS TAB ──────────────────────────────────── */}
       {activeTab === "connections" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <div style={{ padding: "24px", borderRadius: "16px", background: "rgba(13,16,27,0.7)", border: "1px solid rgba(255,255,255,0.07)" }}>
-            <h3 style={{ fontSize: "16px", fontWeight: "700", color: "#f8fafc", marginBottom: "4px" }}>
+          <div style={{ padding: "24px", borderRadius: "16px", background: isDark ? "rgba(13,16,27,0.7)" : "#ffffff", border: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid #e2e8f0", boxShadow: isDark ? "none" : "0 1px 3px rgba(0,0,0,0.05)" }}>
+            <h3 style={{ fontSize: "16px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: "4px" }}>
               Active Channel Connections
             </h3>
-            <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "20px" }}>
+            <p style={{ fontSize: "12px", color: isDark ? "#64748b" : "#64748b", marginBottom: "20px" }}>
               NexCreator connects to your streaming platforms to automatically resolve chat WebSocket bridges, stream status, and live telemetry.
             </p>
 
@@ -315,8 +278,10 @@ export const SettingsView: React.FC = () => {
                 style={{
                   padding: "18px 22px",
                   borderRadius: "14px",
-                  background: kickAccount ? "linear-gradient(135deg, rgba(83, 252, 24, 0.05) 0%, rgba(13, 16, 27, 0.8) 100%)" : "rgba(255,255,255,0.02)",
-                  border: kickAccount ? "1px solid rgba(83, 252, 24, 0.3)" : "1px solid rgba(255,255,255,0.06)",
+                  background: kickAccount
+                    ? (isDark ? "linear-gradient(135deg, rgba(83, 252, 24, 0.05) 0%, rgba(13, 16, 27, 0.8) 100%)" : "linear-gradient(135deg, rgba(83, 252, 24, 0.04) 0%, #ffffff 100%)")
+                    : (isDark ? "rgba(255,255,255,0.02)" : "#f8fafc"),
+                  border: kickAccount ? "1px solid rgba(83, 252, 24, 0.3)" : (isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid #e2e8f0"),
                   display: "flex",
                   flexDirection: "column",
                   gap: "14px",
@@ -349,16 +314,16 @@ export const SettingsView: React.FC = () => {
                     </div>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <span style={{ fontSize: "14px", fontWeight: "700", color: "#f8fafc" }}>
+                        <span style={{ fontSize: "14px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a" }}>
                           {kickAccount ? kickAccount.displayName : "Kick.com Connection"}
                         </span>
                         {kickAccount && (
-                          <span style={{ fontSize: "10px", fontWeight: "700", padding: "2px 8px", borderRadius: "99px", background: "rgba(83, 252, 24, 0.15)", color: "#53fc18", fontFamily: "monospace" }}>
+                          <span style={{ fontSize: "10px", fontWeight: "700", padding: "2px 8px", borderRadius: "99px", background: "rgba(83, 252, 24, 0.15)", color: isDark ? "#53fc18" : "#059669", fontFamily: "monospace" }}>
                             ● CONNECTED
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
+                      <div style={{ fontSize: "12px", color: isDark ? "#64748b" : "#64748b", marginTop: "2px" }}>
                         {kickAccount
                           ? `@${kickAccount.username} · ${kickAccount.followersCount ? `${kickAccount.followersCount.toLocaleString()} followers` : "Connected"}`
                           : "Live Chat Bridge & Sentiment Analysis Enabled"}
@@ -399,10 +364,10 @@ export const SettingsView: React.FC = () => {
 
                 {/* Stored Metadata Details for Connected Kick Channel */}
                 {kickAccount && (
-                  <div style={{ padding: "10px 14px", borderRadius: "8px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.04)", fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#94a3b8", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+                  <div style={{ padding: "10px 14px", borderRadius: "8px", background: isDark ? "rgba(0,0,0,0.3)" : "#f1f5f9", border: isDark ? "1px solid rgba(255,255,255,0.04)" : "1px solid #e2e8f0", fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: isDark ? "#94a3b8" : "#475569", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
                     <span>
                       Chatroom ID:{" "}
-                      <strong style={{ color: kickAccount.kickMetadata?.chatroomId ? "#53fc18" : "#fb7185" }}>
+                      <strong style={{ color: kickAccount.kickMetadata?.chatroomId ? (isDark ? "#53fc18" : "#059669") : "#fb7185" }}>
                         {kickAccount.kickMetadata?.chatroomId ? `#${kickAccount.kickMetadata.chatroomId}` : "Not stored (click Re-sync Metadata)"}
                       </strong>
                     </span>
@@ -421,7 +386,16 @@ export const SettingsView: React.FC = () => {
                         placeholder="https://kick.com/username or 8bit_rusherwow"
                         value={kickInput}
                         onChange={(e) => setKickInput(e.target.value)}
-                        style={{ flex: 1 }}
+                        style={{
+                          flex: 1,
+                          padding: "10px 14px",
+                          borderRadius: "10px",
+                          background: isDark ? "rgba(10,13,24,0.8)" : "#f1f5f9",
+                          border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #cbd5e1",
+                          color: isDark ? "#f8fafc" : "#0f172a",
+                          fontSize: "13px",
+                          outline: "none",
+                        }}
                       />
                       <button
                         onClick={() => handleConnect("kick", kickInput)}
@@ -437,7 +411,7 @@ export const SettingsView: React.FC = () => {
 
                 {/* Status Messages */}
                 {kickError && <span style={{ fontSize: "11px", color: "#fb7185" }}>⚠️ {kickError}</span>}
-                {kickSuccess && <span style={{ fontSize: "11px", color: "#34d399" }}>✓ {kickSuccess}</span>}
+                {kickSuccess && <span style={{ fontSize: "11px", color: isDark ? "#34d399" : "#059669" }}>✓ {kickSuccess}</span>}
               </div>
 
               {/* ─── YOUTUBE CARD ──────────────────────────────────────── */}
@@ -445,8 +419,10 @@ export const SettingsView: React.FC = () => {
                 style={{
                   padding: "18px 22px",
                   borderRadius: "14px",
-                  background: youtubeAccount ? "linear-gradient(135deg, rgba(255, 0, 0, 0.05) 0%, rgba(13, 16, 27, 0.8) 100%)" : "rgba(255,255,255,0.02)",
-                  border: youtubeAccount ? "1px solid rgba(255, 0, 0, 0.3)" : "1px solid rgba(255,255,255,0.06)",
+                  background: youtubeAccount
+                    ? (isDark ? "linear-gradient(135deg, rgba(255, 0, 0, 0.05) 0%, rgba(13, 16, 27, 0.8) 100%)" : "linear-gradient(135deg, rgba(255, 0, 0, 0.04) 0%, #ffffff 100%)")
+                    : (isDark ? "rgba(255,255,255,0.02)" : "#f8fafc"),
+                  border: youtubeAccount ? "1px solid rgba(255, 0, 0, 0.3)" : (isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid #e2e8f0"),
                   display: "flex",
                   flexDirection: "column",
                   gap: "14px",
@@ -479,7 +455,7 @@ export const SettingsView: React.FC = () => {
                     </div>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <span style={{ fontSize: "14px", fontWeight: "700", color: "#f8fafc" }}>
+                        <span style={{ fontSize: "14px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a" }}>
                           {youtubeAccount ? youtubeAccount.displayName : "YouTube Channel Connection"}
                         </span>
                         {youtubeAccount && (
@@ -488,7 +464,7 @@ export const SettingsView: React.FC = () => {
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
+                      <div style={{ fontSize: "12px", color: isDark ? "#64748b" : "#64748b", marginTop: "2px" }}>
                         {youtubeAccount
                           ? `${youtubeAccount.username} · ${youtubeAccount.followersCount ? `${youtubeAccount.followersCount.toLocaleString()} subscribers` : "Connected"}`
                           : "Livestream & VOD Timeline Scraper Enabled"}
@@ -527,7 +503,16 @@ export const SettingsView: React.FC = () => {
                         placeholder="https://youtube.com/@channelname or channel URL"
                         value={youtubeInput}
                         onChange={(e) => setYoutubeInput(e.target.value)}
-                        style={{ flex: 1 }}
+                        style={{
+                          flex: 1,
+                          padding: "10px 14px",
+                          borderRadius: "10px",
+                          background: isDark ? "rgba(10,13,24,0.8)" : "#f1f5f9",
+                          border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #cbd5e1",
+                          color: isDark ? "#f8fafc" : "#0f172a",
+                          fontSize: "13px",
+                          outline: "none",
+                        }}
                       />
                       <button
                         onClick={() => handleConnect("youtube", youtubeInput)}
@@ -543,7 +528,7 @@ export const SettingsView: React.FC = () => {
 
                 {/* Status Messages */}
                 {youtubeError && <span style={{ fontSize: "11px", color: "#fb7185" }}>⚠️ {youtubeError}</span>}
-                {youtubeSuccess && <span style={{ fontSize: "11px", color: "#34d399" }}>✓ {youtubeSuccess}</span>}
+                {youtubeSuccess && <span style={{ fontSize: "11px", color: isDark ? "#34d399" : "#059669" }}>✓ {youtubeSuccess}</span>}
               </div>
             </div>
           </div>
@@ -552,22 +537,22 @@ export const SettingsView: React.FC = () => {
 
       {/* ─── 2. ACCOUNT PROFILE TAB ──────────────────────────────────────── */}
       {activeTab === "general" && (
-        <div style={{ padding: "24px", borderRadius: "16px", background: "rgba(13,16,27,0.7)", border: "1px solid rgba(255,255,255,0.07)" }}>
-          <h3 style={{ fontSize: "16px", fontWeight: "700", color: "#f8fafc", marginBottom: "16px" }}>
+        <div style={{ padding: "24px", borderRadius: "16px", background: isDark ? "rgba(13,16,27,0.7)" : "#ffffff", border: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid #e2e8f0", boxShadow: isDark ? "none" : "0 1px 3px rgba(0,0,0,0.05)" }}>
+          <h3 style={{ fontSize: "16px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: "16px" }}>
             Account Details
           </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: "12px", fontSize: "13px" }}>
             <div style={{ display: "flex", gap: "12px" }}>
-              <span style={{ color: "#64748b", width: "120px" }}>Email:</span>
-              <strong style={{ color: "#f8fafc" }}>{currentUser?.email}</strong>
+              <span style={{ color: isDark ? "#64748b" : "#64748b", width: "120px" }}>Email:</span>
+              <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{currentUser?.email}</strong>
             </div>
             <div style={{ display: "flex", gap: "12px" }}>
-              <span style={{ color: "#64748b", width: "120px" }}>Role:</span>
-              <strong style={{ color: "#c084fc", textTransform: "capitalize" }}>{(currentUser as any)?.role || "creator"}</strong>
+              <span style={{ color: isDark ? "#64748b" : "#64748b", width: "120px" }}>Role:</span>
+              <strong style={{ color: isDark ? "#c084fc" : "#9333ea", textTransform: "capitalize" }}>{(currentUser as any)?.role || "creator"}</strong>
             </div>
             <div style={{ display: "flex", gap: "12px" }}>
-              <span style={{ color: "#64748b", width: "120px" }}>Status:</span>
-              <span style={{ color: "#10b981", fontWeight: "700", fontFamily: "monospace" }}>● VERIFIED</span>
+              <span style={{ color: isDark ? "#64748b" : "#64748b", width: "120px" }}>Status:</span>
+              <span style={{ color: isDark ? "#10b981" : "#059669", fontWeight: "700", fontFamily: "monospace" }}>● VERIFIED</span>
             </div>
           </div>
         </div>

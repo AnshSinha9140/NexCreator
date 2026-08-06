@@ -16,7 +16,8 @@ import { AICopilotPanel } from "../components/copilot/AICopilotPanel";
 import { ExecutiveReportView } from "../components/executive/ExecutiveReportView";
 
 export default function Home() {
-  const { currentUser } = useApp();
+  const { currentUser, theme } = useApp();
+  const isDark = theme === "dark";
   const [activeTab, setActiveTab] = useState("command_center");
 
   useEffect(() => {
@@ -48,7 +49,8 @@ export default function Home() {
         height: "100vh",
         width: "100vw",
         overflow: "hidden",
-        background: "#060810",
+        background: isDark ? "#060810" : "#f8fafc",
+        transition: "background 0.2s ease",
       }}
     >
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />

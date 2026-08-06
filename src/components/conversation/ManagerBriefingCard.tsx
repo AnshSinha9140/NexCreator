@@ -2,6 +2,7 @@
 
 import React from "react";
 import { ManagerBriefing, BriefingType } from "@/lib/conversation/types";
+import { useApp } from "@/context/AppContext";
 
 interface ManagerBriefingCardProps {
   briefing: ManagerBriefing;
@@ -20,14 +21,19 @@ export const ManagerBriefingCard: React.FC<ManagerBriefingCardProps> = ({
   snapshotTime,
 }) => {
   const badge = BRIEFING_BADGE[briefing.type];
+  const { theme } = useApp();
+  const isDark = theme === "dark";
 
   return (
     <div
       style={{
         padding: "24px 28px",
         borderRadius: "20px",
-        background: "linear-gradient(135deg, rgba(13,16,27,0.95) 0%, rgba(20,26,46,0.9) 100%)",
+        background: isDark
+          ? "linear-gradient(135deg, rgba(13,16,27,0.95) 0%, rgba(20,26,46,0.9) 100%)"
+          : "#ffffff",
         border: `1px solid ${badge.border}`,
+        boxShadow: isDark ? "none" : "0 4px 20px rgba(0, 0, 0, 0.05)",
         display: "flex",
         flexDirection: "column",
         gap: "14px",
@@ -57,14 +63,14 @@ export const ManagerBriefingCard: React.FC<ManagerBriefingCardProps> = ({
         </div>
 
         {snapshotTime && (
-          <span style={{ fontSize: "11px", color: "#475569", fontVariantNumeric: "tabular-nums" }}>
+          <span style={{ fontSize: "11px", color: isDark ? "#475569" : "#64748b", fontVariantNumeric: "tabular-nums" }}>
             {snapshotTime}
           </span>
         )}
       </div>
 
       {/* Headline */}
-      <div style={{ fontSize: "20px", fontWeight: "800", color: "#f8fafc", lineHeight: 1.3 }}>
+      <div style={{ fontSize: "20px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", lineHeight: 1.3 }}>
         {briefing.headline}
       </div>
 
@@ -73,7 +79,7 @@ export const ManagerBriefingCard: React.FC<ManagerBriefingCardProps> = ({
         style={{
           margin: 0,
           fontSize: "14px",
-          color: "#cbd5e1",
+          color: isDark ? "#cbd5e1" : "#334155",
           lineHeight: 1.7,
           maxWidth: "640px",
         }}
@@ -83,18 +89,7 @@ export const ManagerBriefingCard: React.FC<ManagerBriefingCardProps> = ({
 
       {/* Memory Context — what happened earlier */}
       {briefing.memoryContext && (
-        <div
-          style={{
-            padding: "10px 14px",
-            borderRadius: "10px",
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.06)",
-            fontSize: "12px",
-            color: "#94a3b8",
-            fontStyle: "italic",
-            lineHeight: 1.5,
-          }}
-        >
+        <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 text-xs text-slate-500 italic dark:text-slate-400 leading-relaxed">
           {briefing.memoryContext}
         </div>
       )}

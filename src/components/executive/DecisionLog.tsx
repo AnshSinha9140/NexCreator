@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useApp } from "@/context/AppContext";
 import { AIDecisionLogItem } from "@/lib/ai/executiveTypes";
 
 interface DecisionLogProps {
@@ -8,6 +9,9 @@ interface DecisionLogProps {
 }
 
 export const DecisionLog: React.FC<DecisionLogProps> = ({ logs }) => {
+  const { theme } = useApp();
+  const isDark = theme === "dark";
+
   const items = logs || [
     { id: "d-1", action: "Generated", item: "3 Highlight Clips", reason: "Replay and engagement score met the 85+ threshold." },
     { id: "d-2", action: "Rejected", item: "11 Candidate Moments", reason: "Replay score below threshold or chat velocity muted." },
@@ -20,8 +24,9 @@ export const DecisionLog: React.FC<DecisionLogProps> = ({ logs }) => {
       style={{
         padding: "24px",
         borderRadius: "20px",
-        background: "rgba(13, 16, 27, 0.85)",
-        border: "1px solid rgba(255, 255, 255, 0.08)",
+        background: isDark ? "rgba(13, 16, 27, 0.85)" : "#ffffff",
+        border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+        boxShadow: isDark ? "none" : "0 1px 3px rgba(0, 0, 0, 0.05)",
         display: "flex",
         flexDirection: "column",
         gap: "16px",
@@ -31,11 +36,11 @@ export const DecisionLog: React.FC<DecisionLogProps> = ({ logs }) => {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span style={{ fontSize: "18px" }}>📜</span>
-          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#f8fafc" }}>
+          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a" }}>
             AI Decision Log
           </h3>
         </div>
-        <span style={{ fontSize: "11px", color: "#64748b", fontFamily: "monospace" }}>
+        <span style={{ fontSize: "11px", color: isDark ? "#64748b" : "#64748b", fontFamily: "monospace" }}>
           Transparent System Audit
         </span>
       </div>
@@ -47,8 +52,8 @@ export const DecisionLog: React.FC<DecisionLogProps> = ({ logs }) => {
             style={{
               padding: "10px 14px",
               borderRadius: "10px",
-              background: "rgba(255, 255, 255, 0.02)",
-              border: "1px solid rgba(255, 255, 255, 0.04)",
+              background: isDark ? "rgba(255, 255, 255, 0.02)" : "#f8fafc",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.04)" : "1px solid #e2e8f0",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
@@ -66,24 +71,24 @@ export const DecisionLog: React.FC<DecisionLogProps> = ({ logs }) => {
                   fontFamily: "monospace",
                   background:
                     item.action === "Generated"
-                      ? "rgba(52, 211, 153, 0.15)"
+                      ? (isDark ? "rgba(52, 211, 153, 0.15)" : "rgba(16, 185, 129, 0.1)")
                       : item.action === "Recommended"
-                      ? "rgba(168, 85, 247, 0.15)"
-                      : "rgba(251, 113, 133, 0.15)",
+                      ? (isDark ? "rgba(168, 85, 247, 0.15)" : "rgba(168, 85, 247, 0.1)")
+                      : (isDark ? "rgba(251, 113, 133, 0.15)" : "rgba(225, 29, 72, 0.1)"),
                   color:
                     item.action === "Generated"
-                      ? "#34d399"
+                      ? (isDark ? "#34d399" : "#059669")
                       : item.action === "Recommended"
-                      ? "#c084fc"
-                      : "#fb7185",
+                      ? (isDark ? "#c084fc" : "#9333ea")
+                      : (isDark ? "#fb7185" : "#e11d48"),
                 }}
               >
                 {item.action.toUpperCase()}
               </span>
-              <strong style={{ color: "#f8fafc" }}>{item.item}</strong>
+              <strong style={{ color: isDark ? "#f8fafc" : "#0f172a" }}>{item.item}</strong>
             </div>
 
-            <span style={{ color: "#94a3b8", fontSize: "11px" }}>{item.reason}</span>
+            <span style={{ color: isDark ? "#94a3b8" : "#64748b", fontSize: "11px" }}>{item.reason}</span>
           </div>
         ))}
       </div>

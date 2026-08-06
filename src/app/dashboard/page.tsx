@@ -20,7 +20,7 @@ import { CreatorManagerProfile } from "@/lib/creatorAudit/types";
 import { CreatorDNA } from "@/lib/creatorDNA/CreatorDNATypes";
 
 export default function DashboardPage() {
-  const { currentUser } = useApp();
+  const { currentUser, theme } = useApp();
   const [activeTab, setActiveTab] = useState("command_center");
   const [onboardingAudit, setOnboardingAudit] = useState<any>(null);
   const [profile, setProfile] = useState<CreatorManagerProfile | null>(null);
@@ -114,7 +114,7 @@ export default function DashboardPage() {
         height: "100vh",
         width: "100vw",
         overflow: "hidden",
-        background: "#060810",
+        background: theme === "dark" ? "#060810" : "#f8fafc",
       }}
     >
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />

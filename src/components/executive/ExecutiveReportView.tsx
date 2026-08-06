@@ -1,4 +1,7 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
+import { useApp } from "@/context/AppContext";
 import { ExecutiveReport } from "@/lib/ai/executiveTypes";
 import { ReportHeader } from "./ReportHeader";
 import { ReportHistoryView } from "./ReportHistoryView";
@@ -41,6 +44,9 @@ function generateMarkdown(report: ExecutiveReport): string {
 }
 
 export const ExecutiveReportView: React.FC<ExecutiveReportViewProps> = ({ defaultSessionId }) => {
+  const { theme } = useApp();
+  const isDark = theme === "dark";
+
   const [view, setView] = useState<"history" | "report">(defaultSessionId ? "report" : "history");
   const [activeSessionId, setActiveSessionId] = useState<string | null>(defaultSessionId || null);
   const [report, setReport] = useState<ExecutiveReport | null>(null);
@@ -98,8 +104,12 @@ export const ExecutiveReportView: React.FC<ExecutiveReportViewProps> = ({ defaul
 
   useEffect(() => {
     fetchHistory();
-    if (defaultSessionId) fetchReport(defaultSessionId);
-  }, []);
+    if (defaultSessionId) {
+      fetchReport(defaultSessionId);
+    } else {
+      fetchLatestReport();
+    }
+  }, [defaultSessionId]);
 
   const handleToggleFavorite = async () => {
     if (!report) return;
@@ -109,16 +119,17 @@ export const ExecutiveReportView: React.FC<ExecutiveReportViewProps> = ({ defaul
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reportId: report.id, isFavorited: !report.isFavorited }),
       });
-      setReport((prev) => (prev ? { ...prev, isFavorited: !prev.isFavorited } : prev));
+      setReport({ ...report, isFavorited: !report.isFavorited });
     } catch (e) {
       console.error(e);
     }
   };
 
-  const handleDeleteReport = async (reportId: string) => {
+  const handleDeleteReport = async (id: string) => {
     try {
-      await fetch(`/api/ai/reports?reportId=${reportId}`, { method: "DELETE" });
-      setHistoryReports((prev) => prev.filter((r) => r.id !== reportId));
+      await fetch(`/api/ai/reports?reportId=${id}`, { method: "DELETE" });
+      setHistoryReports((prev) => prev.filter((r) => r.id !== id));
+      if (report?.id === id) setView("history");
     } catch (e) {
       console.error(e);
     }
@@ -154,9 +165,9 @@ export const ExecutiveReportView: React.FC<ExecutiveReportViewProps> = ({ defaul
               fontSize: "13px",
               fontWeight: 700,
               cursor: "pointer",
-              background: view === "history" ? "rgba(168,85,247,0.15)" : "transparent",
+              background: view === "history" ? (isDark ? "rgba(168,85,247,0.15)" : "rgba(168,85,247,0.1)") : "transparent",
               border: view === "history" ? "1px solid rgba(168,85,247,0.35)" : "1px solid transparent",
-              color: view === "history" ? "#f1f5f9" : "#64748b",
+              color: view === "history" ? (isDark ? "#f1f5f9" : "#9333ea") : (isDark ? "#64748b" : "#64748b"),
             }}
           >
             📁 All Intelligence Reports
@@ -170,9 +181,9 @@ export const ExecutiveReportView: React.FC<ExecutiveReportViewProps> = ({ defaul
                 fontSize: "13px",
                 fontWeight: 700,
                 cursor: "pointer",
-                background: view === "report" ? "rgba(168,85,247,0.15)" : "transparent",
+                background: view === "report" ? (isDark ? "rgba(168,85,247,0.15)" : "rgba(168,85,247,0.1)") : "transparent",
                 border: view === "report" ? "1px solid rgba(168,85,247,0.35)" : "1px solid transparent",
-                color: view === "report" ? "#f1f5f9" : "#64748b",
+                color: view === "report" ? (isDark ? "#f1f5f9" : "#9333ea") : (isDark ? "#64748b" : "#64748b"),
               }}
             >
               🧠 Latest Stream Notebook
@@ -207,7 +218,7 @@ export const ExecutiveReportView: React.FC<ExecutiveReportViewProps> = ({ defaul
 
       {/* Loading */}
       {loading && (
-        <div style={{ padding: "60px 0", textAlign: "center", fontSize: "13px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b" }}>
+        <div style={{ padding: "60px 0", textAlign: "center", fontSize: "13px", fontFamily: "'JetBrains Mono', monospace", color: isDark ? "#64748b" : "#64748b" }}>
           <div style={{ fontSize: "36px", marginBottom: "16px" }}>🧠</div>
           Formulating AI Creator Manager Notebook...
           <br />
@@ -246,7 +257,7 @@ export const ExecutiveReportView: React.FC<ExecutiveReportViewProps> = ({ defaul
         />
       )}
 
-      {/* Redesigned Sprint 23.0 Intelligence Report Layout */}
+      {/* Redesigned Intelligence Report Layout */}
       {!loading && view === "report" && report && (
         <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
           <ReportHeader
@@ -283,4 +294,3 @@ export const ExecutiveReportView: React.FC<ExecutiveReportViewProps> = ({ defaul
     </div>
   );
 };
-

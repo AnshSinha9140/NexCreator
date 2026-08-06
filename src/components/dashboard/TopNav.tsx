@@ -2,9 +2,11 @@
 
 import React from "react";
 import { useApp } from "@/context/AppContext";
+import { Moon, Sun } from "lucide-react";
 
 export const TopNav: React.FC = () => {
-  const { activeLiveJob, currentUser } = useApp();
+  const { activeLiveJob, currentUser, theme, toggleTheme } = useApp();
+  const isDark = theme === "dark";
 
   return (
     <header
@@ -15,14 +17,15 @@ export const TopNav: React.FC = () => {
         alignItems: "center",
         justifyContent: "space-between",
         padding: "0 28px",
-        background: "rgba(6, 8, 16, 0.92)",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        background: isDark ? "rgba(6, 8, 16, 0.92)" : "rgba(255, 255, 255, 0.95)",
+        borderBottom: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid #e2e8f0",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
         position: "sticky",
         top: 0,
         zIndex: 50,
         gap: "16px",
+        transition: "background 0.2s ease, border-color 0.2s ease",
       }}
     >
       {/* Search */}
@@ -35,7 +38,7 @@ export const TopNav: React.FC = () => {
             transform: "translateY(-50%)",
             width: "13px",
             height: "13px",
-            color: "#475569",
+            color: isDark ? "#475569" : "#94a3b8",
             pointerEvents: "none",
           }}
           fill="none"
@@ -49,11 +52,11 @@ export const TopNav: React.FC = () => {
           placeholder="Search... (⌘K)"
           style={{
             width: "220px",
-            padding: "7px 12px 7px 30px",
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.07)",
+            padding: "7px 12px 7px 32px",
+            background: isDark ? "rgba(255,255,255,0.04)" : "#f1f5f9",
+            border: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid #cbd5e1",
             borderRadius: "8px",
-            color: "#94a3b8",
+            color: isDark ? "#94a3b8" : "#334155",
             fontSize: "12px",
             outline: "none",
             fontFamily: "'Inter', sans-serif",
@@ -72,14 +75,14 @@ export const TopNav: React.FC = () => {
               gap: "6px",
               padding: "5px 10px",
               borderRadius: "99px",
-              background: "rgba(16,185,129,0.08)",
-              border: "1px solid rgba(16,185,129,0.2)",
-              color: "#10b981",
+              background: isDark ? "rgba(16,185,129,0.08)" : "rgba(16,185,129,0.1)",
+              border: isDark ? "1px solid rgba(16,185,129,0.2)" : "1px solid rgba(16,185,129,0.25)",
+              color: isDark ? "#10b981" : "#059669",
               fontSize: "10px",
               fontWeight: "700",
               fontFamily: "'JetBrains Mono', monospace",
               letterSpacing: "0.05em",
-              textTransform: "uppercase" as const,
+              textTransform: "uppercase",
             }}
           >
             <span className="live-pulse-dot" />
@@ -93,13 +96,13 @@ export const TopNav: React.FC = () => {
               gap: "6px",
               padding: "5px 10px",
               borderRadius: "99px",
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.07)",
-              color: "#475569",
+              background: isDark ? "rgba(255,255,255,0.03)" : "#f1f5f9",
+              border: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid #cbd5e1",
+              color: isDark ? "#475569" : "#64748b",
               fontSize: "10px",
               fontFamily: "'JetBrains Mono', monospace",
               letterSpacing: "0.05em",
-              textTransform: "uppercase" as const,
+              textTransform: "uppercase",
             }}
           >
             <span
@@ -107,7 +110,7 @@ export const TopNav: React.FC = () => {
                 width: "6px",
                 height: "6px",
                 borderRadius: "50%",
-                background: "#334155",
+                background: isDark ? "#334155" : "#94a3b8",
                 display: "inline-block",
               }}
             />
@@ -115,19 +118,45 @@ export const TopNav: React.FC = () => {
           </div>
         )}
 
+        {/* Theme Switcher Button */}
+        <button
+          onClick={toggleTheme}
+          title={`Switch to ${isDark ? "Light" : "Dark"} Mode`}
+          style={{
+            width: "32px",
+            height: "32px",
+            borderRadius: "8px",
+            background: isDark ? "rgba(255,255,255,0.04)" : "#f1f5f9",
+            border: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid #cbd5e1",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            color: isDark ? "#cbd5e1" : "#334155",
+            flexShrink: 0,
+            transition: "all 0.15s ease",
+          }}
+        >
+          {isDark ? (
+            <Sun style={{ width: "14px", height: "14px", color: "#fbbf24" }} />
+          ) : (
+            <Moon style={{ width: "14px", height: "14px", color: "#9333ea" }} />
+          )}
+        </button>
+
         {/* Bell */}
         <button
           style={{
             width: "32px",
             height: "32px",
             borderRadius: "8px",
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.07)",
+            background: isDark ? "rgba(255,255,255,0.04)" : "#f1f5f9",
+            border: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid #cbd5e1",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             cursor: "pointer",
-            color: "#64748b",
+            color: isDark ? "#64748b" : "#64748b",
             position: "relative",
             flexShrink: 0,
           }}

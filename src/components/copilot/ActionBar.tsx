@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useApp } from "@/context/AppContext";
 
 interface ActionBarProps {
   isPinned?: boolean;
@@ -21,6 +22,9 @@ export const ActionBar: React.FC<ActionBarProps> = ({
   onComplete,
   onSave,
 }) => {
+  const { theme } = useApp();
+  const isDark = theme === "dark";
+
   return (
     <div
       style={{
@@ -28,29 +32,35 @@ export const ActionBar: React.FC<ActionBarProps> = ({
         alignItems: "center",
         justifyContent: "space-between",
         gap: "8px",
-        marginTop: "16px",
+        marginTop: "12px",
         paddingTop: "12px",
-        borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+        borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
         flexWrap: "wrap",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        {/* Complete Button */}
+        {/* Complete / Mark Done Button */}
         <button
           onClick={onComplete}
           style={{
-            padding: "6px 12px",
+            padding: "6px 14px",
             borderRadius: "8px",
             fontSize: "12px",
-            fontWeight: 600,
+            fontWeight: 700,
             cursor: "pointer",
-            background: isCompleted ? "rgba(16, 185, 129, 0.2)" : "rgba(16, 185, 129, 0.1)",
-            border: isCompleted ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid rgba(16, 185, 129, 0.25)",
-            color: "#34d399",
+            transition: "all 0.15s ease",
+            background: isCompleted
+              ? (isDark ? "rgba(16, 185, 129, 0.25)" : "#d1fae5")
+              : (isDark ? "rgba(16, 185, 129, 0.15)" : "#ecfdf5"),
+            border: isCompleted
+              ? (isDark ? "1px solid rgba(16, 185, 129, 0.5)" : "1px solid #6ee7b7")
+              : (isDark ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid #a7f3d0"),
+            color: isCompleted
+              ? (isDark ? "#34d399" : "#047857")
+              : (isDark ? "#34d399" : "#065f46"),
             display: "flex",
             alignItems: "center",
             gap: "6px",
-            transition: "all 0.15s ease",
           }}
         >
           <span>{isCompleted ? "✓ Done" : "Mark Done"}</span>
@@ -60,18 +70,24 @@ export const ActionBar: React.FC<ActionBarProps> = ({
         <button
           onClick={onPin}
           style={{
-            padding: "6px 12px",
+            padding: "6px 14px",
             borderRadius: "8px",
             fontSize: "12px",
-            fontWeight: 600,
+            fontWeight: 700,
             cursor: "pointer",
-            background: isPinned ? "rgba(168, 85, 247, 0.2)" : "rgba(255, 255, 255, 0.04)",
-            border: isPinned ? "1px solid rgba(168, 85, 247, 0.4)" : "1px solid rgba(255, 255, 255, 0.08)",
-            color: isPinned ? "#c084fc" : "#cbd5e1",
+            transition: "all 0.15s ease",
+            background: isPinned
+              ? (isDark ? "rgba(168, 85, 247, 0.25)" : "#f3e8ff")
+              : (isDark ? "rgba(255, 255, 255, 0.05)" : "#f1f5f9"),
+            border: isPinned
+              ? (isDark ? "1px solid rgba(168, 85, 247, 0.5)" : "1px solid #d8b4fe")
+              : (isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0"),
+            color: isPinned
+              ? (isDark ? "#c084fc" : "#7e22ce")
+              : (isDark ? "#94a3b8" : "#475569"),
             display: "flex",
             alignItems: "center",
             gap: "6px",
-            transition: "all 0.15s ease",
           }}
         >
           <span>📌</span>
@@ -82,18 +98,24 @@ export const ActionBar: React.FC<ActionBarProps> = ({
         <button
           onClick={onSave}
           style={{
-            padding: "6px 12px",
+            padding: "6px 14px",
             borderRadius: "8px",
             fontSize: "12px",
-            fontWeight: 600,
+            fontWeight: 700,
             cursor: "pointer",
-            background: isSaved ? "rgba(59, 130, 246, 0.2)" : "rgba(255, 255, 255, 0.04)",
-            border: isSaved ? "1px solid rgba(59, 130, 246, 0.4)" : "1px solid rgba(255, 255, 255, 0.08)",
-            color: isSaved ? "#60a5fa" : "#cbd5e1",
+            transition: "all 0.15s ease",
+            background: isSaved
+              ? (isDark ? "rgba(59, 130, 246, 0.25)" : "#dbeafe")
+              : (isDark ? "rgba(255, 255, 255, 0.05)" : "#f1f5f9"),
+            border: isSaved
+              ? (isDark ? "1px solid rgba(59, 130, 246, 0.5)" : "1px solid #93c5fd")
+              : (isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0"),
+            color: isSaved
+              ? (isDark ? "#60a5fa" : "#1d4ed8")
+              : (isDark ? "#94a3b8" : "#475569"),
             display: "flex",
             alignItems: "center",
             gap: "6px",
-            transition: "all 0.15s ease",
           }}
         >
           <span>🔖</span>
@@ -105,14 +127,13 @@ export const ActionBar: React.FC<ActionBarProps> = ({
       <button
         onClick={onDismiss}
         style={{
-          padding: "6px 12px",
-          borderRadius: "8px",
+          padding: "4px 8px",
           fontSize: "12px",
           fontWeight: 600,
           cursor: "pointer",
           background: "transparent",
-          border: "1px solid transparent",
-          color: "#64748b",
+          border: "none",
+          color: isDark ? "#64748b" : "#64748b",
           transition: "all 0.15s ease",
         }}
       >

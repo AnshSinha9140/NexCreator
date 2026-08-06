@@ -4,7 +4,36 @@
 @import "tailwindcss";
 
 :root {
-  /* Colors */
+  /* Default (Light Theme) Colors */
+  --bg-main: #f8fafc;
+  --bg-sidebar: #ffffff;
+  --bg-card: #ffffff;
+  --bg-input: #f1f5f9;
+  
+  --border-color: #e2e8f0;
+  --border-hover: #cbd5e1;
+  
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  
+  --accent-purple: #9333ea;
+  --accent-blue: #2563eb;
+  --accent-green: #059669;
+  --accent-yellow: #d97706;
+  --accent-red: #e11d48;
+  --accent-cyan: #0891b2;
+
+  /* Layout / Radii */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-full: 99px;
+}
+
+html.dark {
+  /* Dark Theme Colors */
   --bg-main: #060810;
   --bg-sidebar: #0b0d16;
   --bg-card: rgba(13, 16, 27, 0.75);
@@ -16,20 +45,13 @@
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
   --text-muted: #475569;
-  
+
   --accent-purple: #a855f7;
   --accent-blue: #6366f1;
   --accent-green: #10b981;
   --accent-yellow: #f59e0b;
   --accent-red: #f43f5e;
   --accent-cyan: #06b6d4;
-
-  /* Layout / Radii */
-  --radius-sm: 8px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 18px;
-  --radius-full: 99px;
 }
 
 /* ─── Tailwind v4 Theme ─────────────────────────────────────────────────────── */
@@ -110,25 +132,24 @@ body {
 
 /* ─── Glass Card Primitives ─────────────────────────────────────────────────── */
 .glass {
-  background: rgba(13, 16, 27, 0.7);
+  background: var(--bg-card);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border-color);
   border-radius: 14px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 .glass:hover {
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border-color: var(--border-hover);
 }
 
 .glass-premium {
-  background: linear-gradient(135deg, rgba(18, 22, 40, 0.9) 0%, rgba(10, 13, 24, 0.97) 100%);
+  background: var(--bg-card);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid var(--border-color);
   border-radius: 18px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 /* ─── Live Pulse Dot ────────────────────────────────────────────────────────── */

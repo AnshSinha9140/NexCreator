@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useApp } from "@/context/AppContext";
 import { ThreeBigDiscoveryItem } from "@/lib/ai/executiveTypes";
 import { TimelineNavigator } from "@/lib/timeline/navigator";
 
@@ -9,6 +10,9 @@ interface ThreeDiscoveriesProps {
 }
 
 export const ThreeDiscoveries: React.FC<ThreeDiscoveriesProps> = ({ discoveries = [] }) => {
+  const { theme } = useApp();
+  const isDark = theme === "dark";
+
   const items = discoveries.length >= 3 ? discoveries : [
     {
       id: "disc-1",
@@ -38,8 +42,9 @@ export const ThreeDiscoveries: React.FC<ThreeDiscoveriesProps> = ({ discoveries 
       style={{
         padding: "24px",
         borderRadius: "20px",
-        background: "rgba(13, 16, 27, 0.85)",
-        border: "1px solid rgba(255, 255, 255, 0.08)",
+        background: isDark ? "rgba(13, 16, 27, 0.85)" : "#ffffff",
+        border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+        boxShadow: isDark ? "none" : "0 1px 3px rgba(0, 0, 0, 0.05)",
         display: "flex",
         flexDirection: "column",
         gap: "16px",
@@ -48,7 +53,7 @@ export const ThreeDiscoveries: React.FC<ThreeDiscoveriesProps> = ({ discoveries 
     >
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         <span style={{ fontSize: "18px" }}>💡</span>
-        <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#f8fafc" }}>
+        <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a" }}>
           Three Biggest Discoveries
         </h3>
       </div>
@@ -60,8 +65,8 @@ export const ThreeDiscoveries: React.FC<ThreeDiscoveriesProps> = ({ discoveries 
             style={{
               padding: "16px",
               borderRadius: "14px",
-              background: "rgba(255, 255, 255, 0.02)",
-              border: "1px solid rgba(255, 255, 255, 0.06)",
+              background: isDark ? "rgba(255, 255, 255, 0.02)" : "#f8fafc",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid #e2e8f0",
               display: "flex",
               flexDirection: "column",
               gap: "8px",
@@ -69,15 +74,15 @@ export const ThreeDiscoveries: React.FC<ThreeDiscoveriesProps> = ({ discoveries 
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ color: "#34d399", fontWeight: "900", fontSize: "14px" }}>✓</span>
-                <span style={{ fontSize: "14px", fontWeight: "700", color: "#f8fafc" }}>{item.discovery}</span>
+                <span style={{ color: isDark ? "#34d399" : "#059669", fontWeight: "900", fontSize: "14px" }}>✓</span>
+                <span style={{ fontSize: "14px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a" }}>{item.discovery}</span>
               </div>
               <span
                 style={{
                   fontSize: "11px",
                   fontWeight: "800",
-                  color: "#c084fc",
-                  background: "rgba(168, 85, 247, 0.15)",
+                  color: isDark ? "#c084fc" : "#9333ea",
+                  background: isDark ? "rgba(168, 85, 247, 0.15)" : "rgba(168, 85, 247, 0.1)",
                   padding: "3px 8px",
                   borderRadius: "6px",
                   fontFamily: "monospace",
@@ -88,7 +93,7 @@ export const ThreeDiscoveries: React.FC<ThreeDiscoveriesProps> = ({ discoveries 
               </span>
             </div>
 
-            <div style={{ fontSize: "12px", color: "#cbd5e1", background: "rgba(0,0,0,0.3)", padding: "8px 12px", borderRadius: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ fontSize: "12px", color: isDark ? "#cbd5e1" : "#334155", background: isDark ? "rgba(0,0,0,0.3)" : "#ffffff", border: isDark ? "none" : "1px solid #e2e8f0", padding: "8px 12px", borderRadius: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span>🔍 <strong>Evidence:</strong> {item.evidence}</span>
               {item.snapshotTimestamp && (
                 <button
@@ -103,9 +108,9 @@ export const ThreeDiscoveries: React.FC<ThreeDiscoveriesProps> = ({ discoveries 
                   style={{
                     padding: "3px 8px",
                     borderRadius: "6px",
-                    background: "rgba(56, 189, 248, 0.15)",
-                    border: "1px solid rgba(56, 189, 248, 0.3)",
-                    color: "#38bdf8",
+                    background: isDark ? "rgba(56, 189, 248, 0.15)" : "rgba(37, 99, 235, 0.1)",
+                    border: isDark ? "1px solid rgba(56, 189, 248, 0.3)" : "1px solid rgba(37, 99, 235, 0.25)",
+                    color: isDark ? "#38bdf8" : "#2563eb",
                     fontSize: "10px",
                     fontWeight: "700",
                     cursor: "pointer",

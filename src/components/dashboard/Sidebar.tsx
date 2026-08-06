@@ -21,7 +21,8 @@ const PRIMARY_NAV = [
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
-  const { currentUser, logout } = useApp();
+  const { currentUser, logout, theme } = useApp();
+  const isDark = theme === "dark";
 
   const isAdmin = Boolean(
     currentUser?.isAdmin ||
@@ -42,10 +43,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
         height: "100vh",
         display: "flex",
         flexDirection: "column",
-        background: "#0b0d16",
-        borderRight: "1px solid rgba(255,255,255,0.06)",
+        background: isDark ? "#0b0d16" : "#ffffff",
+        borderRight: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid #e2e8f0",
         overflowY: "auto",
         overflowX: "hidden",
+        transition: "background 0.2s ease, border-color 0.2s ease",
       }}
     >
       {/* Brand Logo Header */}
@@ -70,14 +72,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
             N
           </div>
           <div>
-            <div style={{ fontSize: "14px", fontWeight: "700", color: "#f1f5f9", lineHeight: 1.2 }}>
+            <div style={{ fontSize: "14px", fontWeight: "700", color: isDark ? "#f1f5f9" : "#0f172a", lineHeight: 1.2 }}>
               NexCreator
             </div>
             <div
               style={{
                 fontSize: "9px",
                 fontWeight: "700",
-                color: "#a855f7",
+                color: isDark ? "#a855f7" : "#9333ea",
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
                 fontFamily: "'JetBrains Mono', monospace",
@@ -95,8 +97,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           style={{
             padding: "10px 12px",
             borderRadius: "10px",
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.06)",
+            background: isDark ? "rgba(255,255,255,0.03)" : "#f8fafc",
+            border: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid #e2e8f0",
             display: "flex",
             alignItems: "center",
             gap: "10px",
@@ -107,15 +109,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
               width: "28px",
               height: "28px",
               borderRadius: "8px",
-              background: "rgba(16,185,129,0.15)",
-              border: "1px solid rgba(16,185,129,0.25)",
+              background: isDark ? "rgba(16,185,129,0.15)" : "rgba(16,185,129,0.1)",
+              border: isDark ? "1px solid rgba(16,185,129,0.25)" : "1px solid rgba(16,185,129,0.2)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               fontFamily: "'JetBrains Mono', monospace",
               fontSize: "10px",
               fontWeight: "700",
-              color: "#10b981",
+              color: isDark ? "#10b981" : "#059669",
               flexShrink: 0,
             }}
           >
@@ -126,7 +128,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
               style={{
                 fontSize: "12px",
                 fontWeight: "600",
-                color: "#e2e8f0",
+                color: isDark ? "#e2e8f0" : "#1e293b",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
@@ -137,7 +139,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
             <div
               style={{
                 fontSize: "10px",
-                color: "#64748b",
+                color: isDark ? "#64748b" : "#64748b",
                 fontFamily: "'JetBrains Mono', monospace",
               }}
             >
@@ -147,13 +149,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
         </div>
       </div>
 
-      {/* Primary Navigation */}
+      {/* Primary Navigation Header */}
       <div
         style={{
           padding: "0 16px 6px",
           fontSize: "9px",
           fontWeight: "700",
-          color: "#334155",
+          color: isDark ? "#334155" : "#94a3b8",
           letterSpacing: "0.12em",
           textTransform: "uppercase",
           fontFamily: "'JetBrains Mono', monospace",
@@ -182,25 +184,39 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                 gap: "10px",
                 padding: "9px 12px",
                 borderRadius: "9px",
-                border: isActive ? "1px solid rgba(168,85,247,0.25)" : "1px solid transparent",
-                background: isActive ? "rgba(168,85,247,0.1)" : "transparent",
+                border: isActive
+                  ? isDark
+                    ? "1px solid rgba(168,85,247,0.25)"
+                    : "1px solid rgba(168,85,247,0.3)"
+                  : "1px solid transparent",
+                background: isActive
+                  ? isDark
+                    ? "rgba(168,85,247,0.1)"
+                    : "rgba(168,85,247,0.08)"
+                  : "transparent",
                 cursor: "pointer",
                 fontSize: "13px",
                 fontWeight: isActive ? "600" : "500",
-                color: isActive ? "#c084fc" : "#64748b",
+                color: isActive
+                  ? isDark
+                    ? "#c084fc"
+                    : "#9333ea"
+                  : isDark
+                  ? "#64748b"
+                  : "#475569",
                 textAlign: "left",
                 marginBottom: "2px",
                 transition: "all 0.15s ease",
               }}
               onMouseEnter={(e) => {
                 if (!isActive) {
-                  (e.currentTarget as HTMLButtonElement).style.color = "#94a3b8";
-                  (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.04)";
+                  (e.currentTarget as HTMLButtonElement).style.color = isDark ? "#94a3b8" : "#0f172a";
+                  (e.currentTarget as HTMLButtonElement).style.background = isDark ? "rgba(255,255,255,0.04)" : "#f1f5f9";
                 }
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
-                  (e.currentTarget as HTMLButtonElement).style.color = "#64748b";
+                  (e.currentTarget as HTMLButtonElement).style.color = isDark ? "#64748b" : "#475569";
                   (e.currentTarget as HTMLButtonElement).style.background = "transparent";
                 }
               }}
@@ -216,7 +232,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       <div
         style={{
           padding: "12px",
-          borderTop: "1px solid rgba(255,255,255,0.05)",
+          borderTop: isDark ? "1px solid rgba(255,255,255,0.05)" : "1px solid #e2e8f0",
           marginTop: "auto",
         }}
       >
@@ -226,14 +242,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
               width: "28px",
               height: "28px",
               borderRadius: "50%",
-              background: "rgba(168,85,247,0.15)",
-              border: "1px solid rgba(168,85,247,0.2)",
+              background: isDark ? "rgba(168,85,247,0.15)" : "rgba(168,85,247,0.1)",
+              border: isDark ? "1px solid rgba(168,85,247,0.2)" : "1px solid rgba(168,85,247,0.3)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               fontSize: "11px",
               fontWeight: "700",
-              color: "#c084fc",
+              color: isDark ? "#c084fc" : "#9333ea",
               flexShrink: 0,
             }}
           >
@@ -244,7 +260,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
               style={{
                 fontSize: "11px",
                 fontWeight: "600",
-                color: "#cbd5e1",
+                color: isDark ? "#cbd5e1" : "#1e293b",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
@@ -252,7 +268,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
             >
               {currentUser?.email || ""}
             </div>
-            <div style={{ fontSize: "9px", color: "#10b981", fontFamily: "monospace" }}>● PRO OPERATING SYSTEM</div>
+            <div style={{ fontSize: "9px", color: isDark ? "#10b981" : "#059669", fontFamily: "monospace" }}>● PRO OPERATING SYSTEM</div>
           </div>
         </div>
         <button
@@ -262,8 +278,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
             padding: "8px",
             borderRadius: "8px",
             background: "transparent",
-            border: "1px solid rgba(255,255,255,0.06)",
-            color: "#475569",
+            border: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid #cbd5e1",
+            color: isDark ? "#475569" : "#64748b",
             fontSize: "12px",
             fontWeight: "500",
             cursor: "pointer",
@@ -274,8 +290,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
             (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(244,63,94,0.25)";
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.color = "#475569";
-            (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.06)";
+            (e.currentTarget as HTMLButtonElement).style.color = isDark ? "#475569" : "#64748b";
+            (e.currentTarget as HTMLButtonElement).style.borderColor = isDark ? "rgba(255,255,255,0.06)" : "#cbd5e1";
           }}
         >
           Sign Out

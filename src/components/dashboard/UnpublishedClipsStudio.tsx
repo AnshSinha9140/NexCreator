@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Copy, Flame, Sparkles } from "lucide-react";
+import { useApp } from "@/context/AppContext";
 
 export interface ClipCandidate {
   id: string;
@@ -18,6 +19,8 @@ export interface UnpublishedClipsStudioProps {
 }
 
 export const UnpublishedClipsStudio: React.FC<UnpublishedClipsStudioProps> = ({ clips }) => {
+  const { theme } = useApp();
+  const isDark = theme === "dark";
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const defaultClips: ClipCandidate[] = [
@@ -61,40 +64,42 @@ export const UnpublishedClipsStudio: React.FC<UnpublishedClipsStudioProps> = ({ 
       style={{
         padding: "16px",
         borderRadius: "16px",
-        background: "rgba(13,16,27,0.7)",
-        border: "1px solid rgba(255,255,255,0.07)",
+        background: isDark ? "rgba(13,16,27,0.7)" : "#ffffff",
+        border: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid #e2e8f0",
         display: "flex",
         flexDirection: "column",
         gap: "12px",
         height: "auto",
+        boxShadow: isDark ? "none" : "0 1px 3px rgba(0,0,0,0.05)",
       }}
     >
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ fontSize: "12px", fontWeight: "700", color: "#c084fc", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
-          <Sparkles style={{ width: "14px", height: "14px", color: "#a855f7" }} />
+        <div style={{ fontSize: "12px", fontWeight: "700", color: isDark ? "#c084fc" : "#9333ea", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px", fontFamily: "monospace" }}>
+          <Sparkles style={{ width: "14px", height: "14px", color: isDark ? "#a855f7" : "#9333ea" }} />
           <span>Ready to Publish (Top Highlights)</span>
         </div>
-        <span style={{ fontSize: "10px", color: "#64748b", fontFamily: "monospace" }}>
+        <span style={{ fontSize: "10px", color: isDark ? "#64748b" : "#64748b", fontFamily: "monospace" }}>
           {clipList.length} CLIP CANDIDATES
         </span>
       </div>
 
       {/* Cards Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "12px" }}>
-        {clipList.map((clip) => {
+        {clipList.map((clip, idx) => {
           const score = clip.viralityScore ?? 90;
-          const isCopied = copiedId === clip.id;
+          const clipId = clip.id || `clip-highlight-${idx}`;
+          const isCopied = copiedId === clip.id || copiedId === clipId;
 
           return (
             <motion.div
-              key={clip.id}
+              key={clipId}
               whileHover={{ y: -2 }}
               style={{
                 padding: "14px",
                 borderRadius: "12px",
-                background: "rgba(255, 255, 255, 0.02)",
-                border: "1px solid rgba(255, 255, 255, 0.06)",
+                background: isDark ? "rgba(255, 255, 255, 0.02)" : "#f8fafc",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid #e2e8f0",
                 display: "flex",
                 flexDirection: "column",
                 gap: "10px",
@@ -103,23 +108,23 @@ export const UnpublishedClipsStudio: React.FC<UnpublishedClipsStudioProps> = ({ 
             >
               {/* Header Badges */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: "9px", padding: "2px 7px", borderRadius: "4px", background: "rgba(168,85,247,0.15)", color: "#c084fc", fontFamily: "monospace", fontWeight: "bold" }}>
+                <span style={{ fontSize: "9px", padding: "2px 7px", borderRadius: "4px", background: isDark ? "rgba(168,85,247,0.15)" : "rgba(168,85,247,0.08)", color: isDark ? "#c084fc" : "#9333ea", fontFamily: "monospace", fontWeight: "bold" }}>
                   {(clip.platform || "SHORTS").toUpperCase()}
                 </span>
 
-                <span style={{ fontSize: "10px", padding: "2px 7px", borderRadius: "6px", background: "rgba(16,185,129,0.1)", color: "#34d399", border: "1px solid rgba(16,185,129,0.2)", fontFamily: "monospace", fontWeight: "bold", display: "flex", alignItems: "center", gap: "4px" }}>
-                  <Flame style={{ width: "10px", height: "10px", color: "#10b981" }} />
+                <span style={{ fontSize: "10px", padding: "2px 7px", borderRadius: "6px", background: isDark ? "rgba(16,185,129,0.1)" : "rgba(16,185,129,0.08)", color: isDark ? "#34d399" : "#059669", border: isDark ? "1px solid rgba(16,185,129,0.2)" : "1px solid rgba(16,185,129,0.2)", fontFamily: "monospace", fontWeight: "bold", display: "flex", alignItems: "center", gap: "4px" }}>
+                  <Flame style={{ width: "10px", height: "10px", color: isDark ? "#10b981" : "#059669" }} />
                   <span>Virality: {score}/100</span>
                 </span>
               </div>
 
               {/* Title & Reason */}
               <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <div style={{ fontSize: "13px", fontWeight: "700", color: "#f8fafc", lineHeight: 1.4, minHeight: "36px" }}>
+                <div style={{ fontSize: "13px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a", lineHeight: 1.4, minHeight: "36px" }}>
                   {clip.title}
                 </div>
                 {clip.reason && (
-                  <div style={{ fontSize: "11px", color: "#64748b", fontStyle: "italic", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <div style={{ fontSize: "11px", color: isDark ? "#64748b" : "#64748b", fontStyle: "italic", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {clip.reason}
                   </div>
                 )}

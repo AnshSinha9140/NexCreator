@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useApp } from "@/context/AppContext";
 import { InsightFeed } from "./InsightFeed";
 import { InsightTimeline } from "./InsightTimeline";
 import { HealthScore } from "./HealthScore";
@@ -60,6 +61,9 @@ const DEMO_INSIGHTS: CopilotInsightItem[] = [
 ];
 
 export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({ onNavigateToLive }) => {
+  const { theme } = useApp();
+  const isDark = theme === "dark";
+
   const [activeTab, setActiveTab] = useState<"feed" | "timeline">("feed");
   const [insights, setInsights] = useState<CopilotInsightItem[]>([]);
   const [isMonitoringActive, setIsMonitoringActive] = useState<boolean>(false);
@@ -88,10 +92,8 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({ onNavigateToLive
       if (json.success && Array.isArray(json.insights) && json.insights.length > 0) {
         setInsights(json.insights);
       } else if (hasLiveSess) {
-        // If live monitoring is active but insights haven't arrived yet, show demo preview
         setInsights(DEMO_INSIGHTS);
       } else {
-        // Inactive / No linked session -> show empty standby state
         setInsights([]);
       }
     } catch (e) {
@@ -109,13 +111,9 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({ onNavigateToLive
   }, []);
 
   const handleDismiss = async (id: string) => {
-    setInsights((prev) => prev.map((item) => (item.id === id ? { ...item, isDismissed: true } : item)));
+    setInsights((prev) => prev.filter((item) => item.id !== id));
     try {
-      await fetch("/api/ai/insights", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, isDismissed: true }),
-      });
+      await fetch(`/api/ai/insights?id=${id}`, { method: "DELETE" });
     } catch (e) {
       console.error(e);
     }
@@ -180,8 +178,11 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({ onNavigateToLive
           gap: "20px",
           padding: "24px 28px",
           borderRadius: "20px",
-          background: "linear-gradient(135deg, rgba(168, 85, 247, 0.12) 0%, rgba(15, 23, 42, 0.8) 100%)",
-          border: "1px solid rgba(168, 85, 247, 0.25)",
+          background: isDark
+            ? "linear-gradient(135deg, rgba(168, 85, 247, 0.12) 0%, rgba(15, 23, 42, 0.8) 100%)"
+            : "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
+          border: isDark ? "1px solid rgba(168, 85, 247, 0.25)" : "1px solid #e2e8f0",
+          boxShadow: isDark ? "none" : "0 4px 20px rgba(0,0,0,0.04)",
           backdropFilter: "blur(20px)",
           flexWrap: "wrap",
         }}
@@ -203,10 +204,10 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({ onNavigateToLive
             🤖
           </div>
           <div>
-            <h2 style={{ margin: "0 0 4px", fontSize: "20px", fontWeight: 800, color: "#f8fafc" }}>
+            <h2 style={{ margin: "0 0 4px", fontSize: "20px", fontWeight: 800, color: isDark ? "#f8fafc" : "#0f172a" }}>
               AI Live Copilot
             </h2>
-            <p style={{ margin: 0, fontSize: "13px", color: "#94a3b8" }}>
+            <p style={{ margin: 0, fontSize: "13px", color: isDark ? "#94a3b8" : "#475569" }}>
               Your real-time AI Producer observing pulse snapshots & surfacing stream recommendations
             </p>
           </div>
@@ -231,7 +232,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({ onNavigateToLive
           alignItems: "center",
           justifyContent: "space-between",
           paddingBottom: "12px",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+          borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
         }}
       >
         {/* Navigation Tabs */}
@@ -244,9 +245,9 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({ onNavigateToLive
               fontSize: "13px",
               fontWeight: 700,
               cursor: "pointer",
-              background: activeTab === "feed" ? "rgba(168, 85, 247, 0.15)" : "transparent",
+              background: activeTab === "feed" ? (isDark ? "rgba(168, 85, 247, 0.15)" : "rgba(168, 85, 247, 0.1)") : "transparent",
               border: activeTab === "feed" ? "1px solid rgba(168, 85, 247, 0.35)" : "1px solid transparent",
-              color: activeTab === "feed" ? "#f1f5f9" : "#64748b",
+              color: activeTab === "feed" ? (isDark ? "#f1f5f9" : "#9333ea") : (isDark ? "#64748b" : "#64748b"),
               display: "flex",
               alignItems: "center",
               gap: "8px",
@@ -264,9 +265,9 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({ onNavigateToLive
               fontSize: "13px",
               fontWeight: 700,
               cursor: "pointer",
-              background: activeTab === "timeline" ? "rgba(168, 85, 247, 0.15)" : "transparent",
+              background: activeTab === "timeline" ? (isDark ? "rgba(168, 85, 247, 0.15)" : "rgba(168, 85, 247, 0.1)") : "transparent",
               border: activeTab === "timeline" ? "1px solid rgba(168, 85, 247, 0.35)" : "1px solid transparent",
-              color: activeTab === "timeline" ? "#f1f5f9" : "#64748b",
+              color: activeTab === "timeline" ? (isDark ? "#f1f5f9" : "#9333ea") : (isDark ? "#64748b" : "#64748b"),
               display: "flex",
               alignItems: "center",
               gap: "8px",
@@ -280,7 +281,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({ onNavigateToLive
 
       {/* Tab Content */}
       {loading ? (
-        <div style={{ padding: "60px 0", textAlign: "center", fontSize: "13px", fontFamily: "'JetBrains Mono', monospace", color: "#64748b" }}>
+        <div style={{ padding: "60px 0", textAlign: "center", fontSize: "13px", fontFamily: "'JetBrains Mono', monospace", color: isDark ? "#64748b" : "#64748b" }}>
           Connecting to AI Producer Stream...
         </div>
       ) : activeTab === "feed" ? (

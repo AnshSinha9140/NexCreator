@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useApp } from "@/context/AppContext";
 
 interface TimelineTabProps {
   session: any;
@@ -26,11 +27,14 @@ export const TimelineTab: React.FC<TimelineTabProps> = ({
   insights,
   isLoading,
 }) => {
+  const { theme } = useApp();
+  const isDark = theme === "dark";
+
   if (isLoading && snapshots.length === 0 && insights.length === 0) {
     return (
       <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
-        <div style={{ height: "80px", background: "rgba(255,255,255,0.03)", borderRadius: "12px" }} />
-        <div style={{ height: "80px", background: "rgba(255,255,255,0.03)", borderRadius: "12px" }} />
+        <div style={{ height: "80px", background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)", borderRadius: "12px" }} />
+        <div style={{ height: "80px", background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)", borderRadius: "12px" }} />
       </div>
     );
   }
@@ -130,10 +134,10 @@ export const TimelineTab: React.FC<TimelineTabProps> = ({
         >
           ⏱️
         </div>
-        <h3 style={{ fontSize: "16px", fontWeight: "800", color: "#f8fafc", marginBottom: "6px" }}>
+        <h3 style={{ fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: "6px" }}>
           Unified Stream Timeline
         </h3>
-        <p style={{ fontSize: "13px", color: "#64748b", maxWidth: "420px", lineHeight: 1.5 }}>
+        <p style={{ fontSize: "13px", color: isDark ? "#64748b" : "#64748b", maxWidth: "420px", lineHeight: 1.5 }}>
           Events, snapshot markers, and AI Producer recommendations will appear chronologically in real-time.
         </p>
       </div>
@@ -142,7 +146,7 @@ export const TimelineTab: React.FC<TimelineTabProps> = ({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px", width: "100%" }}>
-      <div style={{ fontSize: "12px", color: "#64748b", fontWeight: "600", marginBottom: "4px" }}>
+      <div style={{ fontSize: "12px", color: isDark ? "#64748b" : "#64748b", fontWeight: "600", marginBottom: "4px" }}>
         Unified Event Stream ({events.length} Events)
       </div>
 
@@ -153,8 +157,9 @@ export const TimelineTab: React.FC<TimelineTabProps> = ({
             style={{
               padding: "14px 18px",
               borderRadius: "12px",
-              background: "rgba(13,16,27,0.8)",
+              background: isDark ? "rgba(13,16,27,0.8)" : "#ffffff",
               border: `1px solid ${ev.color}30`,
+              boxShadow: isDark ? "none" : "0 4px 16px rgba(0,0,0,0.04)",
               display: "flex",
               alignItems: "flex-start",
               gap: "14px",
@@ -179,14 +184,14 @@ export const TimelineTab: React.FC<TimelineTabProps> = ({
 
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "800", color: "#f8fafc" }}>
+                <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a" }}>
                   {ev.title}
                 </h4>
-                <span style={{ fontSize: "11px", color: "#64748b", fontFamily: "monospace" }}>
+                <span style={{ fontSize: "11px", color: isDark ? "#64748b" : "#64748b", fontFamily: "monospace" }}>
                   {new Date(ev.timestamp).toLocaleTimeString()}
                 </span>
               </div>
-              <p style={{ margin: "4px 0 0", fontSize: "12px", color: "#94a3b8", lineHeight: 1.4 }}>
+              <p style={{ margin: "4px 0 0", fontSize: "12px", color: isDark ? "#94a3b8" : "#475569", lineHeight: 1.4 }}>
                 {ev.description}
               </p>
             </div>

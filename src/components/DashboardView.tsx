@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MonitoringSession, ConnectedPlatformAccount } from "@/types";
+import { useApp } from "@/context/AppContext";
 
 import { LivePulseTab } from "./dashboard/LivePulseTab";
 import { AIProducerTab } from "./dashboard/AIProducerTab";
@@ -72,11 +73,14 @@ const formatDuration = (session: MonitoringSession | null): string => {
   return "0m";
 };
 
-export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void; completedSessionsCount?: number }> = ({
-  setActiveTab,
-  completedSessionsCount = 0,
-}) => {
-  // Sprint 18.9 Creator Operating System Navigation & Dialog States
+export const DashboardView: React.FC<{
+  setActiveTab: (tab: string) => void;
+  completedSessionsCount?: number;
+}> = ({ setActiveTab, completedSessionsCount = 0 }) => {
+  const { theme } = useApp();
+  const isDark = theme === "dark";
+
+  // Daily Operating System Sub-Navigation Tabs
   const [osTab, setOsTab] = useState<OsTab>("home");
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -636,7 +640,19 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void; comp
       <div style={{ display: "flex", flexDirection: "column", gap: "20px", maxWidth: "1400px", margin: "0 auto", padding: "20px", fontFamily: "'Inter', sans-serif" }}>
         
         {/* Top OS Navigation & Search Bar */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 20px", borderRadius: "16px", background: "rgba(13, 16, 27, 0.85)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(20px)" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "12px 20px",
+            borderRadius: "16px",
+            background: isDark ? "rgba(13, 16, 27, 0.85)" : "#ffffff",
+            border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid #e2e8f0",
+            backdropFilter: "blur(20px)",
+            boxShadow: isDark ? "none" : "0 1px 3px rgba(0,0,0,0.05)",
+          }}
+        >
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             {[
               { id: "home", label: "🏠 Home", desc: "Daily Overview" },
@@ -650,8 +666,12 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void; comp
                   padding: "8px 16px",
                   borderRadius: "10px",
                   border: "none",
-                  background: osTab === tab.id ? "rgba(52, 211, 153, 0.15)" : "transparent",
-                  color: osTab === tab.id ? "#34d399" : "#94a3b8",
+                  background: osTab === tab.id
+                    ? (isDark ? "rgba(52, 211, 153, 0.15)" : "rgba(16, 185, 129, 0.1)")
+                    : "transparent",
+                  color: osTab === tab.id
+                    ? (isDark ? "#34d399" : "#059669")
+                    : (isDark ? "#94a3b8" : "#64748b"),
                   fontSize: "13px",
                   fontWeight: osTab === tab.id ? "800" : "600",
                   cursor: "pointer",
@@ -670,9 +690,9 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void; comp
               style={{
                 padding: "8px 14px",
                 borderRadius: "10px",
-                background: "rgba(255, 255, 255, 0.04)",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
-                color: "#94a3b8",
+                background: isDark ? "rgba(255, 255, 255, 0.04)" : "#f1f5f9",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #cbd5e1",
+                color: isDark ? "#94a3b8" : "#475569",
                 fontSize: "12px",
                 fontWeight: "600",
                 cursor: "pointer",
@@ -682,7 +702,7 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void; comp
               }}
             >
               <span>🔍 Search Workspace</span>
-              <span style={{ fontSize: "10px", padding: "2px 6px", borderRadius: "4px", background: "rgba(255,255,255,0.08)", color: "#cbd5e1" }}>Ctrl + K</span>
+              <span style={{ fontSize: "10px", padding: "2px 6px", borderRadius: "4px", background: isDark ? "rgba(255,255,255,0.08)" : "#e2e8f0", color: isDark ? "#cbd5e1" : "#334155" }}>Ctrl + K</span>
             </button>
 
             {/* Notification Bell */}
@@ -691,9 +711,9 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void; comp
               style={{
                 padding: "8px 12px",
                 borderRadius: "10px",
-                background: "rgba(255, 255, 255, 0.04)",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
-                color: "#f8fafc",
+                background: isDark ? "rgba(255, 255, 255, 0.04)" : "#f1f5f9",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #cbd5e1",
+                color: isDark ? "#f8fafc" : "#0f172a",
                 fontSize: "14px",
                 cursor: "pointer",
                 position: "relative",
@@ -754,12 +774,11 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void; comp
 
         {/* Multi-Platform Selection Modal */}
         {isSelectModalOpen && (
-
           <div
             style={{
               position: "fixed",
               inset: 0,
-              background: "rgba(6, 8, 16, 0.85)",
+              background: isDark ? "rgba(6, 8, 16, 0.85)" : "rgba(15, 23, 42, 0.5)",
               backdropFilter: "blur(12px)",
               zIndex: 9999,
               display: "flex",
@@ -775,22 +794,43 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void; comp
               style={{
                 width: "100%",
                 maxWidth: "520px",
-                background: "rgba(15, 18, 32, 0.95)",
-                border: "1px solid rgba(168, 85, 247, 0.3)",
+                background: isDark ? "rgba(15, 18, 32, 0.95)" : "#ffffff",
+                border: isDark ? "1px solid rgba(168, 85, 247, 0.3)" : "1px solid rgba(168, 85, 247, 0.2)",
                 borderRadius: "20px",
                 padding: "28px",
-                boxShadow: "0 24px 64px rgba(0, 0, 0, 0.8), 0 0 40px rgba(168, 85, 247, 0.15)",
+                boxShadow: isDark
+                  ? "0 24px 64px rgba(0, 0, 0, 0.8), 0 0 40px rgba(168, 85, 247, 0.15)"
+                  : "0 24px 64px rgba(0, 0, 0, 0.12), 0 0 40px rgba(168, 85, 247, 0.1)",
                 textAlign: "left",
                 fontFamily: "'Inter', sans-serif",
               }}
             >
               {/* Header */}
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "20px", paddingBottom: "16px", borderBottom: "1px solid rgba(255, 255, 255, 0.08)" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  marginBottom: "20px",
+                  paddingBottom: "16px",
+                  borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
+                }}
+              >
                 <div>
-                  <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "800", color: "#f8fafc", display: "flex", alignItems: "center", gap: "10px" }}>
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: "18px",
+                      fontWeight: "800",
+                      color: isDark ? "#f8fafc" : "#0f172a",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                    }}
+                  >
                     <span style={{ fontSize: "22px" }}>📡</span> Select Platform to Monitor
                   </h3>
-                  <p style={{ margin: "6px 0 0", fontSize: "13px", color: "#94a3b8", lineHeight: 1.4 }}>
+                  <p style={{ margin: "6px 0 0", fontSize: "13px", color: isDark ? "#94a3b8" : "#64748b", lineHeight: 1.4 }}>
                     Choose a target platform or let NexCreator auto-detect live broadcasts.
                   </p>
                 </div>
@@ -800,9 +840,9 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void; comp
                     width: "32px",
                     height: "32px",
                     borderRadius: "10px",
-                    background: "rgba(255, 255, 255, 0.06)",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
-                    color: "#94a3b8",
+                    background: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.05)",
+                    border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(0, 0, 0, 0.1)",
+                    color: isDark ? "#94a3b8" : "#64748b",
                     fontWeight: "bold",
                     fontSize: "14px",
                     cursor: "pointer",
@@ -825,8 +865,12 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void; comp
                   style={{
                     padding: "16px",
                     borderRadius: "14px",
-                    border: selectedPlatformChoice === "auto" ? "1.5px solid #9146FF" : "1px solid rgba(255, 255, 255, 0.08)",
-                    background: selectedPlatformChoice === "auto" ? "rgba(145, 70, 255, 0.12)" : "rgba(255, 255, 255, 0.02)",
+                    border: selectedPlatformChoice === "auto"
+                      ? "1.5px solid #9146FF"
+                      : isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
+                    background: selectedPlatformChoice === "auto"
+                      ? isDark ? "rgba(145, 70, 255, 0.12)" : "rgba(145, 70, 255, 0.08)"
+                      : isDark ? "rgba(255, 255, 255, 0.02)" : "rgba(0, 0, 0, 0.02)",
                     cursor: "pointer",
                     transition: "all 0.15s ease",
                     display: "flex",
@@ -854,16 +898,18 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void; comp
                     </div>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                        <span style={{ fontWeight: "800", fontSize: "15px", color: "#f8fafc" }}>Auto Detect</span>
+                        <span style={{ fontWeight: "800", fontSize: "15px", color: isDark ? "#f8fafc" : "#0f172a" }}>
+                          Auto Detect
+                        </span>
                         <span
                           style={{
                             fontSize: "10px",
                             fontWeight: "700",
                             padding: "2px 8px",
                             borderRadius: "10px",
-                            background: "rgba(168, 85, 247, 0.2)",
-                            border: "1px solid rgba(168, 85, 247, 0.4)",
-                            color: "#c084fc",
+                            background: isDark ? "rgba(168, 85, 247, 0.2)" : "rgba(168, 85, 247, 0.12)",
+                            border: isDark ? "1px solid rgba(168, 85, 247, 0.4)" : "1px solid rgba(168, 85, 247, 0.3)",
+                            color: isDark ? "#c084fc" : "#7c3aed",
                             textTransform: "uppercase",
                             letterSpacing: "0.05em",
                           }}
@@ -871,7 +917,7 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void; comp
                           Recommended
                         </span>
                       </div>
-                      <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "3px" }}>
+                      <div style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", marginTop: "3px" }}>
                         Monitors all connected channels (Kick & YouTube) simultaneously
                       </div>
                     </div>
@@ -890,9 +936,13 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void; comp
                   const platName = cp.platform.toLowerCase();
                   const isKick = platName === "kick";
                   const isSelected = selectedPlatformChoice === platName;
-                  const brandColor = isKick ? "#53FC18" : "#FF0000";
-                  const brandBg = isKick ? "rgba(83, 252, 24, 0.12)" : "rgba(255, 0, 0, 0.12)";
-                  const brandBorder = isKick ? "rgba(83, 252, 24, 0.3)" : "rgba(255, 0, 0, 0.3)";
+                  const brandColor = isKick ? (isDark ? "#53FC18" : "#10b981") : "#FF0000";
+                  const brandBg = isKick
+                    ? (isDark ? "rgba(83, 252, 24, 0.12)" : "rgba(16, 185, 129, 0.1)")
+                    : (isDark ? "rgba(255, 0, 0, 0.12)" : "rgba(239, 68, 68, 0.1)");
+                  const brandBorder = isKick
+                    ? (isDark ? "rgba(83, 252, 24, 0.3)" : "rgba(16, 185, 129, 0.3)")
+                    : (isDark ? "rgba(255, 0, 0, 0.3)" : "rgba(239, 68, 68, 0.3)");
 
                   return (
                     <div
@@ -901,8 +951,12 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void; comp
                       style={{
                         padding: "16px",
                         borderRadius: "14px",
-                        border: isSelected ? `1.5px solid ${brandColor}` : "1px solid rgba(255, 255, 255, 0.08)",
-                        background: isSelected ? brandBg : "rgba(255, 255, 255, 0.02)",
+                        border: isSelected
+                          ? `1.5px solid ${brandColor}`
+                          : isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
+                        background: isSelected
+                          ? brandBg
+                          : isDark ? "rgba(255, 255, 255, 0.02)" : "rgba(0, 0, 0, 0.02)",
                         cursor: "pointer",
                         transition: "all 0.15s ease",
                         display: "flex",
@@ -930,7 +984,7 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void; comp
                         </div>
                         <div>
                           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ fontWeight: "800", fontSize: "15px", color: "#f8fafc" }}>
+                            <span style={{ fontWeight: "800", fontSize: "15px", color: isDark ? "#f8fafc" : "#0f172a" }}>
                               {cp.displayName || cp.username || cp.platform}
                             </span>
                             <span
@@ -941,14 +995,14 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void; comp
                                 borderRadius: "10px",
                                 background: brandBg,
                                 border: `1px solid ${brandBorder}`,
-                                color: isKick ? "#53FC18" : "#ff4d4d",
+                                color: isKick ? (isDark ? "#53FC18" : "#059669") : (isDark ? "#ff4d4d" : "#dc2626"),
                                 textTransform: "uppercase",
                               }}
                             >
                               {cp.platform}
                             </span>
                           </div>
-                          <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "3px", fontFamily: "'JetBrains Mono', monospace" }}>
+                          <div style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#64748b", marginTop: "3px", fontFamily: "'JetBrains Mono', monospace" }}>
                             {cp.username || cp.channelUrl}
                           </div>
                         </div>
@@ -1038,10 +1092,10 @@ export const DashboardView: React.FC<{ setActiveTab: (tab: string) => void; comp
           📡
         </div>
 
-        <h2 style={{ fontSize: "26px", fontWeight: "800", color: "#f8fafc", marginBottom: "8px" }}>
+        <h2 style={{ fontSize: "26px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: "8px" }}>
           No Active Monitoring Session
         </h2>
-        <p style={{ fontSize: "14px", color: "#94a3b8", maxWidth: "480px", lineHeight: 1.6, marginBottom: "32px" }}>
+        <p style={{ fontSize: "14px", color: isDark ? "#94a3b8" : "#475569", maxWidth: "480px", lineHeight: 1.6, marginBottom: "32px" }}>
           Start monitoring your channel to enable autonomous live stream detection, real-time telemetry metrics, and AI Producer assistance.
         </p>
 

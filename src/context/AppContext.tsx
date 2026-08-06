@@ -99,6 +99,11 @@ interface AppContextType {
   latestCompletedJobId: string | null;
   startLiveKickMonitoring: (username: string, directChatroomId?: string) => Promise<void>;
   stopLiveKickMonitoring: () => Promise<any>;
+
+  // Theme Management State
+  theme: "dark" | "light";
+  toggleTheme: () => void;
+  setTheme: (theme: "dark" | "light") => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -121,6 +126,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Global Live Stream Monitoring State
   const [activeLiveJob, setActiveLiveJob] = useState<ActiveLiveJob | null>(null);
   const [latestCompletedJobId, setLatestCompletedJobId] = useState<string | null>(null);
+
+  // Theme Management State
+  const [theme, setThemeState] = useState<"dark" | "light">("dark");
+
+  useEffect(() => {
+    const savedTheme = (localStorage.getItem("cm_theme") as "dark" | "light") || "dark";
+    setThemeState(savedTheme);
+    if (savedTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    setThemeState(nextTheme);
+    localStorage.setItem("cm_theme", nextTheme);
+    if (nextTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  };
+
+  const setTheme = (newTheme: "dark" | "light") => {
+    setThemeState(newTheme);
+    localStorage.setItem("cm_theme", newTheme);
+    if (newTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  };
 
   // Helper to fetch all data from backend
   const fetchData = async (userEmail?: string) => {
@@ -779,7 +818,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         activeLiveJob,
         latestCompletedJobId,
         startLiveKickMonitoring,
-        stopLiveKickMonitoring
+        stopLiveKickMonitoring,
+        theme,
+        toggleTheme,
+        setTheme
       }}
     >
       {children}

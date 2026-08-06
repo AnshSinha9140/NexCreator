@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useApp } from "@/context/AppContext";
 import { CopilotInsightItem } from "./InsightCard";
 import { ConfidenceBadge } from "./ConfidenceBadge";
 import { PriorityBadge } from "./PriorityBadge";
@@ -20,9 +21,12 @@ function formatTime(isoString: string): string {
 }
 
 export const InsightTimeline: React.FC<InsightTimelineProps> = ({ insights }) => {
+  const { theme } = useApp();
+  const isDark = theme === "dark";
+
   if (!insights || insights.length === 0) {
     return (
-      <div style={{ padding: "40px 20px", textAlign: "center", color: "#64748b", fontSize: "13px" }}>
+      <div style={{ padding: "40px 20px", textAlign: "center", color: isDark ? "#64748b" : "#64748b", fontSize: "13px" }}>
         No timeline events recorded yet.
       </div>
     );
@@ -32,7 +36,7 @@ export const InsightTimeline: React.FC<InsightTimelineProps> = ({ insights }) =>
     <div
       style={{
         position: "relative",
-        borderLeft: "2px solid rgba(168, 85, 247, 0.2)",
+        borderLeft: isDark ? "2px solid rgba(168, 85, 247, 0.2)" : "2px solid rgba(168, 85, 247, 0.35)",
         paddingLeft: "24px",
         marginLeft: "16px",
         display: "flex",
@@ -57,7 +61,7 @@ export const InsightTimeline: React.FC<InsightTimelineProps> = ({ insights }) =>
                 height: "12px",
                 borderRadius: "50%",
                 background: dotBg,
-                border: "3px solid #0b0d16",
+                border: isDark ? "3px solid #0b0d16" : "3px solid #ffffff",
                 boxShadow: `0 0 10px ${dotBg}80`,
               }}
             />
@@ -67,8 +71,9 @@ export const InsightTimeline: React.FC<InsightTimelineProps> = ({ insights }) =>
               style={{
                 padding: "16px 20px",
                 borderRadius: "14px",
-                background: "rgba(11, 13, 22, 0.6)",
-                border: "1px solid rgba(255, 255, 255, 0.06)",
+                background: isDark ? "rgba(11, 13, 22, 0.6)" : "#ffffff",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid #e2e8f0",
+                boxShadow: isDark ? "none" : "0 1px 3px rgba(0, 0, 0, 0.05)",
                 display: "flex",
                 flexDirection: "column",
                 gap: "8px",
@@ -81,7 +86,7 @@ export const InsightTimeline: React.FC<InsightTimelineProps> = ({ insights }) =>
                       fontSize: "12px",
                       fontWeight: 700,
                       fontFamily: "'JetBrains Mono', monospace",
-                      color: "#c084fc",
+                      color: isDark ? "#c084fc" : "#9333ea",
                     }}
                   >
                     {formatTime(item.timestamp)}
@@ -93,10 +98,10 @@ export const InsightTimeline: React.FC<InsightTimelineProps> = ({ insights }) =>
               </div>
 
               <div>
-                <h5 style={{ margin: "0 0 4px", fontSize: "14px", fontWeight: 700, color: "#f1f5f9" }}>
+                <h5 style={{ margin: "0 0 4px", fontSize: "14px", fontWeight: 700, color: isDark ? "#f1f5f9" : "#0f172a" }}>
                   {item.title}
                 </h5>
-                <p style={{ margin: 0, fontSize: "12px", color: "#94a3b8", lineHeight: 1.4 }}>
+                <p style={{ margin: 0, fontSize: "12px", color: isDark ? "#94a3b8" : "#475569", lineHeight: 1.4 }}>
                   {item.recommendation || item.summary}
                 </p>
               </div>

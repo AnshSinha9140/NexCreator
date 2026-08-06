@@ -11,6 +11,8 @@ import { LiveInitializationDashboard } from "./LiveInitializationDashboard";
 import { LiveTelemetryPanel } from "./LiveTelemetryPanel";
 import { CreatorIntelligenceTab } from "./CreatorIntelligenceTab";
 
+import { useApp } from "@/context/AppContext";
+
 export type LiveModuleTab = "intelligence" | "pulse" | "producer" | "timeline" | "chat" | "highlights";
 
 
@@ -37,6 +39,8 @@ export const LiveWorkspace: React.FC<LiveWorkspaceProps> = ({
 }) => {
   const [activeModule, setActiveModule] = useState<LiveModuleTab>("intelligence");
   const { state, isLoading } = useLiveSession();
+  const { theme } = useApp();
+  const isDark = theme === "dark";
 
 
   if (isLoading || !state) {
@@ -48,7 +52,7 @@ export const LiveWorkspace: React.FC<LiveWorkspaceProps> = ({
           alignItems: "center",
           justifyContent: "center",
           minHeight: "60vh",
-          color: "#94a3b8",
+          color: isDark ? "#94a3b8" : "#64748b",
           gap: "16px",
           fontFamily: "'Inter', sans-serif",
         }}
@@ -84,7 +88,7 @@ export const LiveWorkspace: React.FC<LiveWorkspaceProps> = ({
         padding: "24px",
         minHeight: "100vh",
         background: "transparent",
-        color: "#f8fafc",
+        color: isDark ? "#f8fafc" : "#0f172a",
         fontFamily: "'Inter', sans-serif",
       }}
     >
@@ -96,9 +100,10 @@ export const LiveWorkspace: React.FC<LiveWorkspaceProps> = ({
             gap: "8px",
             padding: "6px",
             borderRadius: "14px",
-            background: "rgba(13, 16, 27, 0.85)",
+            background: isDark ? "rgba(13, 16, 27, 0.85)" : "#ffffff",
             backdropFilter: "blur(20px)",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
+            border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
+            boxShadow: isDark ? "none" : "0 4px 20px rgba(0, 0, 0, 0.06)",
             width: "fit-content",
           }}
         >
@@ -115,8 +120,12 @@ export const LiveWorkspace: React.FC<LiveWorkspaceProps> = ({
                   padding: "8px 16px",
                   borderRadius: "10px",
                   border: "none",
-                  background: isActive ? "rgba(168, 85, 247, 0.15)" : "transparent",
-                  color: isActive ? "#c084fc" : "#94a3b8",
+                  background: isActive
+                    ? (isDark ? "rgba(168, 85, 247, 0.15)" : "rgba(168, 85, 247, 0.1)")
+                    : "transparent",
+                  color: isActive
+                    ? (isDark ? "#c084fc" : "#7c3aed")
+                    : (isDark ? "#94a3b8" : "#64748b"),
                   fontSize: "13px",
                   fontWeight: isActive ? "700" : "500",
                   cursor: "pointer",
@@ -151,7 +160,6 @@ export const LiveWorkspace: React.FC<LiveWorkspaceProps> = ({
                   isLoading={false}
                 />
               )}
-
 
               {activeModule === "producer" && (
                 <AIProducerTab

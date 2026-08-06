@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useApp } from "@/context/AppContext";
 
 interface SessionSnapshotProps {
   streamTitle?: string;
@@ -27,13 +28,19 @@ export const SessionSnapshot: React.FC<SessionSnapshotProps> = ({
   reportsCount = 1,
   aiConfidence = 92,
 }) => {
+  const { theme } = useApp();
+  const isDark = theme === "dark";
+
   return (
     <div
       style={{
         padding: "24px",
         borderRadius: "20px",
-        background: "linear-gradient(135deg, rgba(13, 16, 27, 0.95) 0%, rgba(20, 26, 46, 0.95) 100%)",
-        border: "1px solid rgba(168, 85, 247, 0.25)",
+        background: isDark
+          ? "linear-gradient(135deg, rgba(13, 16, 27, 0.95) 0%, rgba(20, 26, 46, 0.95) 100%)"
+          : "#ffffff",
+        border: isDark ? "1px solid rgba(168, 85, 247, 0.25)" : "1px solid #e2e8f0",
+        boxShadow: isDark ? "none" : "0 1px 3px rgba(0,0,0,0.05)",
         display: "flex",
         flexDirection: "column",
         gap: "16px",
@@ -43,7 +50,7 @@ export const SessionSnapshot: React.FC<SessionSnapshotProps> = ({
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-            <span style={{ fontSize: "11px", fontWeight: "800", color: "#c084fc", textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "monospace" }}>
+            <span style={{ fontSize: "11px", fontWeight: "800", color: isDark ? "#c084fc" : "#9333ea", textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "monospace" }}>
               SESSION SNAPSHOT
             </span>
             <span
@@ -53,14 +60,14 @@ export const SessionSnapshot: React.FC<SessionSnapshotProps> = ({
                 padding: "2px 8px",
                 borderRadius: "6px",
                 background: health === "Optimal" ? "rgba(52, 211, 153, 0.15)" : "rgba(245, 158, 11, 0.15)",
-                color: health === "Optimal" ? "#34d399" : "#fbbf24",
+                color: health === "Optimal" ? (isDark ? "#34d399" : "#059669") : (isDark ? "#fbbf24" : "#d97706"),
                 fontFamily: "monospace",
               }}
             >
               {health.toUpperCase()}
             </span>
           </div>
-          <h2 style={{ margin: 0, fontSize: "20px", fontWeight: "800", color: "#f8fafc" }}>
+          <h2 style={{ margin: 0, fontSize: "20px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a" }}>
             {streamTitle}
           </h2>
         </div>
@@ -69,9 +76,9 @@ export const SessionSnapshot: React.FC<SessionSnapshotProps> = ({
           style={{
             padding: "8px 16px",
             borderRadius: "12px",
-            background: "rgba(168, 85, 247, 0.12)",
-            border: "1px solid rgba(168, 85, 247, 0.3)",
-            color: "#c084fc",
+            background: isDark ? "rgba(168, 85, 247, 0.12)" : "rgba(168, 85, 247, 0.1)",
+            border: isDark ? "1px solid rgba(168, 85, 247, 0.3)" : "1px solid rgba(168, 85, 247, 0.25)",
+            color: isDark ? "#c084fc" : "#9333ea",
             fontSize: "12px",
             fontWeight: "800",
             fontFamily: "monospace",
@@ -83,29 +90,29 @@ export const SessionSnapshot: React.FC<SessionSnapshotProps> = ({
 
       {/* Metrics Row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "10px" }}>
-        <div style={{ padding: "10px", borderRadius: "10px", background: "rgba(255,255,255,0.02)", textAlign: "center" }}>
-          <span style={{ fontSize: "10px", color: "#64748b", display: "block" }}>PLATFORM</span>
-          <strong style={{ fontSize: "13px", color: "#f8fafc" }}>{platform}</strong>
+        <div style={{ padding: "10px", borderRadius: "10px", background: isDark ? "rgba(255,255,255,0.02)" : "#f8fafc", border: isDark ? "none" : "1px solid #e2e8f0", textAlign: "center" }}>
+          <span style={{ fontSize: "10px", color: isDark ? "#64748b" : "#64748b", display: "block", fontWeight: "bold" }}>PLATFORM</span>
+          <strong style={{ fontSize: "13px", color: isDark ? "#f8fafc" : "#0f172a" }}>{platform}</strong>
         </div>
-        <div style={{ padding: "10px", borderRadius: "10px", background: "rgba(255,255,255,0.02)", textAlign: "center" }}>
-          <span style={{ fontSize: "10px", color: "#64748b", display: "block" }}>DURATION</span>
-          <strong style={{ fontSize: "13px", color: "#60a5fa" }}>{durationMinutes}m</strong>
+        <div style={{ padding: "10px", borderRadius: "10px", background: isDark ? "rgba(255,255,255,0.02)" : "#f8fafc", border: isDark ? "none" : "1px solid #e2e8f0", textAlign: "center" }}>
+          <span style={{ fontSize: "10px", color: isDark ? "#64748b" : "#64748b", display: "block", fontWeight: "bold" }}>DURATION</span>
+          <strong style={{ fontSize: "13px", color: isDark ? "#60a5fa" : "#2563eb" }}>{durationMinutes}m</strong>
         </div>
-        <div style={{ padding: "10px", borderRadius: "10px", background: "rgba(255,255,255,0.02)", textAlign: "center" }}>
-          <span style={{ fontSize: "10px", color: "#64748b", display: "block" }}>PEAK VIEWERS</span>
-          <strong style={{ fontSize: "13px", color: "#34d399" }}>{peakViewers}</strong>
+        <div style={{ padding: "10px", borderRadius: "10px", background: isDark ? "rgba(255,255,255,0.02)" : "#f8fafc", border: isDark ? "none" : "1px solid #e2e8f0", textAlign: "center" }}>
+          <span style={{ fontSize: "10px", color: isDark ? "#64748b" : "#64748b", display: "block", fontWeight: "bold" }}>PEAK VIEWERS</span>
+          <strong style={{ fontSize: "13px", color: isDark ? "#34d399" : "#059669" }}>{peakViewers}</strong>
         </div>
-        <div style={{ padding: "10px", borderRadius: "10px", background: "rgba(255,255,255,0.02)", textAlign: "center" }}>
-          <span style={{ fontSize: "10px", color: "#64748b", display: "block" }}>AVG VIEWERS</span>
-          <strong style={{ fontSize: "13px", color: "#cbd5e1" }}>{averageViewers}</strong>
+        <div style={{ padding: "10px", borderRadius: "10px", background: isDark ? "rgba(255,255,255,0.02)" : "#f8fafc", border: isDark ? "none" : "1px solid #e2e8f0", textAlign: "center" }}>
+          <span style={{ fontSize: "10px", color: isDark ? "#64748b" : "#64748b", display: "block", fontWeight: "bold" }}>AVG VIEWERS</span>
+          <strong style={{ fontSize: "13px", color: isDark ? "#cbd5e1" : "#334155" }}>{averageViewers}</strong>
         </div>
-        <div style={{ padding: "10px", borderRadius: "10px", background: "rgba(255,255,255,0.02)", textAlign: "center" }}>
-          <span style={{ fontSize: "10px", color: "#64748b", display: "block" }}>MESSAGES</span>
-          <strong style={{ fontSize: "13px", color: "#facc15" }}>{totalMessages}</strong>
+        <div style={{ padding: "10px", borderRadius: "10px", background: isDark ? "rgba(255,255,255,0.02)" : "#f8fafc", border: isDark ? "none" : "1px solid #e2e8f0", textAlign: "center" }}>
+          <span style={{ fontSize: "10px", color: isDark ? "#64748b" : "#64748b", display: "block", fontWeight: "bold" }}>MESSAGES</span>
+          <strong style={{ fontSize: "13px", color: isDark ? "#facc15" : "#d97706" }}>{totalMessages}</strong>
         </div>
-        <div style={{ padding: "10px", borderRadius: "10px", background: "rgba(255,255,255,0.02)", textAlign: "center" }}>
-          <span style={{ fontSize: "10px", color: "#64748b", display: "block" }}>CLIPS READY</span>
-          <strong style={{ fontSize: "13px", color: "#c084fc" }}>{highlightsCount}</strong>
+        <div style={{ padding: "10px", borderRadius: "10px", background: isDark ? "rgba(255,255,255,0.02)" : "#f8fafc", border: isDark ? "none" : "1px solid #e2e8f0", textAlign: "center" }}>
+          <span style={{ fontSize: "10px", color: isDark ? "#64748b" : "#64748b", display: "block", fontWeight: "bold" }}>CLIPS READY</span>
+          <strong style={{ fontSize: "13px", color: isDark ? "#c084fc" : "#9333ea" }}>{highlightsCount}</strong>
         </div>
       </div>
     </div>

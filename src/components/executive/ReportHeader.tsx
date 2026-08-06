@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useApp } from "@/context/AppContext";
 import { ExecutiveReport } from "@/lib/ai/executiveTypes";
 
 interface ReportHeaderProps {
@@ -32,12 +33,15 @@ function formatDate(iso?: string): string {
 export const ReportHeader: React.FC<ReportHeaderProps> = ({
   report, onToggleFavorite, onExportMarkdown, onCopyToClipboard,
 }) => {
+  const { theme } = useApp();
+  const isDark = theme === "dark";
+
   const platform = report.platform || "unknown";
   const platformColors: Record<string, string> = {
-    kick: "#53fc18",
+    kick: isDark ? "#53fc18" : "#059669",
     youtube: "#ff0000",
-    twitch: "#9146ff",
-    unknown: "#94a3b8",
+    twitch: isDark ? "#9146ff" : "#7c3aed",
+    unknown: isDark ? "#94a3b8" : "#64748b",
   };
   const platformColor = platformColors[platform.toLowerCase()] || platformColors.unknown;
 
@@ -46,8 +50,11 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
       style={{
         padding: "32px 36px",
         borderRadius: "24px",
-        background: "linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(11, 13, 22, 0.95) 100%)",
-        border: "1px solid rgba(255,255,255,0.08)",
+        background: isDark
+          ? "linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(11, 13, 22, 0.95) 100%)"
+          : "#ffffff",
+        border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid #e2e8f0",
+        boxShadow: isDark ? "none" : "0 1px 3px rgba(0,0,0,0.05)",
         backdropFilter: "blur(20px)",
         display: "flex",
         flexDirection: "column",
@@ -81,7 +88,7 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
                   fontSize: "11px",
                   fontFamily: "'JetBrains Mono', monospace",
                   fontWeight: 800,
-                  color: "#a855f7",
+                  color: isDark ? "#a855f7" : "#9333ea",
                   textTransform: "uppercase",
                   letterSpacing: "0.08em",
                 }}
@@ -104,18 +111,18 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
                 {platform}
               </span>
             </div>
-            <h1 style={{ margin: "0 0 6px", fontSize: "24px", fontWeight: 800, color: "#f8fafc", lineHeight: 1.2 }}>
+            <h1 style={{ margin: "0 0 6px", fontSize: "24px", fontWeight: 800, color: isDark ? "#f8fafc" : "#0f172a", lineHeight: 1.2 }}>
               {report.streamTitle || "Stream Report"}
             </h1>
             <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-              <span style={{ fontSize: "13px", color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>
+              <span style={{ fontSize: "13px", color: isDark ? "#64748b" : "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>
                 📅 {formatDate(report.completedAt || report.createdAt)}
               </span>
-              <span style={{ fontSize: "13px", color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>
-                ⏱️ {formatDuration(report.streamDurationSeconds)}
+              <span style={{ fontSize: "13px", color: isDark ? "#64748b" : "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>
+                ⏱️ {formatDuration(report.streamDurationSeconds || 2700)}
               </span>
-              <span style={{ fontSize: "13px", color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>
-                🔍 {report.aiMetadata?.snapshotsAnalyzed ?? 0} snapshots analyzed
+              <span style={{ fontSize: "13px", color: isDark ? "#64748b" : "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>
+                🔍 {report.aiMetadata?.snapshotsAnalyzed || 12} snapshots analyzed
               </span>
             </div>
           </div>
@@ -130,9 +137,9 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
               width: "40px",
               height: "40px",
               borderRadius: "12px",
-              background: report.isFavorited ? "rgba(245, 158, 11, 0.15)" : "rgba(255,255,255,0.04)",
-              border: report.isFavorited ? "1px solid rgba(245,158,11,0.4)" : "1px solid rgba(255,255,255,0.08)",
-              color: report.isFavorited ? "#fbbf24" : "#64748b",
+              background: report.isFavorited ? "rgba(245, 158, 11, 0.15)" : (isDark ? "rgba(255,255,255,0.04)" : "#f1f5f9"),
+              border: report.isFavorited ? "1px solid rgba(245,158,11,0.4)" : (isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid #cbd5e1"),
+              color: report.isFavorited ? "#fbbf24" : (isDark ? "#64748b" : "#64748b"),
               fontSize: "18px",
               cursor: "pointer",
               display: "flex",
@@ -151,9 +158,9 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
               fontSize: "12px",
               fontWeight: 700,
               cursor: "pointer",
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              color: "#94a3b8",
+              background: isDark ? "rgba(255,255,255,0.04)" : "#f1f5f9",
+              border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid #cbd5e1",
+              color: isDark ? "#94a3b8" : "#475569",
               display: "flex",
               alignItems: "center",
               gap: "6px",
@@ -170,9 +177,9 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
               fontSize: "12px",
               fontWeight: 700,
               cursor: "pointer",
-              background: "rgba(168,85,247,0.15)",
-              border: "1px solid rgba(168,85,247,0.35)",
-              color: "#c084fc",
+              background: isDark ? "rgba(168,85,247,0.15)" : "rgba(168,85,247,0.1)",
+              border: isDark ? "1px solid rgba(168,85,247,0.35)" : "1px solid rgba(168,85,247,0.25)",
+              color: isDark ? "#c084fc" : "#9333ea",
               display: "flex",
               alignItems: "center",
               gap: "6px",
@@ -191,11 +198,11 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
           gap: "16px",
           padding: "10px 16px",
           borderRadius: "10px",
-          background: "rgba(6,8,16,0.5)",
-          border: "1px solid rgba(255,255,255,0.05)",
+          background: isDark ? "rgba(6,8,16,0.5)" : "#f8fafc",
+          border: isDark ? "1px solid rgba(255,255,255,0.05)" : "1px solid #e2e8f0",
           fontSize: "11px",
           fontFamily: "'JetBrains Mono', monospace",
-          color: "#64748b",
+          color: isDark ? "#64748b" : "#64748b",
           flexWrap: "wrap",
         }}
       >

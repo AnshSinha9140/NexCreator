@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { ConversationEntry, ConversationMessageType, ConversationTimelineEntry } from "@/lib/conversation/types";
+import { useApp } from "@/context/AppContext";
 
 interface ManagerConversationTimelineProps {
   entries?: ConversationEntry[];
@@ -23,6 +24,8 @@ export const ManagerConversationTimeline: React.FC<ManagerConversationTimelinePr
 }) => {
   const [showAll, setShowAll] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+  const { theme } = useApp();
+  const isDark = theme === "dark";
 
   const toggleCard = (id: string) => {
     setExpandedCards((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -47,8 +50,11 @@ export const ManagerConversationTimeline: React.FC<ManagerConversationTimelinePr
               style={{
                 padding: "20px",
                 borderRadius: "16px",
-                background: "linear-gradient(135deg, rgba(13,16,27,0.95) 0%, rgba(20,26,46,0.85) 100%)",
+                background: isDark
+                  ? "linear-gradient(135deg, rgba(13,16,27,0.95) 0%, rgba(20,26,46,0.85) 100%)"
+                  : "#ffffff",
                 border: `1px solid ${style.border}`,
+                boxShadow: isDark ? "none" : "0 4px 16px rgba(0, 0, 0, 0.04)",
                 display: "flex",
                 flexDirection: "column",
                 gap: "12px",
@@ -76,23 +82,23 @@ export const ManagerConversationTimeline: React.FC<ManagerConversationTimelinePr
                     <span>{style.icon}</span>
                     {entry.messageType}
                   </span>
-                  <span style={{ fontSize: "14px", fontWeight: "800", color: "#f8fafc" }}>
+                  <span style={{ fontSize: "14px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a" }}>
                     {entry.headline}
                   </span>
                 </div>
 
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <span style={{ fontSize: "11px", color: "#64748b", fontVariantNumeric: "tabular-nums" }}>
+                  <span style={{ fontSize: "11px", color: isDark ? "#64748b" : "#64748b", fontVariantNumeric: "tabular-nums" }}>
                     {entry.timestamp}
                   </span>
-                  <span style={{ fontSize: "11px", color: "#94a3b8", fontStyle: "italic" }}>
+                  <span className="text-xs text-slate-500 italic dark:text-slate-400">
                     {entry.confidencePhrase}
                   </span>
                 </div>
               </div>
 
               {/* Statement Body (Target 60-90 words, max 120 words) */}
-              <p style={{ margin: 0, fontSize: "13px", color: "#cbd5e1", lineHeight: 1.6 }}>
+              <p style={{ margin: 0, fontSize: "13px", color: isDark ? "#cbd5e1" : "#334155", lineHeight: 1.6 }}>
                 "{entry.statement}"
               </p>
 
@@ -102,10 +108,10 @@ export const ManagerConversationTimeline: React.FC<ManagerConversationTimelinePr
                   style={{
                     padding: "10px 14px",
                     borderRadius: "10px",
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.05)",
+                    background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)",
+                    border: isDark ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.06)",
                     fontSize: "12px",
-                    color: "#94a3b8",
+                    color: isDark ? "#94a3b8" : "#64748b",
                     display: "flex",
                     flexDirection: "column",
                     gap: "4px",
@@ -115,7 +121,7 @@ export const ManagerConversationTimeline: React.FC<ManagerConversationTimelinePr
                     Supporting Evidence
                   </div>
                   {entry.supportingEvidence.map((ev, idx) => (
-                    <div key={idx} style={{ display: "flex", alignItems: "center", gap: "6px", color: "#cbd5e1" }}>
+                    <div key={idx} style={{ display: "flex", alignItems: "center", gap: "6px", color: isDark ? "#cbd5e1" : "#334155" }}>
                       <span style={{ color: style.color }}>•</span> {ev}
                     </div>
                   ))}
@@ -149,16 +155,16 @@ export const ManagerConversationTimeline: React.FC<ManagerConversationTimelinePr
                         gridTemplateColumns: "1fr 1fr",
                         gap: "12px",
                         paddingTop: "8px",
-                        borderTop: "1px solid rgba(255,255,255,0.05)",
+                        borderTop: isDark ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.06)",
                         fontSize: "12px",
                       }}
                     >
                       {entry.reasoning && (
                         <div>
-                          <div style={{ fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", marginBottom: "4px" }}>
+                          <div style={{ fontSize: "10px", fontWeight: "800", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", marginBottom: "4px" }}>
                             Why this matters
                           </div>
-                          <div style={{ color: "#cbd5e1", lineHeight: 1.5 }}>{entry.reasoning}</div>
+                          <div style={{ color: isDark ? "#cbd5e1" : "#334155", lineHeight: 1.5 }}>{entry.reasoning}</div>
                         </div>
                       )}
                       {entry.actions && (
@@ -166,7 +172,7 @@ export const ManagerConversationTimeline: React.FC<ManagerConversationTimelinePr
                           <div style={{ fontSize: "10px", fontWeight: "800", color: style.color, textTransform: "uppercase", marginBottom: "4px" }}>
                             Recommended Action
                           </div>
-                          <div style={{ color: "#cbd5e1", lineHeight: 1.5 }}>{entry.actions}</div>
+                          <div style={{ color: isDark ? "#cbd5e1" : "#334155", lineHeight: 1.5 }}>{entry.actions}</div>
                         </div>
                       )}
                     </div>
@@ -184,9 +190,9 @@ export const ManagerConversationTimeline: React.FC<ManagerConversationTimelinePr
             style={{
               padding: "12px",
               borderRadius: "12px",
-              background: "rgba(255, 255, 255, 0.04)",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
-              color: "#94a3b8",
+              background: isDark ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.04)",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
+              color: isDark ? "#94a3b8" : "#64748b",
               fontSize: "12px",
               fontWeight: "700",
               cursor: "pointer",
@@ -203,7 +209,7 @@ export const ManagerConversationTimeline: React.FC<ManagerConversationTimelinePr
   // Fallback for legacy timeline entries
   if (!timeline || timeline.length === 0) {
     return (
-      <div style={{ padding: "20px", color: "#64748b", fontSize: "13px", textAlign: "center" }}>
+      <div style={{ padding: "20px", color: isDark ? "#64748b" : "#64748b", fontSize: "13px", textAlign: "center" }}>
         No manager updates recorded yet.
       </div>
     );
@@ -218,13 +224,14 @@ export const ManagerConversationTimeline: React.FC<ManagerConversationTimelinePr
           style={{
             padding: "12px 16px",
             borderRadius: "12px",
-            background: "rgba(13,16,27,0.8)",
-            border: "1px solid rgba(255,255,255,0.06)",
+            background: isDark ? "rgba(13,16,27,0.8)" : "#ffffff",
+            border: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.08)",
+            boxShadow: isDark ? "none" : "0 2px 8px rgba(0,0,0,0.04)",
             fontSize: "13px",
-            color: "#e2e8f0",
+            color: isDark ? "#e2e8f0" : "#334155",
           }}
         >
-          <div style={{ fontSize: "11px", color: "#64748b", marginBottom: "4px" }}>
+          <div style={{ fontSize: "11px", color: isDark ? "#64748b" : "#64748b", marginBottom: "4px" }}>
             {entry.timestamp}
           </div>
           <div>{entry.statement}</div>

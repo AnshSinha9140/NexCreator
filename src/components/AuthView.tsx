@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useApp } from "@/context/AppContext";
 import { validateLogin, validateSignup } from "@/lib/authValidation";
 
 interface AuthViewProps {
@@ -13,6 +14,8 @@ export const AuthView: React.FC<AuthViewProps> = ({
   initialMode = "login",
   onSuccess,
 }) => {
+  const { theme } = useApp();
+  const isDark = theme === "dark";
   const [mode, setMode] = useState<"login" | "signup">(initialMode);
   
   // Login State
@@ -148,13 +151,13 @@ export const AuthView: React.FC<AuthViewProps> = ({
         minHeight: "100vh",
         width: "100vw",
         display: "flex",
-        background: "#060810",
-        color: "#e2e8f0",
+        background: isDark ? "#060810" : "#ffffff",
+        color: isDark ? "#e2e8f0" : "#0f172a",
         fontFamily: "'Inter', sans-serif",
         overflow: "hidden",
       }}
     >
-      {/* ─── Left Branding Panel (Linear / Vercel Dark Aesthetic) ────────── */}
+      {/* ─── Left Branding Panel (Linear / Vercel Aesthetic) ────────── */}
       <div
         style={{
           flex: 1,
@@ -162,8 +165,10 @@ export const AuthView: React.FC<AuthViewProps> = ({
           flexDirection: "column",
           justifyContent: "between",
           padding: "48px 64px",
-          background: "radial-gradient(circle at 0% 0%, rgba(168, 85, 247, 0.12) 0%, transparent 50%), radial-gradient(circle at 100% 100%, rgba(99, 102, 241, 0.1) 0%, transparent 50%), #080b14",
-          borderRight: "1px solid rgba(255, 255, 255, 0.06)",
+          background: isDark
+            ? "radial-gradient(circle at 0% 0%, rgba(168, 85, 247, 0.12) 0%, transparent 50%), radial-gradient(circle at 100% 100%, rgba(99, 102, 241, 0.1) 0%, transparent 50%), #080b14"
+            : "radial-gradient(circle at 0% 0%, rgba(168, 85, 247, 0.08) 0%, transparent 50%), #f8fafc",
+          borderRight: isDark ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid #e2e8f0",
           position: "relative",
         }}
       >
@@ -187,10 +192,10 @@ export const AuthView: React.FC<AuthViewProps> = ({
             N
           </div>
           <div>
-            <div style={{ fontSize: "18px", fontWeight: "800", color: "#f8fafc", lineHeight: 1.1 }}>
+            <div style={{ fontSize: "18px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", lineHeight: 1.1 }}>
               NexCreator
             </div>
-            <div style={{ fontSize: "10px", fontWeight: "700", color: "#a855f7", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+            <div style={{ fontSize: "10px", fontWeight: "700", color: isDark ? "#a855f7" : "#9333ea", letterSpacing: "0.1em", textTransform: "uppercase" }}>
               Creator Intelligence Platform
             </div>
           </div>
@@ -213,9 +218,9 @@ export const AuthView: React.FC<AuthViewProps> = ({
               gap: "8px",
               padding: "6px 14px",
               borderRadius: "99px",
-              background: "rgba(168, 85, 247, 0.1)",
-              border: "1px solid rgba(168, 85, 247, 0.25)",
-              color: "#c084fc",
+              background: isDark ? "rgba(168, 85, 247, 0.1)" : "rgba(168, 85, 247, 0.08)",
+              border: isDark ? "1px solid rgba(168, 85, 247, 0.25)" : "1px solid rgba(168, 85, 247, 0.2)",
+              color: isDark ? "#c084fc" : "#9333ea",
               fontSize: "11px",
               fontWeight: "700",
               fontFamily: "'JetBrains Mono', monospace",
@@ -230,7 +235,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
             style={{
               fontSize: "40px",
               fontWeight: "900",
-              color: "#f8fafc",
+              color: isDark ? "#f8fafc" : "#0f172a",
               lineHeight: 1.15,
               letterSpacing: "-1px",
             }}
@@ -238,7 +243,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
             Turn Live Stream Data Into Instant Growth.
           </h1>
 
-          <p style={{ fontSize: "15px", color: "#94a3b8", lineHeight: 1.6 }}>
+          <p style={{ fontSize: "15px", color: isDark ? "#94a3b8" : "#475569", lineHeight: 1.6 }}>
             Real-time chat sentiment analysis, AI stream producer recommendations, automated clip candidate detection, and multi-platform creator analytics.
           </p>
 
@@ -249,19 +254,19 @@ export const AuthView: React.FC<AuthViewProps> = ({
               { title: "AI Creator Producer", desc: "Instant real-time action recommendations during streams." },
               { title: "Sponsor & Content Pipeline", desc: "Manage brand deals, deliverables & editing tasks seamlessly." },
             ].map((feat, idx) => (
-              <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+              <div key={idx} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
                 <div
                   style={{
-                    width: "22px",
-                    height: "22px",
-                    borderRadius: "6px",
-                    background: "rgba(16, 185, 129, 0.15)",
-                    border: "1px solid rgba(16, 185, 129, 0.3)",
-                    color: "#34d399",
+                    width: "20px",
+                    height: "20px",
+                    borderRadius: "50%",
+                    background: isDark ? "rgba(16, 185, 129, 0.15)" : "rgba(16, 185, 129, 0.1)",
+                    border: isDark ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid rgba(16, 185, 129, 0.25)",
+                    color: isDark ? "#34d399" : "#059669",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "12px",
+                    fontSize: "11px",
                     fontWeight: "bold",
                     flexShrink: 0,
                     marginTop: "2px",
@@ -270,8 +275,8 @@ export const AuthView: React.FC<AuthViewProps> = ({
                   ✓
                 </div>
                 <div>
-                  <div style={{ fontSize: "13px", fontWeight: "700", color: "#e2e8f0" }}>{feat.title}</div>
-                  <div style={{ fontSize: "12px", color: "#64748b" }}>{feat.desc}</div>
+                  <div style={{ fontSize: "13px", fontWeight: "700", color: isDark ? "#e2e8f0" : "#1e293b" }}>{feat.title}</div>
+                  <div style={{ fontSize: "12px", color: isDark ? "#64748b" : "#64748b" }}>{feat.desc}</div>
                 </div>
               </div>
             ))}
@@ -279,7 +284,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
         </div>
 
         {/* Footer Note */}
-        <div style={{ fontSize: "12px", color: "#475569" }}>
+        <div style={{ fontSize: "12px", color: isDark ? "#475569" : "#64748b" }}>
           © 2026 NexCreator. Enterprise Grade Intelligence for Streamers & YouTubers.
         </div>
       </div>
@@ -293,17 +298,17 @@ export const AuthView: React.FC<AuthViewProps> = ({
           flexDirection: "column",
           justifyContent: "center",
           padding: "48px 56px",
-          background: "#060810",
+          background: isDark ? "#060810" : "#ffffff",
           overflowY: "auto",
         }}
       >
         <div style={{ width: "100%", maxWidth: "400px", margin: "0 auto" }}>
           {/* Header */}
           <div style={{ marginBottom: "32px" }}>
-            <h2 style={{ fontSize: "28px", fontWeight: "800", color: "#f8fafc", letterSpacing: "-0.5px", marginBottom: "8px" }}>
+            <h2 style={{ fontSize: "28px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", letterSpacing: "-0.5px", marginBottom: "8px" }}>
               {mode === "login" ? "Welcome back" : "Create your account"}
             </h2>
-            <p style={{ fontSize: "14px", color: "#64748b" }}>
+            <p style={{ fontSize: "14px", color: isDark ? "#64748b" : "#64748b" }}>
               {mode === "login"
                 ? "Enter your credentials to access your creator workspace."
                 : "Get started with AI-powered creator analytics in minutes."}
@@ -314,8 +319,8 @@ export const AuthView: React.FC<AuthViewProps> = ({
           <div
             style={{
               display: "flex",
-              background: "rgba(255, 255, 255, 0.03)",
-              border: "1px solid rgba(255, 255, 255, 0.07)",
+              background: isDark ? "rgba(255, 255, 255, 0.03)" : "#f1f5f9",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.07)" : "1px solid #cbd5e1",
               borderRadius: "10px",
               padding: "4px",
               marginBottom: "24px",
@@ -328,8 +333,8 @@ export const AuthView: React.FC<AuthViewProps> = ({
                 padding: "8px",
                 borderRadius: "7px",
                 border: "none",
-                background: mode === "login" ? "rgba(168, 85, 247, 0.15)" : "transparent",
-                color: mode === "login" ? "#c084fc" : "#64748b",
+                background: mode === "login" ? (isDark ? "rgba(168, 85, 247, 0.15)" : "rgba(168, 85, 247, 0.1)") : "transparent",
+                color: mode === "login" ? (isDark ? "#c084fc" : "#9333ea") : (isDark ? "#64748b" : "#64748b"),
                 fontSize: "13px",
                 fontWeight: "600",
                 cursor: "pointer",
@@ -345,8 +350,8 @@ export const AuthView: React.FC<AuthViewProps> = ({
                 padding: "8px",
                 borderRadius: "7px",
                 border: "none",
-                background: mode === "signup" ? "rgba(168, 85, 247, 0.15)" : "transparent",
-                color: mode === "signup" ? "#c084fc" : "#64748b",
+                background: mode === "signup" ? (isDark ? "rgba(168, 85, 247, 0.15)" : "rgba(168, 85, 247, 0.1)") : "transparent",
+                color: mode === "signup" ? (isDark ? "#c084fc" : "#9333ea") : (isDark ? "#64748b" : "#64748b"),
                 fontSize: "13px",
                 fontWeight: "600",
                 cursor: "pointer",

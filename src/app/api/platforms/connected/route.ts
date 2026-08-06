@@ -60,7 +60,8 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { action, platform, account, enabled, targetId } = body;
+    const { action, platform, enabled, targetId } = body;
+    const account = body.account || body.verifiedMeta;
 
     const client = await clientPromise;
     const db = client.db("nexcreator");
@@ -81,7 +82,23 @@ export async function POST(request: Request) {
             { status: 400 }
           );
         }
-        updatedPlatforms = ConnectedPlatformManager.addPlatform(existingPlatforms, account);
+
+        const platformLower = account.platform.toLowerCase();
+        const existingIdx = existingPlatforms.findIndex(
+          (a: any) => a.platform.toLowerCase() === platformLower
+        );
+
+        if (existingIdx >= 0) {
+          // Account for this platform is already connected — update/re-sync metadata instead of throwing duplicate error
+          updatedPlatforms = ConnectedPlatformManager.updateVerification(
+            existingPlatforms,
+            platformLower,
+            account
+          );
+        } else {
+          // Brand new account connection
+          updatedPlatforms = ConnectedPlatformManager.addPlatform(existingPlatforms, account);
+        }
         break;
       }
 

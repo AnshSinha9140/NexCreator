@@ -70,6 +70,7 @@ export class ConnectedPlatformManager {
       isDefault: input.isDefault ?? isFirstAccount, // Auto-set default if first
       connectedAt: now,
       lastVerifiedAt: now,
+      kickMetadata: (input as any).kickMetadata,
     };
 
     return [...existingAccounts, newAccount];

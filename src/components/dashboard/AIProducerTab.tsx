@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { InsightCard, CopilotInsightItem } from "@/components/copilot/InsightCard";
+import { useApp } from "@/context/AppContext";
 
 interface AIProducerTabProps {
   insights: any[];
@@ -20,12 +21,14 @@ export const AIProducerTab: React.FC<AIProducerTabProps> = ({
 }) => {
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const finalAI = summary?.finalAIReport;
+  const { theme } = useApp();
+  const isDark = theme === "dark";
 
   if (isLoading && insights.length === 0 && !finalAI) {
     return (
       <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
-        <div style={{ height: "140px", background: "rgba(255,255,255,0.03)", borderRadius: "12px" }} />
-        <div style={{ height: "140px", background: "rgba(255,255,255,0.03)", borderRadius: "12px" }} />
+        <div style={{ height: "140px", background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)", borderRadius: "12px" }} />
+        <div style={{ height: "140px", background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)", borderRadius: "12px" }} />
       </div>
     );
   }
@@ -44,8 +47,9 @@ export const AIProducerTab: React.FC<AIProducerTabProps> = ({
           style={{
             padding: "20px",
             borderRadius: "16px",
-            background: "rgba(168, 85, 247, 0.08)",
-            border: "1px solid rgba(168, 85, 247, 0.3)",
+            background: isDark ? "rgba(168, 85, 247, 0.08)" : "#ffffff",
+            border: isDark ? "1px solid rgba(168, 85, 247, 0.3)" : "1px solid rgba(168, 85, 247, 0.25)",
+            boxShadow: isDark ? "none" : "0 4px 16px rgba(0,0,0,0.04)",
             display: "flex",
             flexDirection: "column",
             gap: "14px",
@@ -53,35 +57,35 @@ export const AIProducerTab: React.FC<AIProducerTabProps> = ({
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#f8fafc", display: "flex", alignItems: "center", gap: "8px" }}>
+            <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
               <span>🧠</span> Permanent Final AI Producer Report
             </h3>
-            <span style={{ fontSize: "11px", color: "#c084fc", background: "rgba(168, 85, 247, 0.15)", padding: "4px 10px", borderRadius: "12px", fontWeight: "700" }}>
+            <span style={{ fontSize: "11px", color: isDark ? "#c084fc" : "#7c3aed", background: "rgba(168, 85, 247, 0.15)", padding: "4px 10px", borderRadius: "12px", fontWeight: "700" }}>
               Full Broadcast Synthesis
             </span>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <div style={{ padding: "12px", borderRadius: "10px", background: "rgba(0,0,0,0.3)" }}>
-              <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", fontWeight: "700" }}>⚡ Biggest Audience Spike</div>
-              <div style={{ fontSize: "13px", fontWeight: "600", color: "#f8fafc", marginTop: "4px" }}>
+            <div style={{ padding: "12px", borderRadius: "10px", background: isDark ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.03)" }}>
+              <div style={{ fontSize: "11px", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", fontWeight: "700" }}>⚡ Biggest Audience Spike</div>
+              <div style={{ fontSize: "13px", fontWeight: "600", color: isDark ? "#f8fafc" : "#0f172a", marginTop: "4px" }}>
                 {finalAI?.biggestAudienceSpike || "Peak audience momentum achieved during stream."}
               </div>
             </div>
 
-            <div style={{ padding: "12px", borderRadius: "10px", background: "rgba(0,0,0,0.3)" }}>
-              <div style={{ fontSize: "11px", color: "#94a3b8", textTransform: "uppercase", fontWeight: "700" }}>⏱️ Recommended Next Stream</div>
-              <div style={{ fontSize: "13px", fontWeight: "600", color: "#34d399", marginTop: "4px" }}>
+            <div style={{ padding: "12px", borderRadius: "10px", background: isDark ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.03)" }}>
+              <div style={{ fontSize: "11px", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", fontWeight: "700" }}>⏱️ Recommended Next Stream</div>
+              <div style={{ fontSize: "13px", fontWeight: "600", color: isDark ? "#34d399" : "#059669", marginTop: "4px" }}>
                 {finalAI?.recommendedNextStreamTime || "Schedule next broadcast within 48 hours."}
               </div>
             </div>
           </div>
 
           {finalAI?.suggestedShorts && finalAI.suggestedShorts.length > 0 && (
-            <div style={{ padding: "12px", borderRadius: "10px", background: "rgba(0,0,0,0.3)", fontSize: "12px" }}>
-              <div style={{ fontSize: "11px", color: "#fde047", textTransform: "uppercase", fontWeight: "700", marginBottom: "6px" }}>🎬 Suggested Shorts & Clips:</div>
+            <div style={{ padding: "12px", borderRadius: "10px", background: isDark ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.03)", fontSize: "12px" }}>
+              <div style={{ fontSize: "11px", color: isDark ? "#fde047" : "#d97706", textTransform: "uppercase", fontWeight: "700", marginBottom: "6px" }}>🎬 Suggested Shorts & Clips:</div>
               {finalAI.suggestedShorts.map((s: string, i: number) => (
-                <div key={i} style={{ color: "#e2e8f0", margin: "2px 0" }}>• {s}</div>
+                <div key={i} style={{ color: isDark ? "#e2e8f0" : "#334155", margin: "2px 0" }}>• {s}</div>
               ))}
             </div>
           )}
@@ -115,10 +119,10 @@ export const AIProducerTab: React.FC<AIProducerTabProps> = ({
           >
             🤖
           </div>
-          <h3 style={{ fontSize: "16px", fontWeight: "800", color: "#f8fafc", marginBottom: "6px" }}>
+          <h3 style={{ fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: "6px" }}>
             AI Producer is Analyzing Your Stream...
           </h3>
-          <p style={{ fontSize: "13px", color: "#64748b", maxWidth: "420px", lineHeight: 1.5 }}>
+          <p style={{ fontSize: "13px", color: isDark ? "#64748b" : "#64748b", maxWidth: "420px", lineHeight: 1.5 }}>
             The AI Producer engine evaluates chat sentiment, momentum spikes, and engagement patterns to generate real-time recommendations.
           </p>
         </div>
@@ -128,7 +132,7 @@ export const AIProducerTab: React.FC<AIProducerTabProps> = ({
       {insights.length > 0 && (
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>Filter Priority:</span>
+            <span style={{ fontSize: "12px", color: isDark ? "#64748b" : "#64748b", fontWeight: "600" }}>Filter Priority:</span>
             {["all", "high", "medium", "low"].map((p) => (
               <button
                 key={p}
@@ -139,9 +143,9 @@ export const AIProducerTab: React.FC<AIProducerTabProps> = ({
                   fontSize: "11px",
                   fontWeight: "700",
                   textTransform: "uppercase",
-                  border: filterPriority === p ? "1px solid #a855f7" : "1px solid rgba(255,255,255,0.08)",
-                  background: filterPriority === p ? "rgba(168,85,247,0.15)" : "rgba(255,255,255,0.02)",
-                  color: filterPriority === p ? "#c084fc" : "#94a3b8",
+                  border: filterPriority === p ? "1px solid #a855f7" : (isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)"),
+                  background: filterPriority === p ? "rgba(168,85,247,0.15)" : (isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)"),
+                  color: filterPriority === p ? (isDark ? "#c084fc" : "#7c3aed") : (isDark ? "#94a3b8" : "#64748b"),
                   cursor: "pointer",
                 }}
               >
@@ -149,7 +153,7 @@ export const AIProducerTab: React.FC<AIProducerTabProps> = ({
               </button>
             ))}
           </div>
-          <span style={{ fontSize: "12px", color: "#64748b" }}>
+          <span style={{ fontSize: "12px", color: isDark ? "#64748b" : "#64748b" }}>
             {filtered.length} Recommendation{filtered.length !== 1 ? "s" : ""}
           </span>
         </div>

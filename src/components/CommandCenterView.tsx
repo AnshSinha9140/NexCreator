@@ -20,7 +20,8 @@ export const CommandCenterView: React.FC<{
   profile,
   completedSessionsCount = 0,
 }) => {
-  const { currentUser } = useApp();
+  const { currentUser, theme } = useApp();
+  const isDark = theme === "dark";
 
   // State
   const [connectedPlatforms, setConnectedPlatforms] = useState<ConnectedPlatformAccount[]>([]);
@@ -105,9 +106,11 @@ export const CommandCenterView: React.FC<{
           gap: "20px",
           padding: "16px 20px",
           borderRadius: "18px",
-          background: "linear-gradient(135deg, rgba(18,22,40,0.9) 0%, rgba(10,13,24,0.97) 100%)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          boxShadow: "0 16px 40px rgba(0,0,0,0.4)",
+          background: isDark
+            ? "linear-gradient(135deg, rgba(18,22,40,0.9) 0%, rgba(10,13,24,0.97) 100%)"
+            : "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
+          border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid #e2e8f0",
+          boxShadow: isDark ? "0 16px 40px rgba(0,0,0,0.4)" : "0 4px 20px rgba(0,0,0,0.05)",
           maxWidth: "42rem",
           height: "auto",
         }}
@@ -132,10 +135,10 @@ export const CommandCenterView: React.FC<{
             {(currentUser?.email?.[0] ?? "C").toUpperCase()}
           </div>
           <div>
-            <h1 style={{ fontSize: "22px", fontWeight: "800", color: "#f8fafc", lineHeight: 1.2 }}>
+            <h1 style={{ fontSize: "22px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", lineHeight: 1.2 }}>
               {getGreeting()}, {displayName}
             </h1>
-            <p style={{ fontSize: "13px", color: "#94a3b8", marginTop: "3px" }}>
+            <p style={{ fontSize: "13px", color: isDark ? "#94a3b8" : "#475569", marginTop: "3px" }}>
               Everything you need to grow your next stream.
             </p>
           </div>
@@ -149,9 +152,9 @@ export const CommandCenterView: React.FC<{
             gap: "8px",
             padding: "6px 14px",
             borderRadius: "99px",
-            background: "rgba(168, 85, 247, 0.1)",
-            border: "1px solid rgba(168, 85, 247, 0.25)",
-            color: "#c084fc",
+            background: isDark ? "rgba(168, 85, 247, 0.1)" : "rgba(168, 85, 247, 0.08)",
+            border: isDark ? "1px solid rgba(168, 85, 247, 0.25)" : "1px solid rgba(168, 85, 247, 0.2)",
+            color: isDark ? "#c084fc" : "#9333ea",
             fontSize: "11px",
             fontWeight: "700",
             fontFamily: "'JetBrains Mono', monospace",
@@ -167,8 +170,10 @@ export const CommandCenterView: React.FC<{
         style={{
           padding: "16px 20px",
           borderRadius: "16px",
-          background: "linear-gradient(135deg, rgba(147, 51, 234, 0.12), rgba(59, 130, 246, 0.12))",
-          border: "1px solid rgba(147, 51, 234, 0.3)",
+          background: isDark
+            ? "linear-gradient(135deg, rgba(147, 51, 234, 0.12), rgba(59, 130, 246, 0.12))"
+            : "linear-gradient(135deg, rgba(147, 51, 234, 0.06), rgba(59, 130, 246, 0.06))",
+          border: isDark ? "1px solid rgba(147, 51, 234, 0.3)" : "1px solid rgba(147, 51, 234, 0.2)",
           display: "flex",
           flexDirection: "column",
           gap: "6px",
@@ -178,11 +183,11 @@ export const CommandCenterView: React.FC<{
       >
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span style={{ fontSize: "16px" }}>📝</span>
-          <span style={{ fontSize: "11px", fontWeight: "800", color: "#c084fc", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+          <span style={{ fontSize: "11px", fontWeight: "800", color: isDark ? "#c084fc" : "#9333ea", textTransform: "uppercase", letterSpacing: "0.5px" }}>
             Today's Manager Note
           </span>
         </div>
-        <div style={{ fontSize: "14px", color: "#f8fafc", lineHeight: "1.6", fontWeight: "600" }}>
+        <div style={{ fontSize: "14px", color: isDark ? "#f8fafc" : "#1e293b", lineHeight: "1.6", fontWeight: "600" }}>
           {managerNote}
         </div>
       </div>
@@ -190,12 +195,12 @@ export const CommandCenterView: React.FC<{
       {/* ─── 2. CONNECTED PLATFORMS SECTION ───────────────────────────────── */}
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-          <h2 style={{ fontSize: "15px", fontWeight: "700", color: "#f8fafc", display: "flex", alignItems: "center", gap: "8px" }}>
+          <h2 style={{ fontSize: "15px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
             <span>🔌</span> Connected Platforms
           </h2>
           <button
             onClick={() => setActiveTab("settings")}
-            style={{ fontSize: "12px", color: "#a855f7", background: "none", border: "none", cursor: "pointer", fontWeight: "600" }}
+            style={{ fontSize: "12px", color: isDark ? "#a855f7" : "#9333ea", background: "none", border: "none", cursor: "pointer", fontWeight: "600" }}
           >
             Manage Connections →
           </button>
@@ -216,14 +221,15 @@ export const CommandCenterView: React.FC<{
                   style={{
                     padding: "14px 18px",
                     borderRadius: "14px",
-                    background: "rgba(13,16,27,0.7)",
+                    background: isDark ? "rgba(13,16,27,0.7)" : "#ffffff",
                     backdropFilter: "blur(16px)",
-                    border: "1px solid rgba(255,255,255,0.07)",
+                    border: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid #e2e8f0",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
                     gap: "14px",
                     height: "auto",
+                    boxShadow: isDark ? "none" : "0 1px 3px rgba(0,0,0,0.05)",
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -233,7 +239,7 @@ export const CommandCenterView: React.FC<{
                         height: "40px",
                         borderRadius: "10px",
                         background: plat.platform === "kick" ? "rgba(83, 252, 24, 0.05)" : "rgba(255, 0, 0, 0.05)",
-                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                        border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -246,15 +252,15 @@ export const CommandCenterView: React.FC<{
                     </div>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                        <span style={{ fontSize: "14px", fontWeight: "700", color: "#f8fafc" }}>{formattedName}</span>
-                        {plat.verified && <span style={{ fontSize: "11px", color: "#10b981", fontWeight: "bold" }}>✓</span>}
+                        <span style={{ fontSize: "14px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a" }}>{formattedName}</span>
+                        {plat.verified && <span style={{ fontSize: "11px", color: isDark ? "#10b981" : "#059669", fontWeight: "bold" }}>✓</span>}
                         {plat.isDefault && (
-                          <span style={{ fontSize: "9px", padding: "1px 5px", borderRadius: "4px", background: "rgba(168,85,247,0.15)", color: "#c084fc", fontFamily: "monospace" }}>
+                          <span style={{ fontSize: "9px", padding: "1px 5px", borderRadius: "4px", background: isDark ? "rgba(168,85,247,0.15)" : "rgba(168,85,247,0.1)", color: isDark ? "#c084fc" : "#9333ea", fontFamily: "monospace" }}>
                             DEFAULT
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: "11px", color: "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>
+                      <div style={{ fontSize: "11px", color: isDark ? "#64748b" : "#64748b", fontFamily: "'JetBrains Mono', monospace" }}>
                         @{plat.username} {plat.followersCount ? `· ${plat.followersCount.toLocaleString()} followers` : ""}
                       </div>
                     </div>
@@ -263,13 +269,13 @@ export const CommandCenterView: React.FC<{
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                       <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#10b981", display: "inline-block" }} />
-                      <span style={{ fontSize: "10px", fontWeight: "700", color: "#94a3b8", fontFamily: "monospace" }}>
+                      <span style={{ fontSize: "10px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b", fontFamily: "monospace" }}>
                         CONNECTED
                       </span>
                     </div>
                     <button
                       onClick={() => setActiveTab("settings")}
-                      style={{ fontSize: "10px", color: "#64748b", background: "none", border: "none", cursor: "pointer" }}
+                      style={{ fontSize: "10px", color: isDark ? "#64748b" : "#64748b", background: "none", border: "none", cursor: "pointer" }}
                     >
                       Configure
                     </button>
@@ -278,12 +284,12 @@ export const CommandCenterView: React.FC<{
               );
             })}
             {/* Future Placeholder Cards */}
-            <div style={{ padding: "14px 18px", borderRadius: "14px", background: "rgba(255,255,255,0.01)", border: "1px dashed rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between", opacity: 0.6, height: "auto" }}>
+            <div style={{ padding: "14px 18px", borderRadius: "14px", background: isDark ? "rgba(255,255,255,0.01)" : "#f8fafc", border: isDark ? "1px dashed rgba(255,255,255,0.06)" : "1px dashed #cbd5e1", display: "flex", alignItems: "center", justifyContent: "space-between", opacity: 0.8, height: "auto" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <span style={{ fontSize: "18px" }}>👾</span>
                 <div>
-                  <div style={{ fontSize: "13px", fontWeight: "700", color: "#94a3b8" }}>Twitch</div>
-                  <div style={{ fontSize: "10px", color: "#475569" }}>Coming Soon</div>
+                  <div style={{ fontSize: "13px", fontWeight: "700", color: isDark ? "#94a3b8" : "#475569" }}>Twitch</div>
+                  <div style={{ fontSize: "10px", color: isDark ? "#475569" : "#94a3b8" }}>Coming Soon</div>
                 </div>
               </div>
             </div>
@@ -294,8 +300,8 @@ export const CommandCenterView: React.FC<{
             style={{
               padding: "16px 20px",
               borderRadius: "14px",
-              background: "rgba(13,16,27,0.5)",
-              border: "1px dashed rgba(255,255,255,0.08)",
+              background: isDark ? "rgba(13,16,27,0.5)" : "#ffffff",
+              border: isDark ? "1px dashed rgba(255,255,255,0.08)" : "1px dashed #cbd5e1",
               textAlign: "center",
               display: "flex",
               flexDirection: "column",
@@ -306,8 +312,8 @@ export const CommandCenterView: React.FC<{
           >
             <span style={{ fontSize: "28px" }}>🔌</span>
             <div>
-              <div style={{ fontSize: "14px", fontWeight: "700", color: "#f8fafc" }}>No Platforms Connected Yet</div>
-              <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
+              <div style={{ fontSize: "14px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a" }}>No Platforms Connected Yet</div>
+              <div style={{ fontSize: "12px", color: isDark ? "#64748b" : "#64748b", marginTop: "2px" }}>
                 Link your Kick or YouTube channel to enable AI live chat analysis and stream pulse metrics.
               </div>
             </div>
@@ -323,30 +329,36 @@ export const CommandCenterView: React.FC<{
         style={{
           padding: "16px 20px",
           borderRadius: "18px",
-          background: activeSession
-            ? "linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(10,13,24,0.95) 100%)"
-            : "linear-gradient(135deg, rgba(18,22,40,0.8) 0%, rgba(10,13,24,0.95) 100%)",
-          border: activeSession ? "1px solid rgba(16,185,129,0.3)" : "1px solid rgba(255,255,255,0.08)",
+          background: isDark
+            ? (activeSession
+                ? "linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(10,13,24,0.95) 100%)"
+                : "linear-gradient(135deg, rgba(18,22,40,0.8) 0%, rgba(10,13,24,0.95) 100%)")
+            : (activeSession
+                ? "linear-gradient(135deg, rgba(16,185,129,0.08) 0%, #ffffff 100%)"
+                : "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)"),
+          border: isDark
+            ? (activeSession ? "1px solid rgba(16,185,129,0.3)" : "1px solid rgba(255,255,255,0.08)")
+            : (activeSession ? "1px solid rgba(16,185,129,0.3)" : "1px solid #e2e8f0"),
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           gap: "24px",
-          boxShadow: "0 20px 45px rgba(0,0,0,0.5)",
+          boxShadow: isDark ? "0 20px 45px rgba(0,0,0,0.5)" : "0 4px 20px rgba(0,0,0,0.05)",
           height: "auto",
         }}
       >
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-            <span className={activeSession ? "badge badge-live" : "badge"} style={{ background: activeSession ? undefined : "rgba(255,255,255,0.05)", color: activeSession ? undefined : "#64748b" }}>
+            <span className={activeSession ? "badge badge-live" : "badge"} style={{ background: activeSession ? undefined : (isDark ? "rgba(255,255,255,0.05)" : "#f1f5f9"), color: activeSession ? undefined : (isDark ? "#64748b" : "#64748b") }}>
               <span className={activeSession ? "live-pulse-dot" : ""} style={{ width: "6px", height: "6px", borderRadius: "50%", background: activeSession ? "#10b981" : "#475569", display: "inline-block" }} />
               {activeSession ? `STATUS: ${activeSession.status.toUpperCase()}` : "STATUS: OFFLINE"}
             </span>
           </div>
 
-          <h2 style={{ fontSize: "20px", fontWeight: "800", color: "#f8fafc", marginBottom: "4px" }}>
+          <h2 style={{ fontSize: "20px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: "4px" }}>
             {activeSession ? activeSession.streamTitle : "No Active Monitoring Session"}
           </h2>
-          <p style={{ fontSize: "12px", color: "#64748b" }}>
+          <p style={{ fontSize: "12px", color: isDark ? "#64748b" : "#475569" }}>
             {activeSession
               ? `Monitoring active on ${activeSession.platform.toUpperCase()} · Duration: ${Math.floor(activeSession.sessionDuration / 60)}m`
               : "NexCreator is currently standby. Connect your channel and start a monitoring session when live."}
@@ -371,15 +383,16 @@ export const CommandCenterView: React.FC<{
           style={{
             padding: "16px",
             borderRadius: "16px",
-            background: "rgba(13,16,27,0.7)",
-            border: "1px solid rgba(255,255,255,0.07)",
+            background: isDark ? "rgba(13,16,27,0.7)" : "#ffffff",
+            border: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid #e2e8f0",
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
             height: "100%",
+            boxShadow: isDark ? "none" : "0 1px 3px rgba(0,0,0,0.05)",
           }}
         >
-          <div style={{ fontSize: "13px", fontWeight: "700", color: "#f8fafc", marginBottom: "10px" }}>
+          <div style={{ fontSize: "13px", fontWeight: "700", color: isDark ? "#c084fc" : "#9333ea", marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.05em", fontFamily: "monospace" }}>
             ⚡ Quick Actions
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
@@ -395,9 +408,9 @@ export const CommandCenterView: React.FC<{
                 style={{
                   padding: "12px 14px",
                   borderRadius: "10px",
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  color: "#cbd5e1",
+                  background: isDark ? "rgba(255,255,255,0.03)" : "#f8fafc",
+                  border: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid #e2e8f0",
+                  color: isDark ? "#cbd5e1" : "#334155",
                   fontSize: "12px",
                   fontWeight: "600",
                   display: "flex",
@@ -408,12 +421,12 @@ export const CommandCenterView: React.FC<{
                   transition: "all 0.15s ease",
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(168,85,247,0.3)";
-                  (e.currentTarget as HTMLButtonElement).style.color = "#c084fc";
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = isDark ? "rgba(168,85,247,0.3)" : "#c084fc";
+                  (e.currentTarget as HTMLButtonElement).style.color = isDark ? "#c084fc" : "#9333ea";
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.06)";
-                  (e.currentTarget as HTMLButtonElement).style.color = "#cbd5e1";
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = isDark ? "rgba(255,255,255,0.06)" : "#e2e8f0";
+                  (e.currentTarget as HTMLButtonElement).style.color = isDark ? "#cbd5e1" : "#334155";
                 }}
               >
                 <span style={{ fontSize: "16px" }}>{act.icon}</span>
@@ -442,12 +455,13 @@ export const CommandCenterView: React.FC<{
         style={{
           padding: "16px",
           borderRadius: "16px",
-          background: "rgba(13,16,27,0.7)",
-          border: "1px solid rgba(255,255,255,0.07)",
+          background: isDark ? "rgba(13,16,27,0.7)" : "#ffffff",
+          border: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid #e2e8f0",
           height: "auto",
+          boxShadow: isDark ? "none" : "0 1px 3px rgba(0,0,0,0.05)",
         }}
       >
-        <div style={{ fontSize: "13px", fontWeight: "700", color: "#f8fafc", marginBottom: "10px" }}>
+        <div style={{ fontSize: "13px", fontWeight: "700", color: isDark ? "#c084fc" : "#9333ea", marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.05em", fontFamily: "monospace" }}>
           🎥 Recent Monitoring Sessions
         </div>
 
@@ -469,8 +483,8 @@ export const CommandCenterView: React.FC<{
                     style={{
                       padding: "12px 14px",
                       borderRadius: "10px",
-                      background: "rgba(255,255,255,0.02)",
-                      border: "1px solid rgba(255,255,255,0.06)",
+                      background: isDark ? "rgba(255,255,255,0.02)" : "#f8fafc",
+                      border: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid #e2e8f0",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
@@ -479,42 +493,40 @@ export const CommandCenterView: React.FC<{
                       cursor: "pointer",
                     }}
                     onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLDivElement).style.background = "rgba(168, 85, 247, 0.08)";
+                      (e.currentTarget as HTMLDivElement).style.background = isDark ? "rgba(168, 85, 247, 0.08)" : "rgba(168, 85, 247, 0.05)";
                       (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(168, 85, 247, 0.3)";
                     }}
                     onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.02)";
-                      (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(255,255,255,0.06)";
+                      (e.currentTarget as HTMLDivElement).style.background = isDark ? "rgba(255,255,255,0.02)" : "#f8fafc";
+                      (e.currentTarget as HTMLDivElement).style.borderColor = isDark ? "rgba(255,255,255,0.06)" : "#e2e8f0";
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                       <span style={{ fontSize: "16px" }}>🎥</span>
                       <div>
-                        <div style={{ fontSize: "13px", fontWeight: "600", color: "#f8fafc" }}>
+                        <div style={{ fontSize: "13px", fontWeight: "600", color: isDark ? "#f8fafc" : "#0f172a" }}>
                           {sess.streamTitle || "Monitored Stream"}
                         </div>
-                        <div style={{ fontSize: "11px", color: "#64748b", fontFamily: "'JetBrains Mono', monospace", marginTop: "2px" }}>
-                          {(sess.platform || "KICK").toUpperCase()} · Peak Viewers: <strong style={{ color: "#60a5fa" }}>{peakViewers.toLocaleString()}</strong>
+                        <div style={{ fontSize: "11px", color: isDark ? "#64748b" : "#64748b", fontFamily: "'JetBrains Mono', monospace", marginTop: "2px" }}>
+                          {(sess.platform || "KICK").toUpperCase()} · Peak Viewers: <strong style={{ color: isDark ? "#60a5fa" : "#2563eb" }}>{peakViewers.toLocaleString()}</strong>
                         </div>
                       </div>
                     </div>
 
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <span style={{ fontSize: "11px", fontWeight: "600", padding: "3px 8px", borderRadius: "6px", background: "rgba(59, 130, 246, 0.12)", color: "#60a5fa", border: "1px solid rgba(59, 130, 246, 0.25)", fontFamily: "monospace" }}>
+                      <span style={{ fontSize: "11px", fontWeight: "600", padding: "3px 8px", borderRadius: "6px", background: isDark ? "rgba(59, 130, 246, 0.12)" : "rgba(59, 130, 246, 0.08)", color: isDark ? "#60a5fa" : "#2563eb", border: isDark ? "1px solid rgba(59, 130, 246, 0.25)" : "1px solid rgba(59, 130, 246, 0.2)", fontFamily: "monospace" }}>
                         👥 {peakViewers.toLocaleString()} Peak
                       </span>
 
                       {clipsCount > 0 ? (
-                        <span style={{ fontSize: "11px", fontWeight: "700", padding: "3px 8px", borderRadius: "6px", background: "rgba(168, 85, 247, 0.15)", color: "#c084fc", border: "1px solid rgba(168, 85, 247, 0.3)", fontFamily: "monospace" }}>
+                        <span style={{ fontSize: "11px", fontWeight: "700", padding: "3px 8px", borderRadius: "6px", background: isDark ? "rgba(168, 85, 247, 0.15)" : "rgba(168, 85, 247, 0.1)", color: isDark ? "#c084fc" : "#9333ea", border: isDark ? "1px solid rgba(168, 85, 247, 0.3)" : "1px solid rgba(168, 85, 247, 0.2)", fontFamily: "monospace" }}>
                           🎬 {clipsCount} {clipsCount === 1 ? "Clip" : "Clips"}
                         </span>
                       ) : (
-                        <span style={{ fontSize: "10px", fontWeight: "700", padding: "3px 8px", borderRadius: "99px", background: "rgba(16,185,129,0.1)", color: "#34d399", fontFamily: "monospace" }}>
-                          {(sess.status || "COMPLETED").toUpperCase()}
+                        <span style={{ fontSize: "11px", fontWeight: "700", padding: "3px 8px", borderRadius: "6px", background: isDark ? "rgba(16, 185, 129, 0.12)" : "rgba(16, 185, 129, 0.08)", color: isDark ? "#34d399" : "#059669", border: isDark ? "1px solid rgba(16, 185, 129, 0.25)" : "1px solid rgba(16, 185, 129, 0.2)", fontFamily: "monospace" }}>
+                          ✓ COMPLETED
                         </span>
                       )}
-
-                      <span style={{ fontSize: "12px", color: "#64748b", marginLeft: "4px" }}>→</span>
                     </div>
                   </div>
                 </Link>
@@ -531,7 +543,7 @@ export const CommandCenterView: React.FC<{
 
       {/* ─── 8. UPCOMING LOCKED MODULE CARDS ─────────────────────────────── */}
       <div>
-        <div style={{ fontSize: "13px", fontWeight: "700", color: "#f8fafc", marginBottom: "10px" }}>
+        <div style={{ fontSize: "13px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: "10px" }}>
           🚀 Intelligence Modules (Coming Soon)
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", height: "auto" }}>
@@ -547,16 +559,17 @@ export const CommandCenterView: React.FC<{
               style={{
                 padding: "12px",
                 borderRadius: "12px",
-                background: "rgba(255,255,255,0.01)",
-                border: "1px dashed rgba(255,255,255,0.06)",
-                opacity: 0.7,
+                background: isDark ? "rgba(255,255,255,0.01)" : "#ffffff",
+                border: isDark ? "1px dashed rgba(255,255,255,0.06)" : "1px dashed #cbd5e1",
+                opacity: isDark ? 0.7 : 0.9,
                 height: "auto",
+                boxShadow: isDark ? "none" : "0 1px 3px rgba(0,0,0,0.04)",
               }}
             >
               <div style={{ fontSize: "20px", marginBottom: "6px" }}>{mod.icon}</div>
-              <div style={{ fontSize: "13px", fontWeight: "700", color: "#e2e8f0" }}>{mod.title}</div>
-              <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>{mod.desc}</div>
-              <span style={{ display: "inline-block", marginTop: "8px", fontSize: "9px", fontWeight: "700", color: "#a855f7", fontFamily: "monospace", textTransform: "uppercase" }}>
+              <div style={{ fontSize: "13px", fontWeight: "700", color: isDark ? "#e2e8f0" : "#0f172a" }}>{mod.title}</div>
+              <div style={{ fontSize: "11px", color: isDark ? "#64748b" : "#475569", marginTop: "2px" }}>{mod.desc}</div>
+              <span style={{ display: "inline-block", marginTop: "8px", fontSize: "9px", fontWeight: "700", color: isDark ? "#a855f7" : "#9333ea", fontFamily: "monospace", textTransform: "uppercase" }}>
                 🔒 Coming Soon
               </span>
             </div>

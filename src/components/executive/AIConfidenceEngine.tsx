@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useApp } from "@/context/AppContext";
 import { AIConfidenceBreakdown } from "@/lib/ai/executiveTypes";
 
 interface AIConfidenceProps {
@@ -8,6 +9,9 @@ interface AIConfidenceProps {
 }
 
 export const AIConfidenceEngine: React.FC<AIConfidenceProps> = ({ confidence }) => {
+  const { theme } = useApp();
+  const isDark = theme === "dark";
+
   const scores = confidence || {
     audienceBehaviour: 94,
     contentStyle: 91,
@@ -29,8 +33,9 @@ export const AIConfidenceEngine: React.FC<AIConfidenceProps> = ({ confidence }) 
       style={{
         padding: "24px",
         borderRadius: "20px",
-        background: "rgba(13, 16, 27, 0.85)",
-        border: "1px solid rgba(255, 255, 255, 0.08)",
+        background: isDark ? "rgba(13, 16, 27, 0.85)" : "#ffffff",
+        border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+        boxShadow: isDark ? "none" : "0 1px 3px rgba(0, 0, 0, 0.05)",
         display: "flex",
         flexDirection: "column",
         gap: "16px",
@@ -40,11 +45,11 @@ export const AIConfidenceEngine: React.FC<AIConfidenceProps> = ({ confidence }) 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span style={{ fontSize: "18px" }}>📊</span>
-          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#f8fafc" }}>
+          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a" }}>
             AI Confidence Engine
           </h3>
         </div>
-        <span style={{ fontSize: "11px", color: "#64748b", fontFamily: "monospace" }}>
+        <span style={{ fontSize: "11px", color: isDark ? "#64748b" : "#64748b", fontFamily: "monospace" }}>
           Depth of System Knowledge (Not Stream Quality)
         </span>
       </div>
@@ -53,18 +58,18 @@ export const AIConfidenceEngine: React.FC<AIConfidenceProps> = ({ confidence }) 
         {categories.map((cat, idx) => (
           <div key={idx} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px" }}>
-              <span style={{ color: "#cbd5e1" }}>{cat.label}</span>
-              <span style={{ fontWeight: "700", color: cat.score > 80 ? "#c084fc" : cat.score > 50 ? "#60a5fa" : "#94a3b8", fontFamily: "monospace" }}>
+              <span style={{ color: isDark ? "#cbd5e1" : "#334155" }}>{cat.label}</span>
+              <span style={{ fontWeight: "700", color: cat.score > 80 ? (isDark ? "#c084fc" : "#9333ea") : cat.score > 50 ? (isDark ? "#60a5fa" : "#2563eb") : (isDark ? "#94a3b8" : "#64748b"), fontFamily: "monospace" }}>
                 {cat.score}%
               </span>
             </div>
-            <div style={{ width: "100%", height: "6px", borderRadius: "99px", background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+            <div style={{ width: "100%", height: "6px", borderRadius: "99px", background: isDark ? "rgba(255,255,255,0.06)" : "#e2e8f0", overflow: "hidden" }}>
               <div
                 style={{
                   width: `${cat.score}%`,
                   height: "100%",
                   borderRadius: "99px",
-                  background: cat.score > 80 ? "#c084fc" : cat.score > 50 ? "#60a5fa" : "#64748b",
+                  background: cat.score > 80 ? (isDark ? "#c084fc" : "#9333ea") : cat.score > 50 ? (isDark ? "#60a5fa" : "#2563eb") : (isDark ? "#64748b" : "#94a3b8"),
                 }}
               />
             </div>

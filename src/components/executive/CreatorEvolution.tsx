@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useApp } from "@/context/AppContext";
 import { CreatorEvolutionItem } from "@/lib/ai/executiveTypes";
 
 interface CreatorEvolutionProps {
@@ -8,6 +9,9 @@ interface CreatorEvolutionProps {
 }
 
 export const CreatorEvolution: React.FC<CreatorEvolutionProps> = ({ evolution }) => {
+  const { theme } = useApp();
+  const isDark = theme === "dark";
+
   const items = evolution || [
     { metric: "Humor Density", change: "+18%", direction: "up", isPositive: true },
     { metric: "Audience Interaction", change: "+9%", direction: "up", isPositive: true },
@@ -20,8 +24,9 @@ export const CreatorEvolution: React.FC<CreatorEvolutionProps> = ({ evolution })
       style={{
         padding: "24px",
         borderRadius: "20px",
-        background: "rgba(13, 16, 27, 0.85)",
-        border: "1px solid rgba(255, 255, 255, 0.08)",
+        background: isDark ? "rgba(13, 16, 27, 0.85)" : "#ffffff",
+        border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0",
+        boxShadow: isDark ? "none" : "0 1px 3px rgba(0, 0, 0, 0.05)",
         display: "flex",
         flexDirection: "column",
         gap: "16px",
@@ -31,11 +36,11 @@ export const CreatorEvolution: React.FC<CreatorEvolutionProps> = ({ evolution })
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span style={{ fontSize: "18px" }}>📈</span>
-          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#f8fafc" }}>
+          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a" }}>
             Creator Evolution
           </h3>
         </div>
-        <span style={{ fontSize: "11px", color: "#94a3b8", fontFamily: "monospace" }}>
+        <span style={{ fontSize: "11px", color: isDark ? "#94a3b8" : "#64748b", fontFamily: "monospace" }}>
           Compared to Previous Broadcasts
         </span>
       </div>
@@ -47,21 +52,21 @@ export const CreatorEvolution: React.FC<CreatorEvolutionProps> = ({ evolution })
             style={{
               padding: "14px",
               borderRadius: "12px",
-              background: "rgba(255,255,255,0.02)",
-              border: "1px solid rgba(255,255,255,0.05)",
+              background: isDark ? "rgba(255,255,255,0.02)" : "#f8fafc",
+              border: isDark ? "1px solid rgba(255,255,255,0.05)" : "1px solid #e2e8f0",
               display: "flex",
               flexDirection: "column",
               gap: "4px",
             }}
           >
-            <span style={{ fontSize: "11px", color: "#94a3b8" }}>{item.metric}</span>
+            <span style={{ fontSize: "11px", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "bold" }}>{item.metric}</span>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <span style={{ fontSize: "16px" }}>{item.direction === "up" ? "↑" : "↓"}</span>
               <strong
                 style={{
                   fontSize: "18px",
                   fontWeight: "900",
-                  color: item.isPositive ? "#34d399" : "#fb7185",
+                  color: item.isPositive ? (isDark ? "#34d399" : "#059669") : (isDark ? "#fb7185" : "#e11d48"),
                 }}
               >
                 {item.change}

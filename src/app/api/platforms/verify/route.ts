@@ -4,20 +4,7 @@ import { getYoutubeChannelStats } from "@/lib/youtube";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const platform = searchParams.get("platform"); // "kick" | "youtube"
-  const urlParam = searchParams.get("url") || searchParams.get("username") || searchParams.get("channel");
-
-  const clientChatroomId = searchParams.get("chatroomId") || undefined;
-
-  if (!platform || !urlParam) {
-    return NextResponse.json(
-      { success: false, error: "Missing platform or url/username query parameter" },
-      { status: 400 }
-    );
-  }
-
+async function verifyChannel(platform: string, urlParam: string, clientChatroomId?: string) {
   const cleanInput = urlParam.trim();
 
   // 1. Kick Verification Flow
@@ -29,10 +16,10 @@ export async function GET(request: Request) {
     username = username.replace("@", "").trim();
 
     if (!username) {
-      return NextResponse.json(
-        { success: false, error: "Please enter a valid Kick username or channel URL (e.g., https://kick.com/username)." },
-        { status: 400 }
-      );
+      return {
+        status: 400,
+        body: { success: false, error: "Please enter a valid Kick username or channel URL (e.g., https://kick.com/username)." }
+      };
     }
 
     try {
@@ -50,19 +37,17 @@ export async function GET(request: Request) {
       } : undefined;
 
       if (official) {
-        return NextResponse.json({
-          success: true,
-          channel: {
-            platform: "kick",
-            username: official.username || username,
-            displayName: official.username || username,
-            avatar: `https://kick.com/favicon.ico`,
-            channelUrl: `https://kick.com/${official.username || username}`,
-            followersCount: official.followersCount || 0,
-            verified: true,
-            kickMetadata,
-          },
-        });
+        const ch = {
+          platform: "kick",
+          username: official.username || username,
+          displayName: official.username || username,
+          avatar: `https://kick.com/favicon.ico`,
+          channelUrl: `https://kick.com/${official.username || username}`,
+          followersCount: official.followersCount || 0,
+          verified: true,
+          kickMetadata,
+        };
+        return { status: 200, body: { success: true, channel: ch, verifiedMeta: ch } };
       }
 
       // Public API lookup fallback (for display data like followers, avatar)
@@ -76,47 +61,40 @@ export async function GET(request: Request) {
 
       if (publicRes.ok) {
         const data = await publicRes.json();
-        return NextResponse.json({
-          success: true,
-          channel: {
-            platform: "kick",
-            username: data.user?.username || username,
-            displayName: data.user?.username || username,
-            avatar: data.user?.profile_pic || `https://kick.com/favicon.ico`,
-            channelUrl: `https://kick.com/${data.user?.username || username}`,
-            followersCount: data.followers_count || data.followersCount || 0,
-            verified: true,
-            kickMetadata,
-          },
-        });
+        const ch = {
+          platform: "kick",
+          username: data.user?.username || username,
+          displayName: data.user?.username || username,
+          avatar: data.user?.profile_pic || `https://kick.com/favicon.ico`,
+          channelUrl: `https://kick.com/${data.user?.username || username}`,
+          followersCount: data.followers_count || data.followersCount || 0,
+          verified: true,
+          kickMetadata,
+        };
+        return { status: 200, body: { success: true, channel: ch, verifiedMeta: ch } };
       }
 
       if (publicRes.status === 404) {
-        return NextResponse.json(
-          { success: false, error: `Kick channel '${username}' was not found. Please verify the URL or handle.` },
-          { status: 404 }
-        );
+        return {
+          status: 404,
+          body: { success: false, error: `Kick channel '${username}' was not found. Please verify the URL or handle.` }
+        };
       }
 
-      // Friendly fallback success payload if Cloudflare block occurs (display data only — chatroomId already resolved above)
-      return NextResponse.json({
-        success: true,
-        channel: {
-          platform: "kick",
-          username: username,
-          displayName: username,
-          avatar: `https://kick.com/favicon.ico`,
-          channelUrl: `https://kick.com/${username}`,
-          followersCount: 0,
-          verified: true,
-          kickMetadata,
-        },
-      });
+      // Friendly fallback success payload if Cloudflare block occurs
+      const ch = {
+        platform: "kick",
+        username: username,
+        displayName: username,
+        avatar: `https://kick.com/favicon.ico`,
+        channelUrl: `https://kick.com/${username}`,
+        followersCount: 0,
+        verified: true,
+        kickMetadata,
+      };
+      return { status: 200, body: { success: true, channel: ch, verifiedMeta: ch } };
     } catch (err: any) {
-      return NextResponse.json(
-        { success: false, error: err.message || "Failed to verify Kick channel" },
-        { status: 500 }
-      );
+      return { status: 500, body: { success: false, error: err.message || "Failed to verify Kick channel" } };
     }
   }
 
@@ -124,18 +102,16 @@ export async function GET(request: Request) {
   if (platform.toLowerCase() === "youtube") {
     try {
       const stats = await getYoutubeChannelStats(cleanInput);
-      return NextResponse.json({
-        success: true,
-        channel: {
-          platform: "youtube",
-          username: stats.handle || "@creator",
-          displayName: stats.title || "YouTube Creator",
-          avatar: stats.avatarUrl || "",
-          channelUrl: cleanInput.startsWith("http") ? cleanInput : `https://youtube.com/${stats.handle}`,
-          followersCount: stats.subscribers || 0,
-          verified: true,
-        },
-      });
+      const ch = {
+        platform: "youtube",
+        username: stats.handle || "@creator",
+        displayName: stats.title || "YouTube Creator",
+        avatar: stats.avatarUrl || "",
+        channelUrl: cleanInput.startsWith("http") ? cleanInput : `https://youtube.com/${stats.handle}`,
+        followersCount: stats.subscribers || 0,
+        verified: true,
+      };
+      return { status: 200, body: { success: true, channel: ch, verifiedMeta: ch } };
     } catch (err: any) {
       console.warn("YouTube channel verify fallback:", err.message);
       
@@ -146,23 +122,62 @@ export async function GET(request: Request) {
         handle = "@" + cleanInput.replace("@", "");
       }
 
-      return NextResponse.json({
-        success: true,
-        channel: {
-          platform: "youtube",
-          username: handle,
-          displayName: handle.replace("@", ""),
-          avatar: "",
-          channelUrl: cleanInput.startsWith("http") ? cleanInput : `https://youtube.com/${handle}`,
-          followersCount: 15400,
-          verified: true,
-        },
-      });
+      const ch = {
+        platform: "youtube",
+        username: handle,
+        displayName: handle.replace("@", ""),
+        avatar: "",
+        channelUrl: cleanInput.startsWith("http") ? cleanInput : `https://youtube.com/${handle}`,
+        followersCount: 15400,
+        verified: true,
+      };
+      return { status: 200, body: { success: true, channel: ch, verifiedMeta: ch } };
     }
   }
 
-  return NextResponse.json(
-    { success: false, error: `Platform '${platform}' is not currently supported for connection verification.` },
-    { status: 400 }
-  );
+  return {
+    status: 400,
+    body: { success: false, error: `Platform '${platform}' is not currently supported for connection verification.` }
+  };
+}
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const platform = searchParams.get("platform");
+  const urlParam = searchParams.get("url") || searchParams.get("username") || searchParams.get("channel");
+  const clientChatroomId = searchParams.get("chatroomId") || undefined;
+
+  if (!platform || !urlParam) {
+    return NextResponse.json(
+      { success: false, error: "Missing platform or url/username query parameter" },
+      { status: 400 }
+    );
+  }
+
+  const result = await verifyChannel(platform, urlParam, clientChatroomId);
+  return NextResponse.json(result.body, { status: result.status });
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const platform = body.platform;
+    const urlParam = body.channelUrl || body.url || body.username || body.channel;
+    const clientChatroomId = body.chatroomId;
+
+    if (!platform || !urlParam) {
+      return NextResponse.json(
+        { success: false, error: "Missing platform or channelUrl parameter" },
+        { status: 400 }
+      );
+    }
+
+    const result = await verifyChannel(platform, urlParam, clientChatroomId);
+    return NextResponse.json(result.body, { status: result.status });
+  } catch (err: any) {
+    return NextResponse.json(
+      { success: false, error: err.message || "Failed to parse request JSON" },
+      { status: 400 }
+    );
+  }
 }

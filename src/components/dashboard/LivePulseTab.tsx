@@ -2,6 +2,7 @@
 
 import React from "react";
 import { PulseSnapshot } from "@/lib/snapshot/types";
+import { useApp } from "@/context/AppContext";
 
 interface LivePulseTabProps {
   snapshots: PulseSnapshot[];
@@ -14,11 +15,14 @@ export const LivePulseTab: React.FC<LivePulseTabProps> = ({
   currentSession,
   isLoading,
 }) => {
+  const { theme } = useApp();
+  const isDark = theme === "dark";
+
   if (isLoading && snapshots.length === 0) {
     return (
       <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
-        <div style={{ height: "120px", background: "rgba(255,255,255,0.03)", borderRadius: "12px" }} />
-        <div style={{ height: "200px", background: "rgba(255,255,255,0.03)", borderRadius: "12px" }} />
+        <div style={{ height: "120px", background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)", borderRadius: "12px" }} />
+        <div style={{ height: "200px", background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)", borderRadius: "12px" }} />
       </div>
     );
   }
@@ -51,10 +55,10 @@ export const LivePulseTab: React.FC<LivePulseTabProps> = ({
         >
           📈
         </div>
-        <h3 style={{ fontSize: "16px", fontWeight: "800", color: "#f8fafc", marginBottom: "6px" }}>
+        <h3 style={{ fontSize: "16px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: "6px" }}>
           Waiting for First Pulse Snapshot...
         </h3>
-        <p style={{ fontSize: "13px", color: "#64748b", maxWidth: "420px", lineHeight: 1.5 }}>
+        <p style={{ fontSize: "13px", color: isDark ? "#64748b" : "#64748b", maxWidth: "420px", lineHeight: 1.5 }}>
           The Pulse Snapshot Engine aggregates live sentiment, chat velocity, and hype scores every window. First snapshot will render automatically.
         </p>
       </div>
@@ -87,17 +91,18 @@ export const LivePulseTab: React.FC<LivePulseTabProps> = ({
           style={{
             padding: "16px",
             borderRadius: "14px",
-            background: "rgba(13,16,27,0.8)",
-            border: "1px solid rgba(255,255,255,0.08)",
+            background: isDark ? "rgba(13,16,27,0.8)" : "#ffffff",
+            border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",
+            boxShadow: isDark ? "none" : "0 4px 16px rgba(0,0,0,0.04)",
           }}
         >
-          <div style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: "700" }}>
+          <div style={{ fontSize: "11px", color: isDark ? "#64748b" : "#64748b", textTransform: "uppercase", fontWeight: "700" }}>
             Live Viewers
           </div>
-          <div style={{ fontSize: "24px", fontWeight: "800", color: "#34d399", marginTop: "4px" }}>
+          <div style={{ fontSize: "24px", fontWeight: "800", color: isDark ? "#34d399" : "#059669", marginTop: "4px" }}>
             {viewerCount.toLocaleString()}
           </div>
-          <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "4px" }}>
+          <div style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#475569", marginTop: "4px" }}>
             ⚡ {velocity} msgs/min
           </div>
         </div>
@@ -107,17 +112,18 @@ export const LivePulseTab: React.FC<LivePulseTabProps> = ({
           style={{
             padding: "16px",
             borderRadius: "14px",
-            background: "rgba(13,16,27,0.8)",
-            border: "1px solid rgba(255,255,255,0.08)",
+            background: isDark ? "rgba(13,16,27,0.8)" : "#ffffff",
+            border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",
+            boxShadow: isDark ? "none" : "0 4px 16px rgba(0,0,0,0.04)",
           }}
         >
-          <div style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: "700" }}>
+          <div style={{ fontSize: "11px", color: isDark ? "#64748b" : "#64748b", textTransform: "uppercase", fontWeight: "700" }}>
             Audience Sentiment
           </div>
-          <div style={{ fontSize: "24px", fontWeight: "800", color: sentimentScore >= 50 ? "#60a5fa" : "#f43f5e", marginTop: "4px" }}>
+          <div style={{ fontSize: "24px", fontWeight: "800", color: sentimentScore >= 50 ? (isDark ? "#60a5fa" : "#2563eb") : (isDark ? "#f43f5e" : "#dc2626"), marginTop: "4px" }}>
             {sentimentScore}%
           </div>
-          <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "4px" }}>
+          <div style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#475569", marginTop: "4px" }}>
             🔥 Engagement: {engagementScore}%
           </div>
         </div>
@@ -127,17 +133,18 @@ export const LivePulseTab: React.FC<LivePulseTabProps> = ({
           style={{
             padding: "16px",
             borderRadius: "14px",
-            background: "rgba(13,16,27,0.8)",
-            border: "1px solid rgba(255,255,255,0.08)",
+            background: isDark ? "rgba(13,16,27,0.8)" : "#ffffff",
+            border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",
+            boxShadow: isDark ? "none" : "0 4px 16px rgba(0,0,0,0.04)",
           }}
         >
-          <div style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: "700" }}>
+          <div style={{ fontSize: "11px", color: isDark ? "#64748b" : "#64748b", textTransform: "uppercase", fontWeight: "700" }}>
             Stream Momentum
           </div>
-          <div style={{ fontSize: "24px", fontWeight: "800", color: "#c084fc", marginTop: "4px" }}>
+          <div style={{ fontSize: "24px", fontWeight: "800", color: isDark ? "#c084fc" : "#7c3aed", marginTop: "4px" }}>
             {momentumScore} pts
           </div>
-          <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "4px" }}>
+          <div style={{ fontSize: "12px", color: isDark ? "#94a3b8" : "#475569", marginTop: "4px" }}>
             🚀 Hype Score: {hypeScore}%
           </div>
         </div>
@@ -148,20 +155,21 @@ export const LivePulseTab: React.FC<LivePulseTabProps> = ({
         style={{
           padding: "20px",
           borderRadius: "16px",
-          background: "rgba(13,16,27,0.8)",
-          border: "1px solid rgba(255,255,255,0.08)",
+          background: isDark ? "rgba(13,16,27,0.8)" : "#ffffff",
+          border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",
+          boxShadow: isDark ? "none" : "0 4px 16px rgba(0,0,0,0.04)",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
           <div>
-            <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "800", color: "#f8fafc" }}>
+            <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a" }}>
               Pulse Snapshot History ({snapshots.length} Windows)
             </h4>
-            <span style={{ fontSize: "11px", color: "#64748b" }}>
+            <span style={{ fontSize: "11px", color: isDark ? "#64748b" : "#64748b" }}>
               Last snapshot generated at {snapshotTime}
             </span>
           </div>
-          <span style={{ fontSize: "11px", padding: "3px 10px", borderRadius: "10px", background: "rgba(52,211,153,0.15)", color: "#34d399", fontWeight: "700" }}>
+          <span style={{ fontSize: "11px", padding: "3px 10px", borderRadius: "10px", background: "rgba(52,211,153,0.15)", color: isDark ? "#34d399" : "#059669", fontWeight: "700" }}>
             ● Fresh Snapshot
           </span>
         </div>
@@ -174,8 +182,8 @@ export const LivePulseTab: React.FC<LivePulseTabProps> = ({
               style={{
                 padding: "12px 16px",
                 borderRadius: "10px",
-                background: "rgba(255,255,255,0.02)",
-                border: "1px solid rgba(255,255,255,0.05)",
+                background: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
+                border: isDark ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.06)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
@@ -183,17 +191,17 @@ export const LivePulseTab: React.FC<LivePulseTabProps> = ({
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <span style={{ fontFamily: "monospace", color: "#94a3b8", fontWeight: "600" }}>
+                <span style={{ fontFamily: "monospace", color: isDark ? "#94a3b8" : "#64748b", fontWeight: "600" }}>
                   #{snapshots.length - idx}
                 </span>
-                <span style={{ color: "#f8fafc", fontWeight: "700" }}>
+                <span style={{ color: isDark ? "#f8fafc" : "#0f172a", fontWeight: "700" }}>
                   {snap.windowEnd ? new Date(snap.windowEnd).toLocaleTimeString() : "Recent"}
                 </span>
               </div>
               <div style={{ display: "flex", gap: "16px", fontFamily: "monospace" }}>
-                <span style={{ color: "#34d399" }}>👥 {snap.viewerMetrics?.averageViewerCount || (snap.metrics as any)?.viewerCount || 0}</span>
-                <span style={{ color: "#60a5fa" }}>💬 {(snap.metrics as any)?.chatVelocity || snap.metrics?.messagesPerMinute || 0}/m</span>
-                <span style={{ color: "#c084fc" }}>⚡ {Math.round(((snap.metrics as any)?.momentumScore || 0) * 100)}m</span>
+                <span style={{ color: isDark ? "#34d399" : "#059669" }}>👥 {snap.viewerMetrics?.averageViewerCount || (snap.metrics as any)?.viewerCount || 0}</span>
+                <span style={{ color: isDark ? "#60a5fa" : "#2563eb" }}>💬 {(snap.metrics as any)?.chatVelocity || snap.metrics?.messagesPerMinute || 0}/m</span>
+                <span style={{ color: isDark ? "#c084fc" : "#7c3aed" }}>⚡ {Math.round(((snap.metrics as any)?.momentumScore || 0) * 100)}m</span>
               </div>
             </div>
           ))}
