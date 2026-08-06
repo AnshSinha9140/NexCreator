@@ -145,7 +145,7 @@ export const AIProducerTab: React.FC<AIProducerTabProps> = ({
                   opacity: item.state === "LATER" ? 0.75 : 1,
                   display: "flex",
                   flexDirection: "column",
-                  justify: "space-between",
+                  justifyContent: "space-between",
                   gap: "10px",
                 }}
               >

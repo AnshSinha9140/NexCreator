@@ -107,7 +107,7 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({
           border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",
           boxShadow: isDark ? "none" : "0 2px 8px rgba(0,0,0,0.04)",
           display: "flex",
-          justify: "space-between",
+          justifyContent: "space-between",
           alignItems: "center",
           fontSize: "12px",
         }}
