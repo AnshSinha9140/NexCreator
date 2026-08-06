@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { CreatorDNAWidget } from "./CreatorDNAWidget";
+import { UnpublishedClipsStudio } from "./UnpublishedClipsStudio";
 import {
   Activity,
   ArrowRight,
@@ -219,83 +221,7 @@ export const LiveCommandBar: React.FC<{
   );
 };
 
-// ─── 3. CREATOR DNA & BENCHMARKS WIDGET ──────────────────────────────────────
 
-export const CreatorDNAWidget: React.FC<{
-  profile: CreatorProfileData;
-}> = ({ profile }) => {
-  return (
-    <motion.div
-      variants={cardVariants}
-      className="w-full rounded-2xl bg-slate-950/80 border border-slate-800/80 p-6 backdrop-blur-xl shadow-xl flex flex-col gap-4"
-    >
-      <div className="flex items-center justify-between">
-        <h3 className="text-xs font-extrabold tracking-widest text-purple-400 uppercase flex items-center gap-2">
-          <Activity className="w-4 h-4 text-purple-400" />
-          <span>Creator DNA & Telemetry Benchmarks</span>
-        </h3>
-        <span className="text-[10px] font-mono text-slate-500 uppercase">Live Calibrated</span>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Metric 1: Total Streams Analyzed */}
-        <div className="rounded-xl bg-slate-900/70 border border-slate-800 p-4 flex flex-col justify-between gap-2">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
-            <span>Total Streams Analyzed</span>
-            <Tv className="w-4 h-4 text-purple-400" />
-          </div>
-          <div className="text-2xl sm:text-3xl font-black text-emerald-400">
-            {profile.totalStreamsAnalyzed}
-          </div>
-          <span className="text-[10px] text-slate-500 font-mono">Sessions Processed</span>
-        </div>
-
-        {/* Metric 2: Avg. Stream Health */}
-        <div className="rounded-xl bg-slate-900/70 border border-slate-800 p-4 flex flex-col justify-between gap-2">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
-            <span>Avg. Stream Health</span>
-            <TrendingUp className="w-4 h-4 text-purple-400" />
-          </div>
-          <div className="text-2xl sm:text-3xl font-black text-purple-400">
-            {profile.avgBroadcastScore}<span className="text-sm font-semibold text-slate-500">/100</span>
-          </div>
-          <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-            <div
-              className="bg-purple-500 h-full rounded-full"
-              style={{ width: `${Math.min(100, Math.max(0, profile.avgBroadcastScore))}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Metric 3: Avg. Chat Velocity */}
-        <div className="rounded-xl bg-slate-900/70 border border-slate-800 p-4 flex flex-col justify-between gap-2">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
-            <span>Avg. Chat Velocity</span>
-            <MessageSquare className="w-4 h-4 text-purple-400" />
-          </div>
-          <div className="text-2xl sm:text-3xl font-black text-blue-400">
-            {profile.avgMessagesPerMinute} <span className="text-xs font-bold text-slate-400">msgs/min</span>
-          </div>
-          <span className="text-[10px] text-slate-500 font-mono">Real-time Audience Tempo</span>
-        </div>
-
-        {/* Metric 4: Audience Mood */}
-        <div className="rounded-xl bg-slate-900/70 border border-slate-800 p-4 flex flex-col justify-between gap-2">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
-            <span>Audience Mood</span>
-            <Flame className="w-4 h-4 text-amber-400" />
-          </div>
-          <div className="text-xl sm:text-2xl font-extrabold text-amber-300">
-            {profile.typicalAudienceMood}
-          </div>
-          <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-mono">
-            <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Calibrated Sentiment
-          </span>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
 
 // ─── 4. INTERACTIVE SESSION HISTORY (BROADCAST HUB) ──────────────────────────
 
@@ -503,8 +429,11 @@ export const DashboardWelcome: React.FC<DashboardWelcomeProps> = ({
         onReviewClips={onReviewClips}
       />
 
+      {/* ⚡ Ready to Publish (Top Highlights Studio) */}
+      <UnpublishedClipsStudio />
+
       {/* 3. Creator DNA & Benchmarks Widget */}
-      <CreatorDNAWidget profile={effectiveProfile} />
+      <CreatorDNAWidget creatorProfile={effectiveProfile} />
 
       {/* 4. Interactive Session History (Broadcast Hub) */}
       <SessionHistoryList sessions={effectiveSessions} />

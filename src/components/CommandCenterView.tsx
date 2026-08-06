@@ -8,6 +8,8 @@ import { ConnectedPlatformAccount, MonitoringSession } from "@/types";
 import { CreatorManagerProfile } from "@/lib/creatorAudit/types";
 import { resolveDashboardState, DashboardState } from "@/lib/dashboardStateResolver";
 import { WaitingForFirstStream } from "./dashboard/WaitingForFirstStream";
+import { CreatorDNAWidget } from "./dashboard/CreatorDNAWidget";
+import { UnpublishedClipsStudio } from "./dashboard/UnpublishedClipsStudio";
 
 export const CommandCenterView: React.FC<{
   setActiveTab: (tab: string) => void;
@@ -362,8 +364,8 @@ export const CommandCenterView: React.FC<{
         </div>
       </div>
 
-      {/* ─── 4. QUICK ACTIONS & CREATOR HEALTH ───────────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "16px", height: "auto" }}>
+      {/* ─── 4. QUICK ACTIONS & CREATOR DNA WIDGET ───────────────────────────── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", height: "auto" }}>
         {/* Quick Actions Grid */}
         <div
           style={{
@@ -418,32 +420,19 @@ export const CommandCenterView: React.FC<{
           </div>
         </div>
 
-        {/* Creator Health Telemetry Card */}
-        <div
-          style={{
-            padding: "16px",
-            borderRadius: "16px",
-            background: "rgba(13,16,27,0.7)",
-            border: "1px solid rgba(255,255,255,0.07)",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            height: "auto",
+        {/* Creator DNA & Benchmarks Widget */}
+        <CreatorDNAWidget
+          creatorProfile={{
+            totalStreamsAnalyzed: totalCompleted,
+            avgBroadcastScore: workspaceState?.latestCompletedSession?.broadcastScore?.overallScore ?? 85,
+            avgMessagesPerMinute: 10,
+            typicalAudienceMood: "Hyped & Engaged",
           }}
-        >
-          <div>
-            <div style={{ fontSize: "11px", fontWeight: "700", color: "#a855f7", textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "'JetBrains Mono', monospace" }}>
-              Monitored Streams
-            </div>
-            <div style={{ fontSize: "36px", fontWeight: "900", color: "#34d399", margin: "4px 0 2px" }}>
-              {totalCompleted}
-            </div>
-          </div>
-          <p style={{ fontSize: "11px", color: "#64748b", lineHeight: 1.4, marginTop: "6px" }}>
-            Your Creator Intelligence profile is dynamically calibrating based on your actual broadcast behavior.
-          </p>
-        </div>
+        />
       </div>
+
+      {/* ─── UNPUBLISHED CLIPS STUDIO ─────────────────────────────────────── */}
+      <UnpublishedClipsStudio clips={workspaceState?.latestHighlights} />
 
       {/* ─── 5. RECENT MONITORING SESSIONS ────────────────────────────────── */}
       <div
