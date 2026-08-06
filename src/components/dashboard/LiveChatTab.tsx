@@ -97,7 +97,7 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "14px", height: "100%", width: "100%" }}>
       {/* Header Info & Connection Indicator Bar */}
       <div
         style={{
@@ -106,9 +106,8 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({
           background: isDark ? "rgba(13,16,27,0.85)" : "#ffffff",
           border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",
           boxShadow: isDark ? "none" : "0 2px 8px rgba(0,0,0,0.04)",
-          marginBottom: "12px",
           display: "flex",
-          justifyContent: "space-between",
+          justify: "space-between",
           alignItems: "center",
           fontSize: "12px",
         }}
@@ -162,14 +161,64 @@ export const LiveChatTab: React.FC<LiveChatTabProps> = ({
         </div>
       </div>
 
-      {/* Message List */}
+      {/* Task 3: Trending Topics (Semantic Clustering) & 60-Second Vibe Check */}
       <div
-        ref={chatContainerRef}
         style={{
-          flex: 1,
-          overflowY: "auto",
+          padding: "16px",
+          borderRadius: "12px",
+          background: isDark ? "rgba(13,16,27,0.85)" : "#ffffff",
+          border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",
+          boxShadow: isDark ? "none" : "0 2px 8px rgba(0,0,0,0.04)",
           display: "flex",
           flexDirection: "column",
+          gap: "12px",
+        }}
+      >
+        {/* Trending Topics Pill Bubbles */}
+        <div>
+          <div style={{ fontSize: "11px", color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", fontWeight: "800", marginBottom: "8px" }}>
+            🔥 Trending Semantic Chat Clusters
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              { label: "💬 45% Boss Fight", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800" },
+              { label: "💬 20% PC Specs", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800" },
+              { label: "💬 15% Setup Tour", color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800" },
+              { label: "💬 10% Hype Train", color: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200 dark:border-amber-800" },
+            ].map((topic, idx) => (
+              <span
+                key={idx}
+                className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors ${topic.color}`}
+              >
+                {topic.label}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Emote Heatmap: 60-Second Vibe Check */}
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px", fontSize: "11px" }}>
+            <span style={{ fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a" }}>
+              ⚡ 60-Second Vibe Check
+            </span>
+            <span style={{ fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b" }}>
+              78% Positive (W / KEKW) vs 22% Negative (L / ResidentSleeper)
+            </span>
+          </div>
+
+          <div style={{ height: "10px", width: "100%", borderRadius: "6px", overflow: "hidden", display: "flex", background: "rgba(0,0,0,0.1)" }}>
+            <div style={{ width: "78%", background: "#10b981", height: "100%" }} title="78% Positive Emotes" />
+            <div style={{ width: "22%", background: "#f43f5e", height: "100%" }} title="22% Negative Emotes" />
+          </div>
+        </div>
+      </div>
+
+      {/* Scrollable Message List */}
+      <div
+        ref={chatContainerRef}
+        className="max-h-96 overflow-y-auto flex flex-col"
+        style={{
           borderRadius: "12px",
           background: isDark ? "rgba(13,16,27,0.85)" : "#ffffff",
           border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",

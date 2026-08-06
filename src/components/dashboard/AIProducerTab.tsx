@@ -12,6 +12,46 @@ interface AIProducerTabProps {
   sessionStatus?: string;
 }
 
+interface RunOfShowItem {
+  id: string;
+  state: "NOW" | "UP NEXT" | "LATER";
+  title: string;
+  timing: string;
+  actionText: string;
+  category: string;
+  confidence: number;
+}
+
+const DEFAULT_RUN_OF_SHOW: RunOfShowItem[] = [
+  {
+    id: "ros-1",
+    state: "NOW",
+    title: "Sustaining Hype (Gameplay Spike)",
+    timing: "Active Now",
+    actionText: "Keep interaction high during current win streak; prompt chat for emote reaction.",
+    category: "🎮 Gameplay Spike",
+    confidence: 94,
+  },
+  {
+    id: "ros-2",
+    state: "UP NEXT",
+    title: "Suggested Q&A Break",
+    timing: "in 5 mins",
+    actionText: "Acknowledge top 3 viewer chat questions before starting next round.",
+    category: "💬 Audience Engagement",
+    confidence: 88,
+  },
+  {
+    id: "ros-3",
+    state: "LATER",
+    title: "Sub Goal Call-to-Action",
+    timing: "in 10 mins",
+    actionText: "Highlight progress toward 500 sub goal with animated overlay.",
+    category: "🚀 Goal Conversion",
+    confidence: 82,
+  },
+];
+
 export const AIProducerTab: React.FC<AIProducerTabProps> = ({
   insights,
   isLoading,
@@ -20,9 +60,24 @@ export const AIProducerTab: React.FC<AIProducerTabProps> = ({
   sessionStatus,
 }) => {
   const [filterPriority, setFilterPriority] = useState<string>("all");
+  const [runOfShow, setRunOfShow] = useState<RunOfShowItem[]>(DEFAULT_RUN_OF_SHOW);
   const finalAI = summary?.finalAIReport;
   const { theme } = useApp();
   const isDark = theme === "dark";
+
+  // Action logic to shift queue forward when Mark Done is clicked
+  const handleShiftQueue = () => {
+    setRunOfShow((prevQueue) => {
+      if (prevQueue.length <= 1) return prevQueue;
+      const remaining = prevQueue.slice(1);
+      // Promote items
+      return remaining.map((item, idx) => ({
+        ...item,
+        state: idx === 0 ? "NOW" : idx === 1 ? "UP NEXT" : "LATER",
+        timing: idx === 0 ? "Active Now" : idx === 1 ? "in 5 mins" : "in 10 mins",
+      }));
+    });
+  };
 
   if (isLoading && insights.length === 0 && !finalAI) {
     return (
@@ -40,7 +95,113 @@ export const AIProducerTab: React.FC<AIProducerTabProps> = ({
   });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px", width: "100%" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px", width: "100%" }}>
+      {/* Task 2: Predictive 15-Minute Run of Show Queue */}
+      <div
+        style={{
+          padding: "20px",
+          borderRadius: "16px",
+          background: isDark ? "rgba(13,16,27,0.85)" : "#ffffff",
+          border: isDark ? "1px solid rgba(168,85,247,0.3)" : "1px solid rgba(168,85,247,0.2)",
+          boxShadow: isDark ? "0 4px 20px rgba(0,0,0,0.2)" : "0 4px 16px rgba(0,0,0,0.04)",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: "15px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+              <span>⏱️</span> Run of Show Queue (Next 15 Minutes)
+            </h3>
+            <span style={{ fontSize: "11px", color: isDark ? "#94a3b8" : "#64748b" }}>
+              Predictive AI sequence mapping active stream pacing & queued actions
+            </span>
+          </div>
+          <span style={{ fontSize: "11px", fontWeight: "700", color: isDark ? "#c084fc" : "#7c3aed", background: "rgba(168,85,247,0.15)", padding: "3px 10px", borderRadius: "10px" }}>
+            Real-Time Pacing Queue
+          </span>
+        </div>
+
+        {/* 3 State Blocks Container */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
+          {runOfShow.slice(0, 3).map((item) => {
+            const isNow = item.state === "NOW";
+            const isUpNext = item.state === "UP NEXT";
+
+            return (
+              <div
+                key={item.id}
+                style={{
+                  padding: "14px",
+                  borderRadius: "12px",
+                  background: isNow
+                    ? (isDark ? "rgba(168,85,247,0.15)" : "#f3e8ff")
+                    : isUpNext
+                    ? (isDark ? "rgba(59,130,246,0.1)" : "#eff6ff")
+                    : (isDark ? "rgba(255,255,255,0.02)" : "#f8fafc"),
+                  border: isNow
+                    ? (isDark ? "2px solid #c084fc" : "2px solid #a855f7")
+                    : isUpNext
+                    ? (isDark ? "1px solid rgba(59,130,246,0.3)" : "1px solid #bfdbfe")
+                    : (isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid #e2e8f0"),
+                  opacity: item.state === "LATER" ? 0.75 : 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  justify: "space-between",
+                  gap: "10px",
+                }}
+              >
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <span
+                      style={{
+                        fontSize: "10px",
+                        fontWeight: "800",
+                        padding: "2px 8px",
+                        borderRadius: "6px",
+                        textTransform: "uppercase",
+                        fontFamily: "monospace",
+                        background: isNow ? "#a855f7" : isUpNext ? "#3b82f6" : "#64748b",
+                        color: "#ffffff",
+                      }}
+                    >
+                      [{item.state}] {item.timing}
+                    </span>
+                    <span style={{ fontSize: "10px", fontWeight: "700", color: isDark ? "#94a3b8" : "#64748b" }}>
+                      {item.confidence}% AI
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: "13px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a", marginBottom: "4px" }}>
+                    {item.title}
+                  </div>
+                  <div style={{ fontSize: "11px", color: isDark ? "#cbd5e1" : "#475569", lineHeight: 1.4 }}>
+                    {item.actionText}
+                  </div>
+                </div>
+
+                {isNow && (
+                  <button
+                    onClick={handleShiftQueue}
+                    style={{
+                      width: "100%",
+                      padding: "6px 12px",
+                      borderRadius: "8px",
+                      fontSize: "11px",
+                      fontWeight: "700",
+                      background: "#a855f7",
+                      color: "#ffffff",
+                      border: "none",
+                      cursor: "pointer",
+                      transition: "transform 0.1s ease",
+                    }}
+                  >
+                    ✓ Mark Done & Shift Queue
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
       {/* Permanent Final AI Producer Report */}
       {(sessionStatus === "completed" || finalAI) && (
         <div
