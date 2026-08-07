@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useApp } from "@/context/AppContext";
 
 interface CompletedHeaderProps {
   platformDisplayName?: string;
@@ -15,6 +16,9 @@ export const CompletedHeader: React.FC<CompletedHeaderProps> = ({
   durationMinutes = 0,
   completedAt,
 }) => {
+  const { theme } = useApp();
+  const isDark = theme === "dark";
+
   const formattedTime = completedAt
     ? new Date(completedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     : "Just now";
@@ -29,9 +33,10 @@ export const CompletedHeader: React.FC<CompletedHeaderProps> = ({
         width: "100%",
         padding: "20px 24px",
         borderRadius: "16px",
-        background: "rgba(15, 23, 42, 0.6)",
+        background: isDark ? "rgba(15, 23, 42, 0.85)" : "#ffffff",
         backdropFilter: "blur(16px)",
-        border: "1px solid rgba(255, 255, 255, 0.08)",
+        border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
+        boxShadow: isDark ? "none" : "0 4px 20px rgba(0, 0, 0, 0.04)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -45,8 +50,8 @@ export const CompletedHeader: React.FC<CompletedHeaderProps> = ({
             width: "44px",
             height: "44px",
             borderRadius: "12px",
-            background: "rgba(52, 211, 153, 0.1)",
-            border: "1px solid rgba(52, 211, 153, 0.25)",
+            background: isDark ? "rgba(52, 211, 153, 0.1)" : "#d1fae5",
+            border: isDark ? "1px solid rgba(52, 211, 153, 0.25)" : "1px solid #a7f3d0",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -61,7 +66,7 @@ export const CompletedHeader: React.FC<CompletedHeaderProps> = ({
               style={{
                 fontSize: "11px",
                 fontWeight: "800",
-                color: "#34d399",
+                color: isDark ? "#34d399" : "#059669",
                 letterSpacing: "0.08em",
                 textTransform: "uppercase",
                 fontFamily: "monospace",
@@ -69,25 +74,26 @@ export const CompletedHeader: React.FC<CompletedHeaderProps> = ({
             >
               Broadcast Report
             </span>
-            <span style={{ fontSize: "12px", color: "#64748b" }}>•</span>
+            <span style={{ fontSize: "12px", color: isDark ? "#64748b" : "#94a3b8" }}>•</span>
             <span
               style={{
                 padding: "2px 8px",
                 borderRadius: "6px",
                 fontSize: "11px",
                 fontWeight: "700",
-                background: "rgba(255, 255, 255, 0.06)",
-                color: "#cbd5e1",
+                background: isDark ? "rgba(255, 255, 255, 0.06)" : "#f1f5f9",
+                color: isDark ? "#cbd5e1" : "#475569",
+                border: isDark ? "none" : "1px solid #e2e8f0",
               }}
             >
               {platformDisplayName}
             </span>
-            <span style={{ fontSize: "12px", color: "#64748b" }}>•</span>
-            <span style={{ fontSize: "12px", color: "#34d399", fontWeight: "600" }}>
+            <span style={{ fontSize: "12px", color: isDark ? "#64748b" : "#94a3b8" }}>•</span>
+            <span style={{ fontSize: "12px", color: isDark ? "#34d399" : "#059669", fontWeight: "600" }}>
               ✓ Completed Successfully
             </span>
           </div>
-          <h1 style={{ margin: 0, fontSize: "20px", fontWeight: "800", color: "#f8fafc" }}>
+          <h1 style={{ margin: 0, fontSize: "20px", fontWeight: "800", color: isDark ? "#f8fafc" : "#0f172a" }}>
             {streamTitle || `${platformDisplayName} Stream Report`}
           </h1>
         </div>
@@ -95,21 +101,21 @@ export const CompletedHeader: React.FC<CompletedHeaderProps> = ({
 
       <div style={{ display: "flex", alignItems: "center", gap: "20px", textAlign: "right" }}>
         <div>
-          <div style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: "700" }}>
+          <div style={{ fontSize: "11px", color: isDark ? "#64748b" : "#64748b", textTransform: "uppercase", fontWeight: "700" }}>
             Duration
           </div>
-          <div style={{ fontSize: "14px", fontWeight: "700", color: "#f8fafc", fontFamily: "monospace" }}>
+          <div style={{ fontSize: "14px", fontWeight: "700", color: isDark ? "#f8fafc" : "#0f172a", fontFamily: "monospace" }}>
             {durationMinutes} mins
           </div>
         </div>
 
-        <div style={{ width: "1px", height: "28px", background: "rgba(255, 255, 255, 0.08)" }} />
+        <div style={{ width: "1px", height: "28px", background: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.08)" }} />
 
         <div>
-          <div style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: "700" }}>
+          <div style={{ fontSize: "11px", color: isDark ? "#64748b" : "#64748b", textTransform: "uppercase", fontWeight: "700" }}>
             Completed Date
           </div>
-          <div style={{ fontSize: "13px", fontWeight: "600", color: "#cbd5e1" }}>
+          <div style={{ fontSize: "13px", fontWeight: "600", color: isDark ? "#cbd5e1" : "#475569" }}>
             {formattedDate} at {formattedTime}
           </div>
         </div>

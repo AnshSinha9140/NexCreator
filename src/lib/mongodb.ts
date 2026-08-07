@@ -1,4 +1,4 @@
-import { MongoClient } from "mongodb";
+import { MongoClient, MongoClientOptions } from "mongodb";
 import dns from "dns";
 
 // Ensure Node.js DNS resolver falls back to public DNS servers (8.8.8.8, 1.1.1.1)
@@ -24,21 +24,23 @@ if (uri && uri.includes("mongodb+srv://") && uri.includes("cluster1.kg3dyfq.mong
   }
 }
 
-const options = {};
+const options: MongoClientOptions = {
+  maxPoolSize: 10,
+  minPoolSize: 2,
+  maxIdleTimeMS: 30000,
+  serverSelectionTimeoutMS: 5000,
+};
 
 let client: MongoClient;
 let clientPromise: Promise<MongoClient>;
 
 if (uri) {
   if (process.env.NODE_ENV === "development") {
-    // In development mode, use a global variable so that the value
+    // In development mode, use globalThis so that the MongoClient connection pool
     // is preserved across module reloads caused by HMR (Hot Module Replacement).
-    const globalWithMongo = global as typeof globalThis & {
+    const globalWithMongo = globalThis as typeof globalThis & {
       _mongoClientPromise?: Promise<MongoClient>;
     };
-
-    // Force invalidation of old cached MongoClient that had the SRV lookup bug
-    delete globalWithMongo._mongoClientPromise;
 
     if (!globalWithMongo._mongoClientPromise) {
       client = new MongoClient(uri, options);
@@ -46,13 +48,12 @@ if (uri) {
     }
     clientPromise = globalWithMongo._mongoClientPromise;
   } else {
-    // In production mode, it's best to not use a global variable.
+    // In production mode, instantiate directly without using globalThis.
     client = new MongoClient(uri, options);
     clientPromise = client.connect();
   }
 } else {
   // Graceful fallback for build-time compilation to prevent Vercel build failures.
-  // It will only throw an error at runtime if the DB is actually queried.
   clientPromise = Promise.reject(new Error('Invalid/Missing environment variable: "MONGODB_URI"'));
 }
 
@@ -63,5 +64,5 @@ export async function connectToDatabase() {
 }
 
 // Export a module-scoped MongoClient promise. By doing this in a
-// separate module, the client can be shared across functions.
+// separate module, the client promise can be shared across API handlers.
 export default clientPromise;

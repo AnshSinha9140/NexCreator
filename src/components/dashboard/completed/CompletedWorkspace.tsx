@@ -12,6 +12,7 @@ import { CompletedChatArchive } from "./CompletedChatArchive";
 import { CompletedHighlights } from "./CompletedHighlights";
 import { CompletedCreatorIntelligence } from "./CompletedCreatorIntelligence";
 import { CompletedContentStrategy } from "./CompletedContentStrategy";
+import { useApp } from "@/context/AppContext";
 
 
 export type CompletedModuleTab = "intelligence" | "strategy" | "overview" | "producer" | "timeline" | "chat" | "highlights";
@@ -65,6 +66,9 @@ export const CompletedWorkspace: React.FC<CompletedWorkspaceProps> = ({
 
 
 
+  const { theme } = useApp();
+  const isDark = theme === "dark";
+
   return (
     <div
       style={{
@@ -73,10 +77,10 @@ export const CompletedWorkspace: React.FC<CompletedWorkspaceProps> = ({
         gap: "24px",
         maxWidth: "1400px",
         margin: "0 auto",
-        padding: "24px",
+        padding: "0 24px 24px 24px",
         minHeight: "100vh",
         background: "transparent",
-        color: "#f8fafc",
+        color: isDark ? "#f8fafc" : "#0f172a",
         fontFamily: "'Inter', sans-serif",
       }}
     >
@@ -95,9 +99,10 @@ export const CompletedWorkspace: React.FC<CompletedWorkspaceProps> = ({
           gap: "8px",
           padding: "6px",
           borderRadius: "14px",
-          background: "rgba(13, 16, 27, 0.85)",
+          background: isDark ? "rgba(13, 16, 27, 0.85)" : "#ffffff",
           backdropFilter: "blur(20px)",
-          border: "1px solid rgba(255, 255, 255, 0.08)",
+          border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
+          boxShadow: isDark ? "none" : "0 4px 16px rgba(0, 0, 0, 0.04)",
           width: "fit-content",
         }}
       >
@@ -114,13 +119,13 @@ export const CompletedWorkspace: React.FC<CompletedWorkspaceProps> = ({
                 padding: "8px 16px",
                 borderRadius: "10px",
                 border: "none",
-                background: isActive ? "rgba(52, 211, 153, 0.12)" : "transparent",
-                color: isActive ? "#34d399" : "#94a3b8",
+                background: isActive ? (isDark ? "rgba(52, 211, 153, 0.15)" : "#d1fae5") : "transparent",
+                color: isActive ? (isDark ? "#34d399" : "#065f46") : (isDark ? "#94a3b8" : "#64748b"),
                 fontSize: "13px",
                 fontWeight: isActive ? "700" : "500",
                 cursor: "pointer",
                 transition: "all 0.15s ease",
-                boxShadow: isActive ? "0 0 12px rgba(52, 211, 153, 0.15)" : "none",
+                boxShadow: isActive ? (isDark ? "0 0 12px rgba(52, 211, 153, 0.15)" : "0 2px 8px rgba(16, 185, 129, 0.15)") : "none",
               }}
             >
               <span>{tab.icon}</span>

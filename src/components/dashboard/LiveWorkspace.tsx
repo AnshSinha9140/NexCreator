@@ -85,7 +85,7 @@ export const LiveWorkspace: React.FC<LiveWorkspaceProps> = ({
         gap: "24px",
         maxWidth: "1400px",
         margin: "0 auto",
-        padding: "24px",
+        padding: "0 24px 24px 24px",
         minHeight: "100vh",
         background: "transparent",
         color: isDark ? "#f8fafc" : "#0f172a",

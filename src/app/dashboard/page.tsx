@@ -135,7 +135,7 @@ export default function DashboardPage() {
             flex: 1,
             overflowY: "auto",
             overflowX: "hidden",
-            padding: "28px 32px",
+            padding: "12px 32px 28px 32px",
           }}
         >
           {renderContent()}

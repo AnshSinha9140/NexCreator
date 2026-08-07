@@ -153,7 +153,22 @@ export const TimelineTab: React.FC<TimelineTabProps> = ({
         {/* Task 4: High-Contrast Drop Manual Marker Button */}
         <button
           onClick={handleDropMarker}
-          className="px-4 py-2.5 rounded-xl text-xs font-extrabold bg-amber-500 hover:bg-amber-600 text-white shadow-md hover:shadow-amber-500/20 transition-all flex items-center gap-2 cursor-pointer border border-amber-400"
+          style={{
+            padding: "8px 16px",
+            borderRadius: "12px",
+            background: isDark ? "rgba(245, 158, 11, 0.2)" : "#fef3c7",
+            color: isDark ? "#fbbf24" : "#92400e",
+            border: isDark ? "1px solid rgba(245, 158, 11, 0.4)" : "1px solid #fde68a",
+            fontSize: "12px",
+            fontWeight: "800",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "8px",
+            whiteSpace: "nowrap",
+            boxShadow: isDark ? "none" : "0 2px 8px rgba(245, 158, 11, 0.15)",
+            transition: "all 0.15s ease",
+          }}
         >
           <span>📍</span> Drop Manual Marker
         </button>

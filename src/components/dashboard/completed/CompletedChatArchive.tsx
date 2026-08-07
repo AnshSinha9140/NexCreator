@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { RichChatMessage } from "../chat/RichChatMessage";
 import { TimelineNavigator } from "@/lib/timeline/navigator";
+import { useApp } from "@/context/AppContext";
 
 export type ChatFilterType =
   | "all"
@@ -26,11 +27,20 @@ export const CompletedChatArchive: React.FC<CompletedChatArchiveProps> = ({
   messages = [],
   session,
 }) => {
+  const { theme } = useApp();
+  const isDark = theme === "dark";
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState<ChatFilterType>("all");
   const containerRef = useRef<HTMLDivElement>(null);
 
   const totalCollected = session?.summary?.totalMessagesCollected || messages.length;
+
+  const cardBg = isDark ? "rgba(13, 16, 27, 0.85)" : "#ffffff";
+  const cardBorder = isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)";
+  const cardShadow = isDark ? "none" : "0 4px 16px rgba(0, 0, 0, 0.04)";
+  const textTitle = isDark ? "#f8fafc" : "#0f172a";
+  const textMuted = isDark ? "#94a3b8" : "#64748b";
+  const textBody = isDark ? "#cbd5e1" : "#475569";
 
   // Auto-scroll chat to target timestamp whenTimelineNavigator seeks or custom event fires
   useEffect(() => {
@@ -67,30 +77,32 @@ export const CompletedChatArchive: React.FC<CompletedChatArchiveProps> = ({
 
   const filteredMessages = useMemo(() => {
     return messages.filter((msg) => {
-      const text = (msg.message || "").toLowerCase();
-      const username = (msg.username || "").toLowerCase();
-      const matchText = text.includes(searchTerm.toLowerCase()) || username.includes(searchTerm.toLowerCase());
-      if (!matchText) return false;
+      const txt = (msg.message || "").toLowerCase();
+      const user = (msg.username || "").toLowerCase();
+      const query = searchTerm.toLowerCase();
+
+      const matchesSearch = txt.includes(query) || user.includes(query);
+      if (!matchesSearch) return false;
 
       switch (activeFilter) {
         case "questions":
-          return msg.isQuestion || text.includes("?");
+          return txt.includes("?") || msg.isQuestion;
         case "vip":
-          return msg.isVip || msg.isVipUser;
+          return msg.isVip || msg.badges?.includes("vip");
         case "mods":
-          return msg.isMod || msg.isModerator;
+          return msg.isMod || msg.badges?.includes("moderator");
         case "subscribers":
-          return msg.isSubscriber || msg.badges?.some((b: any) => (typeof b === "string" ? b : b.type)?.includes("subscriber"));
+          return msg.isSubscriber || msg.badges?.includes("subscriber");
         case "spam":
           return msg.isSpam;
         case "funny":
-          return text.includes("lol") || text.includes("lmao") || text.includes("haha") || text.includes("kekw") || text.includes("😂") || text.includes("🤣");
+          return /lol|lmao|kekw|haha|funny|😂|🤣/.test(txt);
         case "toxic":
-          return msg.isToxic || msg.toxicityScore > 0.6;
+          return msg.sentiment < -0.3 || msg.isToxic;
         case "commands":
-          return text.startsWith("!");
+          return txt.startsWith("!");
         case "highlighted":
-          return msg.isHighlighted || msg.isFirstTimeChatter || msg.isQuestion || msg.isVip;
+          return msg.isHighlighted;
         case "first_time":
           return msg.isFirstTimeChatter;
         default:
@@ -106,20 +118,21 @@ export const CompletedChatArchive: React.FC<CompletedChatArchiveProps> = ({
           width: "100%",
           padding: "48px 24px",
           borderRadius: "16px",
-          background: "rgba(13, 16, 27, 0.85)",
-          border: "1px solid rgba(244, 63, 94, 0.3)",
+          background: cardBg,
+          border: isDark ? "1px solid rgba(244, 63, 94, 0.3)" : "1px solid #fecdd3",
+          boxShadow: cardShadow,
           textAlign: "center",
           fontFamily: "'Inter', sans-serif",
         }}
       >
         <div style={{ fontSize: "40px", marginBottom: "16px" }}>💬</div>
-        <h3 style={{ margin: "0 0 8px", fontSize: "18px", fontWeight: "800", color: "#fb7185" }}>
+        <h3 style={{ margin: "0 0 8px", fontSize: "18px", fontWeight: "800", color: isDark ? "#fb7185" : "#e11d48" }}>
           No Persisted Chat Archive Found
         </h3>
-        <div style={{ fontSize: "13px", color: "#cbd5e1", maxWidth: "480px", margin: "0 auto", textAlign: "left", background: "rgba(255,255,255,0.03)", padding: "16px", borderRadius: "10px", fontFamily: "monospace", display: "flex", flexDirection: "column", gap: "6px" }}>
+        <div style={{ fontSize: "13px", color: textBody, maxWidth: "480px", margin: "0 auto", textAlign: "left", background: isDark ? "rgba(255,255,255,0.03)" : "#f8fafc", padding: "16px", borderRadius: "10px", fontFamily: "monospace", display: "flex", flexDirection: "column", gap: "6px", border: isDark ? "none" : "1px solid #e2e8f0" }}>
           <div>Expected: {totalCollected} messages</div>
           <div>Retrieved: 0 messages</div>
-          <div style={{ color: "#fb7185", fontWeight: "700", marginTop: "4px" }}>Session Integrity Check Failed.</div>
+          <div style={{ color: isDark ? "#fb7185" : "#e11d48", fontWeight: "700", marginTop: "4px" }}>Session Integrity Check Failed.</div>
         </div>
       </div>
     );
@@ -154,8 +167,9 @@ export const CompletedChatArchive: React.FC<CompletedChatArchiveProps> = ({
         style={{
           padding: "20px 24px",
           borderRadius: "16px",
-          background: "rgba(13, 16, 27, 0.85)",
-          border: "1px solid rgba(255, 255, 255, 0.08)",
+          background: cardBg,
+          border: cardBorder,
+          boxShadow: cardShadow,
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
@@ -164,17 +178,17 @@ export const CompletedChatArchive: React.FC<CompletedChatArchiveProps> = ({
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
             <span style={{ fontSize: "16px" }}>💬</span>
-            <span style={{ fontSize: "11px", fontWeight: "800", color: "#34d399", textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "monospace" }}>
+            <span style={{ fontSize: "11px", fontWeight: "800", color: isDark ? "#34d399" : "#059669", textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "monospace" }}>
               Session Chat Archive
             </span>
           </div>
-          <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "800", color: "#f8fafc" }}>
+          <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "800", color: textTitle }}>
             Broadcast Messages Record
           </h2>
         </div>
 
-        <div style={{ fontSize: "12px", color: "#64748b", fontFamily: "monospace" }}>
-          {totalCollected} Messages Captured
+        <div style={{ fontSize: "12px", color: textMuted, fontFamily: "monospace" }}>
+          {filteredMessages.length} / {messages.length} Messages Shown
         </div>
       </div>
 
@@ -190,9 +204,9 @@ export const CompletedChatArchive: React.FC<CompletedChatArchiveProps> = ({
             width: "100%",
             padding: "10px 14px",
             borderRadius: "10px",
-            background: "rgba(13, 16, 27, 0.85)",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            color: "#f8fafc",
+            background: cardBg,
+            border: cardBorder,
+            color: textTitle,
             fontSize: "13px",
             outline: "none",
           }}
@@ -209,9 +223,9 @@ export const CompletedChatArchive: React.FC<CompletedChatArchiveProps> = ({
                 style={{
                   padding: "6px 12px",
                   borderRadius: "8px",
-                  border: isActive ? "1px solid rgba(52,211,153,0.4)" : "1px solid rgba(255,255,255,0.06)",
-                  background: isActive ? "rgba(52,211,153,0.15)" : "rgba(0,0,0,0.3)",
-                  color: isActive ? "#34d399" : "#94a3b8",
+                  border: isActive ? (isDark ? "1px solid rgba(52,211,153,0.4)" : "1px solid #a7f3d0") : cardBorder,
+                  background: isActive ? (isDark ? "rgba(52,211,153,0.15)" : "#d1fae5") : (isDark ? "rgba(0,0,0,0.3)" : "#f1f5f9"),
+                  color: isActive ? (isDark ? "#34d399" : "#065f46") : textMuted,
                   fontSize: "11px",
                   fontWeight: isActive ? "700" : "500",
                   cursor: "pointer",
@@ -258,8 +272,8 @@ export const CompletedChatArchive: React.FC<CompletedChatArchiveProps> = ({
                 justifyContent: "space-between",
                 padding: "8px 12px",
                 borderRadius: "10px",
-                background: "rgba(13, 16, 27, 0.7)",
-                border: "1px solid rgba(255, 255, 255, 0.05)",
+                background: isDark ? "rgba(13, 16, 27, 0.7)" : "#ffffff",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.05)" : "1px solid rgba(0, 0, 0, 0.06)",
                 transition: "all 0.2s ease",
               }}
             >

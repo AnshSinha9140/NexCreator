@@ -7,6 +7,8 @@ import { useApp } from "@/context/AppContext";
 interface ManagerThoughtCardProps {
   thought: ManagerThought;
   isPrimary?: boolean;
+  isCurrentFocus?: boolean;
+  count?: number;
 }
 
 const TONE_STYLES: Record<
@@ -31,8 +33,10 @@ const TONE_LABEL: Record<string, string> = {
 export const ManagerThoughtCard: React.FC<ManagerThoughtCardProps> = ({
   thought,
   isPrimary = false,
+  isCurrentFocus = false,
+  count = 1,
 }) => {
-  const [expanded, setExpanded] = useState(isPrimary);
+  const [expanded, setExpanded] = useState(isPrimary || isCurrentFocus);
   const s = TONE_STYLES[thought.tone] ?? TONE_STYLES.observing;
   const { theme } = useApp();
   const isDark = theme === "dark";
@@ -53,16 +57,25 @@ export const ManagerThoughtCard: React.FC<ManagerThoughtCardProps> = ({
 
   return (
     <div
+      className={
+        isCurrentFocus
+          ? "border-2 border-purple-500 shadow-md dark:border-purple-600 transition-all"
+          : ""
+      }
       style={{
         padding: "20px 22px",
         borderRadius: "16px",
-        background: isPrimary
+        background: isCurrentFocus
+          ? (isDark ? "linear-gradient(135deg, rgba(168,85,247,0.15) 0%, rgba(13,16,27,0.95) 100%)" : "#fcf8ff")
+          : isPrimary
           ? (isDark
               ? `linear-gradient(135deg, ${s.bg} 0%, rgba(13,16,27,0.9) 100%)`
               : `linear-gradient(135deg, ${s.bg} 0%, #ffffff 100%)`)
           : (isDark ? "rgba(13,16,27,0.85)" : "#ffffff"),
-        border: `1px solid ${isPrimary ? s.border : (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)")}`,
-        boxShadow: isDark ? "none" : "0 4px 16px rgba(0, 0, 0, 0.04)",
+        border: isCurrentFocus
+          ? undefined
+          : `1px solid ${isPrimary ? s.border : (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)")}`,
+        boxShadow: isDark ? "none" : isCurrentFocus ? "0 8px 24px rgba(168,85,247,0.15)" : "0 4px 16px rgba(0, 0, 0, 0.04)",
         display: "flex",
         flexDirection: "column",
         gap: "12px",
@@ -70,15 +83,15 @@ export const ManagerThoughtCard: React.FC<ManagerThoughtCardProps> = ({
         transition: "border-color 0.2s",
       }}
     >
-      {/* Top row: label + confidence */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      {/* Top row: label + persistent duration badge + confidence */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span
             style={{
               width: "7px",
               height: "7px",
               borderRadius: "50%",
-              background: accentColor,
+              background: isCurrentFocus ? "#a855f7" : accentColor,
               display: "inline-block",
               flexShrink: 0,
             }}
@@ -87,13 +100,34 @@ export const ManagerThoughtCard: React.FC<ManagerThoughtCardProps> = ({
             style={{
               fontSize: "10px",
               fontWeight: "800",
-              color: accentColor,
+              color: isCurrentFocus ? (isDark ? "#c084fc" : "#7c3aed") : accentColor,
               textTransform: "uppercase",
               letterSpacing: "0.08em",
             }}
           >
-            {isPrimary ? "Primary Advice" : TONE_LABEL[thought.tone]}
+            {isCurrentFocus ? "🎯 CURRENT FOCUS" : isPrimary ? "Primary Advice" : TONE_LABEL[thought.tone]}
           </span>
+
+          {/* Dynamic Persistent Badge for count > 1 */}
+          {count > 1 && (
+            <span
+              style={{
+                background: isDark ? "rgba(168, 85, 247, 0.25)" : "#f3e8ff",
+                color: isDark ? "#c084fc" : "#6b21a8",
+                border: isDark ? "1px solid rgba(168, 85, 247, 0.4)" : "1px solid #e9d5ff",
+                padding: "2px 10px",
+                borderRadius: "9999px",
+                fontSize: "11px",
+                fontWeight: "700",
+                fontFamily: "monospace",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
+              ⏳ PERSISTENT: {count * 5} MINS
+            </span>
+          )}
         </div>
         <span className="text-xs text-slate-500 italic dark:text-slate-400">
           {thought.confidencePhrase}

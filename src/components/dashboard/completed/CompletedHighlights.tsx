@@ -4,43 +4,75 @@ import React, { useState } from "react";
 import { FinalSessionSummary } from "@/lib/session/lifecycle";
 import { TimelineNavigator } from "@/lib/timeline/navigator";
 import { CanonicalHighlight } from "@/lib/intelligence/canonicalTypes";
+import { useApp } from "@/context/AppContext";
 
 interface CompletedHighlightsProps {
-  highlights?: CanonicalHighlight[];
-  session?: any;
   summary?: FinalSessionSummary | null;
+  session?: any;
+  bundle?: any;
+  highlights?: any[];
 }
 
 export const CompletedHighlights: React.FC<CompletedHighlightsProps> = ({
-  highlights = [],
-  session,
   summary,
+  session,
+  bundle,
+  highlights: directHighlights = [],
 }) => {
-  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({
-    highlight_001: true,
-  });
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const { theme } = useApp();
+  const isDark = theme === "dark";
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const copiedKey = copiedId;
+  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
+
+  const cardBg = isDark ? "rgba(13, 16, 27, 0.85)" : "#ffffff";
+  const cardBorder = isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)";
+  const cardShadow = isDark ? "none" : "0 4px 16px rgba(0, 0, 0, 0.04)";
+  const textTitle = isDark ? "#f8fafc" : "#0f172a";
+  const textMuted = isDark ? "#94a3b8" : "#64748b";
+  const textBody = isDark ? "#cbd5e1" : "#475569";
+
+  const canonicalHighlights: any[] =
+    directHighlights.length > 0 ? directHighlights : (bundle?.sessionIntelligence?.highlights || []);
+
+  const legacyHighlights: any[] = (bundle?.highlights || []).map((h: any, idx: number) => ({
+    highlightId: h.id || `hl-${idx}`,
+    title: h.title || h.summary || `Highlight Clip #${idx + 1}`,
+    reasoning: h.description || h.reasoning || "High chat engagement spike detected during live broadcast.",
+    startTime: h.startTime || h.timestamp || "00:00:00",
+    endTime: h.endTime || "00:01:00",
+    confidence: h.confidence || h.viralityScore || 85,
+    publishingPackage: {
+      title: h.title || h.summary || `Highlight Clip #${idx + 1}`,
+      description: h.description || "Captured live during stream broadcast.",
+      tags: ["#gaming", "#highlight", "#streamer", "#clip"],
+      platformFit: ["YouTube Shorts", "TikTok", "Instagram Reels"],
+    },
+  }));
+
+  const highlights = canonicalHighlights.length > 0 ? canonicalHighlights : legacyHighlights;
 
   const toggleExpand = (id: string) => {
     setExpandedIds((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const copyToClipboard = (text: string, key: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedKey(key);
-    setTimeout(() => setCopiedKey(null), 2000);
+  const copyPackage = (e: React.MouseEvent, hl: any) => {
+    e.stopPropagation();
+    const pkgText = `TITLE:\n${hl.publishingPackage?.title || hl.title}\n\nDESCRIPTION:\n${hl.publishingPackage?.description || ""}\n\nTAGS:\n${(hl.publishingPackage?.tags || []).join(" ")}`;
+    navigator.clipboard.writeText(pkgText);
+    setCopiedId(hl.highlightId);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   const handleTimestampClick = (e: React.MouseEvent, timestamp: string, label: string) => {
     e.stopPropagation();
-    TimelineNavigator.open({
-      timestamp,
-      label,
-      source: "Highlight Studio",
-      platform: session?.platform || summary?.platformDisplayName,
-      vodUrl: session?.streamUrl || session?.vodUrl || (summary as any)?.streamUrl,
-      sessionId: session?.id || summary?.sessionId,
-    });
+    TimelineNavigator.seek(timestamp || "00:00:00", label || "Highlight Moment", "Highlight Studio");
+  };
+
+  const copyToClipboard = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(key);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   const count = highlights.length;
@@ -52,17 +84,18 @@ export const CompletedHighlights: React.FC<CompletedHighlightsProps> = ({
           width: "100%",
           padding: "48px 24px",
           borderRadius: "16px",
-          background: "rgba(13, 16, 27, 0.85)",
-          border: "1px solid rgba(255, 255, 255, 0.08)",
+          background: cardBg,
+          border: cardBorder,
+          boxShadow: cardShadow,
           textAlign: "center",
           fontFamily: "'Inter', sans-serif",
         }}
       >
         <div style={{ fontSize: "40px", marginBottom: "16px" }}>🎬</div>
-        <h3 style={{ margin: "0 0 8px", fontSize: "18px", fontWeight: "800", color: "#f8fafc" }}>
+        <h3 style={{ margin: "0 0 8px", fontSize: "18px", fontWeight: "800", color: textTitle }}>
           No Editorial Highlights Approved
         </h3>
-        <p style={{ fontSize: "14px", color: "#94a3b8", maxWidth: "480px", margin: "0 auto" }}>
+        <p style={{ fontSize: "14px", color: textMuted, maxWidth: "480px", margin: "0 auto" }}>
           This session did not produce qualifying peak moments exceeding our strict evidence thresholds, or stream duration was too brief.
         </p>
       </div>
@@ -359,7 +392,7 @@ export const CompletedHighlights: React.FC<CompletedHighlightsProps> = ({
                         {hl.chatEvidence.velocity} msgs/min surge
                       </div>
                       <div style={{ display: "flex", gap: "4px", marginTop: "4px" }}>
-                        {hl.chatEvidence.topEmotes.map((em, i) => (
+                        {(hl.chatEvidence?.topEmotes || []).map((em: string, i: number) => (
                           <span
                             key={i}
                             style={{
@@ -521,7 +554,7 @@ export const CompletedHighlights: React.FC<CompletedHighlightsProps> = ({
                             marginTop: "6px",
                           }}
                         >
-                          {pkg.checklist.map((item, i) => (
+                          {(pkg.checklist || []).map((item: string, i: number) => (
                             <div key={i} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                               <span style={{ color: "#34d399" }}>✓</span> {item}
                             </div>

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { FinalSessionSummary } from "@/lib/session/lifecycle";
+import { useApp } from "@/context/AppContext";
 
 interface CompletedSessionOverviewCardProps {
   summary?: FinalSessionSummary | null;
@@ -14,6 +15,9 @@ export const CompletedSessionSummary: React.FC<CompletedSessionOverviewCardProps
   session,
   bundle,
 }) => {
+  const { theme } = useApp();
+  const isDark = theme === "dark";
+
   const canonical = bundle?.sessionIntelligence;
   const duration = canonical?.session?.durationMinutes || summary?.durationMinutes || (session?.sessionDuration ? Math.round(session.sessionDuration / 60) : 1);
   const peakViewers = canonical?.telemetry?.peakViewers || summary?.peakViewers || session?.peakViewerCount || session?.viewerCount || 0;
@@ -26,7 +30,6 @@ export const CompletedSessionSummary: React.FC<CompletedSessionOverviewCardProps
   const highlights = canonical?.highlights?.length ?? bundle?.highlights?.length ?? summary?.highlightsGeneratedCount ?? 0;
   const health = canonical?.executiveSummary?.overallScore ?? summary?.healthScore ?? 88;
 
-
   // Session Integrity Flags
   const sessionType = summary?.sessionType || session?.sessionType || (snapshots >= 2 && totalMessages >= 25 ? "COMPLETE" : totalMessages > 0 || snapshots > 0 ? "PARTIAL" : "EMPTY");
   const analyticsValid = summary?.integrityFlags?.analyticsValid ?? (sessionType === "COMPLETE");
@@ -35,18 +38,23 @@ export const CompletedSessionSummary: React.FC<CompletedSessionOverviewCardProps
   // Grade derivation logic
   const getOverallGrade = () => {
     if (!analyticsValid || sessionType === "EMPTY") {
-      return { letter: "N/A", label: "Not Available", color: "#64748b", desc: summary?.integrityReason || "Insufficient stream telemetry to evaluate grade." };
+      return { letter: "N/A", label: "Not Available", color: isDark ? "#64748b" : "#94a3b8", desc: summary?.integrityReason || "Insufficient stream telemetry to evaluate grade." };
     }
     if (sessionType === "PARTIAL") {
-      return { letter: "PARTIAL", label: "Partial Stream Data", color: "#eab308", desc: "Partial stream detected; incomplete metrics threshold." };
+      return { letter: "PARTIAL", label: "Partial Stream Data", color: isDark ? "#eab308" : "#d97706", desc: "Partial stream detected; incomplete metrics threshold." };
     }
-    if (health >= 90) return { letter: "A+", label: "Exceptional Broadcast", color: "#34d399", desc: `Session completed with ${health}/100 Stream Health Score.` };
-    if (health >= 80) return { letter: "A", label: "Strong Performance", color: "#60a5fa", desc: `Session completed with ${health}/100 Stream Health Score.` };
-    if (health >= 70) return { letter: "B", label: "Solid Session", color: "#c084fc", desc: `Session completed with ${health}/100 Stream Health Score.` };
-    return { letter: "C", label: "Average Session", color: "#fde047", desc: `Session completed with ${health}/100 Stream Health Score.` };
+    if (health >= 90) return { letter: "A+", label: "Exceptional Broadcast", color: isDark ? "#34d399" : "#059669", desc: `Session completed with ${health}/100 Stream Health Score.` };
+    if (health >= 80) return { letter: "A", label: "Strong Performance", color: isDark ? "#60a5fa" : "#2563eb", desc: `Session completed with ${health}/100 Stream Health Score.` };
+    if (health >= 70) return { letter: "B", label: "Solid Session", color: isDark ? "#c084fc" : "#7c3aed", desc: `Session completed with ${health}/100 Stream Health Score.` };
+    return { letter: "C", label: "Average Session", color: isDark ? "#fde047" : "#ca8a04", desc: `Session completed with ${health}/100 Stream Health Score.` };
   };
 
   const grade = getOverallGrade();
+  const cardBg = isDark ? "rgba(255,255,255,0.02)" : "#f8fafc";
+  const cardBorder = isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid #e2e8f0";
+  const textTitle = isDark ? "#f8fafc" : "#0f172a";
+  const textMuted = isDark ? "#64748b" : "#64748b";
+  const textSub = isDark ? "#94a3b8" : "#475569";
 
   return (
     <div
@@ -54,10 +62,10 @@ export const CompletedSessionSummary: React.FC<CompletedSessionOverviewCardProps
         width: "100%",
         padding: "28px",
         borderRadius: "20px",
-        background: "rgba(13, 16, 27, 0.85)",
+        background: isDark ? "rgba(13, 16, 27, 0.85)" : "#ffffff",
         backdropFilter: "blur(20px)",
-        border: "1px solid rgba(255, 255, 255, 0.08)",
-        boxShadow: "0 20px 50px rgba(0, 0, 0, 0.4)",
+        border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
+        boxShadow: isDark ? "0 20px 50px rgba(0, 0, 0, 0.4)" : "0 4px 20px rgba(0, 0, 0, 0.04)",
         display: "flex",
         flexDirection: "column",
         gap: "24px",
@@ -74,13 +82,13 @@ export const CompletedSessionSummary: React.FC<CompletedSessionOverviewCardProps
               height: "72px",
               padding: "0 12px",
               borderRadius: "18px",
-              background: `rgba(${grade.color === "#34d399" ? "52,211,153" : grade.color === "#64748b" ? "100,116,139" : "234,179,8"}, 0.12)`,
+              background: `rgba(${grade.color === "#34d399" || grade.color === "#059669" ? "52,211,153" : "100,116,139"}, 0.12)`,
               border: `2px solid ${grade.color}`,
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: `0 0 24px rgba(${grade.color === "#34d399" ? "52,211,153" : "100,116,139"}, 0.25)`,
+              boxShadow: `0 0 24px rgba(${grade.color === "#34d399" || grade.color === "#059669" ? "52,211,153" : "100,116,139"}, 0.25)`,
             }}
           >
             <span style={{ fontSize: grade.letter.length > 2 ? "14px" : "28px", fontWeight: "900", color: grade.color, lineHeight: 1 }}>
@@ -92,13 +100,13 @@ export const CompletedSessionSummary: React.FC<CompletedSessionOverviewCardProps
           </div>
 
           <div>
-            <div style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <div style={{ fontSize: "11px", fontWeight: "700", color: textMuted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
               Broadcast Performance Summary • <span style={{ color: grade.color }}>{sessionType} SESSION</span>
             </div>
-            <h2 style={{ margin: "2px 0 0", fontSize: "22px", fontWeight: "900", color: "#f8fafc" }}>
+            <h2 style={{ margin: "2px 0 0", fontSize: "22px", fontWeight: "900", color: textTitle }}>
               {grade.label}
             </h2>
-            <div style={{ fontSize: "13px", color: "#94a3b8", marginTop: "4px" }}>
+            <div style={{ fontSize: "13px", color: textSub, marginTop: "4px" }}>
               {grade.desc}
             </div>
           </div>
@@ -108,15 +116,15 @@ export const CompletedSessionSummary: React.FC<CompletedSessionOverviewCardProps
           style={{
             padding: "12px 20px",
             borderRadius: "14px",
-            background: "rgba(255, 255, 255, 0.03)",
-            border: "1px solid rgba(255, 255, 255, 0.06)",
+            background: cardBg,
+            border: cardBorder,
             textAlign: "right",
           }}
         >
-          <div style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: "700" }}>
+          <div style={{ fontSize: "11px", color: textMuted, textTransform: "uppercase", fontWeight: "700" }}>
             Final Stream Health
           </div>
-          <div style={{ fontSize: "20px", fontWeight: "900", color: healthScoreValid ? "#34d399" : "#64748b", fontFamily: "monospace", marginTop: "2px" }}>
+          <div style={{ fontSize: "20px", fontWeight: "900", color: healthScoreValid ? (isDark ? "#34d399" : "#059669") : textMuted, fontFamily: "monospace", marginTop: "2px" }}>
             {healthScoreValid ? `${health}/100` : "Not Available"}
           </div>
         </div>
@@ -124,42 +132,42 @@ export const CompletedSessionSummary: React.FC<CompletedSessionOverviewCardProps
 
       {/* Primary KPI Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "14px" }}>
-        <div style={{ padding: "16px", borderRadius: "14px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-          <div style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: "700" }}>Duration</div>
-          <div style={{ fontSize: "22px", fontWeight: "900", color: "#f8fafc", marginTop: "6px", fontFamily: "monospace" }}>{duration}m</div>
+        <div style={{ padding: "16px", borderRadius: "14px", background: cardBg, border: cardBorder }}>
+          <div style={{ fontSize: "11px", color: textMuted, textTransform: "uppercase", fontWeight: "700" }}>Duration</div>
+          <div style={{ fontSize: "22px", fontWeight: "900", color: textTitle, marginTop: "6px", fontFamily: "monospace" }}>{duration}m</div>
         </div>
 
-        <div style={{ padding: "16px", borderRadius: "14px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-          <div style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: "700" }}>Peak Viewers</div>
-          <div style={{ fontSize: "22px", fontWeight: "900", color: peakViewers > 0 ? "#c084fc" : "#64748b", marginTop: "6px", fontFamily: "monospace" }}>
+        <div style={{ padding: "16px", borderRadius: "14px", background: cardBg, border: cardBorder }}>
+          <div style={{ fontSize: "11px", color: textMuted, textTransform: "uppercase", fontWeight: "700" }}>Peak Viewers</div>
+          <div style={{ fontSize: "22px", fontWeight: "900", color: peakViewers > 0 ? (isDark ? "#c084fc" : "#7c3aed") : textMuted, marginTop: "6px", fontFamily: "monospace" }}>
             {peakViewers > 0 ? peakViewers.toLocaleString() : "0"}
           </div>
         </div>
 
-        <div style={{ padding: "16px", borderRadius: "14px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-          <div style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: "700" }}>Avg Viewers</div>
-          <div style={{ fontSize: "22px", fontWeight: "900", color: avgViewers > 0 ? "#f8fafc" : "#64748b", marginTop: "6px", fontFamily: "monospace" }}>
+        <div style={{ padding: "16px", borderRadius: "14px", background: cardBg, border: cardBorder }}>
+          <div style={{ fontSize: "11px", color: textMuted, textTransform: "uppercase", fontWeight: "700" }}>Avg Viewers</div>
+          <div style={{ fontSize: "22px", fontWeight: "900", color: avgViewers > 0 ? textTitle : textMuted, marginTop: "6px", fontFamily: "monospace" }}>
             {avgViewers > 0 ? avgViewers.toLocaleString() : "0"}
           </div>
         </div>
 
-        <div style={{ padding: "16px", borderRadius: "14px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-          <div style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: "700" }}>Total Messages</div>
-          <div style={{ fontSize: "22px", fontWeight: "900", color: totalMessages > 0 ? "#34d399" : "#64748b", marginTop: "6px", fontFamily: "monospace" }}>
+        <div style={{ padding: "16px", borderRadius: "14px", background: cardBg, border: cardBorder }}>
+          <div style={{ fontSize: "11px", color: textMuted, textTransform: "uppercase", fontWeight: "700" }}>Total Messages</div>
+          <div style={{ fontSize: "22px", fontWeight: "900", color: totalMessages > 0 ? (isDark ? "#34d399" : "#059669") : textMuted, marginTop: "6px", fontFamily: "monospace" }}>
             {totalMessages.toLocaleString()}
           </div>
         </div>
 
-        <div style={{ padding: "16px", borderRadius: "14px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-          <div style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: "700" }}>Highlights</div>
-          <div style={{ fontSize: "22px", fontWeight: "900", color: highlights > 0 ? "#fde047" : "#64748b", marginTop: "6px", fontFamily: "monospace" }}>
+        <div style={{ padding: "16px", borderRadius: "14px", background: cardBg, border: cardBorder }}>
+          <div style={{ fontSize: "11px", color: textMuted, textTransform: "uppercase", fontWeight: "700" }}>Highlights</div>
+          <div style={{ fontSize: "22px", fontWeight: "900", color: highlights > 0 ? (isDark ? "#fde047" : "#d97706") : textMuted, marginTop: "6px", fontFamily: "monospace" }}>
             {highlights}
           </div>
         </div>
 
-        <div style={{ padding: "16px", borderRadius: "14px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-          <div style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: "700" }}>AI Insights</div>
-          <div style={{ fontSize: "22px", fontWeight: "900", color: aiRecs > 0 ? "#60a5fa" : "#64748b", marginTop: "6px", fontFamily: "monospace" }}>
+        <div style={{ padding: "16px", borderRadius: "14px", background: cardBg, border: cardBorder }}>
+          <div style={{ fontSize: "11px", color: textMuted, textTransform: "uppercase", fontWeight: "700" }}>AI Insights</div>
+          <div style={{ fontSize: "22px", fontWeight: "900", color: aiRecs > 0 ? (isDark ? "#60a5fa" : "#2563eb") : textMuted, marginTop: "6px", fontFamily: "monospace" }}>
             {aiRecs}
           </div>
         </div>

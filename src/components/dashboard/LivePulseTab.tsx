@@ -100,7 +100,17 @@ export const LivePulseTab: React.FC<LivePulseTabProps> = ({
             <span style={{ fontSize: "11px", color: isDark ? "#64748b" : "#64748b", textTransform: "uppercase", fontWeight: "700" }}>
               Live Viewers
             </span>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+            <span
+              style={{
+                fontSize: "11px",
+                fontWeight: 700,
+                padding: "2px 8px",
+                borderRadius: "12px",
+                background: isDark ? "rgba(16, 185, 129, 0.2)" : "#d1fae5",
+                color: isDark ? "#34d399" : "#047857",
+                border: isDark ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid #a7f3d0",
+              }}
+            >
               ↑ 14% vs 30d avg
             </span>
           </div>
@@ -126,7 +136,17 @@ export const LivePulseTab: React.FC<LivePulseTabProps> = ({
             <span style={{ fontSize: "11px", color: isDark ? "#64748b" : "#64748b", textTransform: "uppercase", fontWeight: "700" }}>
               Audience Sentiment
             </span>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+            <span
+              style={{
+                fontSize: "11px",
+                fontWeight: 700,
+                padding: "2px 8px",
+                borderRadius: "12px",
+                background: isDark ? "rgba(16, 185, 129, 0.2)" : "#d1fae5",
+                color: isDark ? "#34d399" : "#047857",
+                border: isDark ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid #a7f3d0",
+              }}
+            >
               ↑ 8% vs 30d avg
             </span>
           </div>
@@ -152,7 +172,17 @@ export const LivePulseTab: React.FC<LivePulseTabProps> = ({
             <span style={{ fontSize: "11px", color: isDark ? "#64748b" : "#64748b", textTransform: "uppercase", fontWeight: "700" }}>
               Stream Momentum
             </span>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+            <span
+              style={{
+                fontSize: "11px",
+                fontWeight: 700,
+                padding: "2px 8px",
+                borderRadius: "12px",
+                background: isDark ? "rgba(168, 85, 247, 0.2)" : "#f3e8ff",
+                color: isDark ? "#c084fc" : "#6b21a8",
+                border: isDark ? "1px solid rgba(168, 85, 247, 0.4)" : "1px solid #e9d5ff",
+              }}
+            >
               ↑ 18% vs 30d avg
             </span>
           </div>
@@ -197,8 +227,8 @@ export const LivePulseTab: React.FC<LivePulseTabProps> = ({
         </div>
 
         {/* SVG Flight Path Chart Component */}
-        <div style={{ width: "100%", height: "160px", position: "relative" }}>
-          <svg width="100%" height="100%" viewBox="0 0 500 140" preserveAspectRatio="none">
+        <div style={{ width: "100%", height: "160px", position: "relative", padding: "0 8px" }}>
+          <svg width="100%" height="100%" viewBox="0 0 520 140" preserveAspectRatio="none">
             <defs>
               <linearGradient id="purpleGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#a855f7" stopOpacity="0.25" />
@@ -207,19 +237,19 @@ export const LivePulseTab: React.FC<LivePulseTabProps> = ({
             </defs>
 
             {/* Gridlines */}
-            <line x1="0" y1="20" x2="500" y2="20" stroke={isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"} strokeDasharray="2 2" />
-            <line x1="0" y1="60" x2="500" y2="60" stroke={isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"} strokeDasharray="2 2" />
-            <line x1="0" y1="100" x2="500" y2="100" stroke={isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"} strokeDasharray="2 2" />
+            <line x1="10" y1="20" x2="505" y2="20" stroke={isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"} strokeDasharray="2 2" />
+            <line x1="10" y1="60" x2="505" y2="60" stroke={isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"} strokeDasharray="2 2" />
+            <line x1="10" y1="100" x2="505" y2="100" stroke={isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"} strokeDasharray="2 2" />
 
             {/* Gradient Fill under Current Stream */}
             <path
-              d="M 0,110 Q 125,75 250,45 T 500,25 L 500,130 L 0,130 Z"
+              d="M 10,110 Q 130,75 255,45 T 505,28 L 505,130 L 10,130 Z"
               fill="url(#purpleGradient)"
             />
 
             {/* Dashed Line: 30-Day Avg Baseline */}
             <path
-              d="M 0,105 Q 125,90 250,75 T 500,65"
+              d="M 10,105 Q 130,90 255,75 T 505,65"
               fill="none"
               stroke={isDark ? "#64748b" : "#94a3b8"}
               strokeWidth="2"
@@ -228,7 +258,7 @@ export const LivePulseTab: React.FC<LivePulseTabProps> = ({
 
             {/* Solid Line: Current Stream */}
             <path
-              d="M 0,110 Q 125,75 250,45 T 500,25"
+              d="M 10,110 Q 130,75 255,45 T 505,28"
               fill="none"
               stroke="#a855f7"
               strokeWidth="3.5"
@@ -236,12 +266,12 @@ export const LivePulseTab: React.FC<LivePulseTabProps> = ({
             />
 
             {/* Current Stream Live Dot */}
-            <circle cx="500" cy="25" r="5" fill="#a855f7" />
-            <circle cx="500" cy="25" r="9" fill="#a855f7" fillOpacity="0.3" />
+            <circle cx="505" cy="28" r="5" fill="#a855f7" />
+            <circle cx="505" cy="28" r="9" fill="#a855f7" fillOpacity="0.3" />
           </svg>
 
           {/* Time Labels X-Axis */}
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: "6px", fontSize: "11px", color: isDark ? "#64748b" : "#64748b", fontFamily: "monospace" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: "6px", fontSize: "11px", color: isDark ? "#64748b" : "#64748b", fontFamily: "monospace", paddingLeft: "4px", paddingRight: "4px" }}>
             <span>00:00</span>
             <span>00:15</span>
             <span>00:30</span>

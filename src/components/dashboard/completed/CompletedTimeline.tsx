@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { FinalSessionSummary } from "@/lib/session/lifecycle";
 import { TimelineNavigator } from "@/lib/timeline/navigator";
 import { BroadcastTimelineEvent } from "@/lib/intelligence/canonicalTypes";
+import { useApp } from "@/context/AppContext";
 
 interface CompletedTimelineProps {
   summary?: FinalSessionSummary | null;
@@ -22,6 +23,8 @@ export const CompletedTimeline: React.FC<CompletedTimelineProps> = ({
   timelineEvents: initialTimelineEvents,
   bundle,
 }) => {
+  const { theme } = useApp();
+  const isDark = theme === "dark";
   const [showDiagnostics, setShowDiagnostics] = useState(false);
 
   // Retrieve canonical timeline events
@@ -42,30 +45,37 @@ export const CompletedTimeline: React.FC<CompletedTimelineProps> = ({
     session?.platform ||
     "Kick";
 
+  const cardBg = isDark ? "rgba(13, 16, 27, 0.85)" : "#ffffff";
+  const cardBorder = isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)";
+  const cardShadow = isDark ? "none" : "0 4px 16px rgba(0, 0, 0, 0.04)";
+  const textTitle = isDark ? "#f8fafc" : "#0f172a";
+  const textMuted = isDark ? "#64748b" : "#64748b";
+  const textBody = isDark ? "#cbd5e1" : "#475569";
+
   // Event icons & styles by type
   const getEventBadge = (type: string) => {
     switch (type) {
       case "STREAM_STARTED":
-        return { icon: "🟢", label: "STREAM STARTED", color: "#34d399", bg: "rgba(52, 211, 153, 0.12)" };
+        return { icon: "🟢", label: "STREAM STARTED", color: isDark ? "#34d399" : "#059669", bg: isDark ? "rgba(52, 211, 153, 0.12)" : "#d1fae5" };
       case "AUDIENCE_ARRIVAL":
-        return { icon: "👥", label: "AUDIENCE ARRIVAL", color: "#60a5fa", bg: "rgba(96, 165, 240, 0.12)" };
+        return { icon: "👥", label: "AUDIENCE ARRIVAL", color: isDark ? "#60a5fa" : "#2563eb", bg: isDark ? "rgba(96, 165, 240, 0.12)" : "#dbeafe" };
       case "CONVERSATION_STARTED":
-        return { icon: "💬", label: "CONVERSATION", color: "#a78bfa", bg: "rgba(167, 139, 250, 0.12)" };
+        return { icon: "💬", label: "CONVERSATION", color: isDark ? "#a78bfa" : "#7c3aed", bg: isDark ? "rgba(167, 139, 250, 0.12)" : "#f3e8ff" };
       case "VIEWER_SPIKE":
       case "PEAK_ENGAGEMENT":
-        return { icon: "🔥", label: "PEAK ENGAGEMENT", color: "#f97316", bg: "rgba(249, 115, 22, 0.12)" };
+        return { icon: "🔥", label: "PEAK ENGAGEMENT", color: isDark ? "#f97316" : "#c2410c", bg: isDark ? "rgba(249, 115, 22, 0.12)" : "#ffedd5" };
       case "FUNNY_MOMENT":
-        return { icon: "😂", label: "FUNNY MOMENT", color: "#facc15", bg: "rgba(250, 204, 21, 0.12)" };
+        return { icon: "😂", label: "FUNNY MOMENT", color: isDark ? "#facc15" : "#ca8a04", bg: isDark ? "rgba(250, 204, 21, 0.12)" : "#fef9c3" };
       case "QUESTION_WAVE":
-        return { icon: "❓", label: "QUESTION WAVE", color: "#38bdf8", bg: "rgba(56, 189, 248, 0.12)" };
+        return { icon: "❓", label: "QUESTION WAVE", color: isDark ? "#38bdf8" : "#0284c7", bg: isDark ? "rgba(56, 189, 248, 0.12)" : "#e0f2fe" };
       case "CLIP_CANDIDATE":
-        return { icon: "🎬", label: "HIGHLIGHT CLIP", color: "#ec4899", bg: "rgba(236, 72, 153, 0.15)" };
+        return { icon: "🎬", label: "HIGHLIGHT CLIP", color: isDark ? "#ec4899" : "#db2777", bg: isDark ? "rgba(236, 72, 153, 0.15)" : "#fce7f3" };
       case "STRONG_FINISH":
-        return { icon: "⭐", label: "STRONG FINISH", color: "#fbbf24", bg: "rgba(251, 191, 36, 0.12)" };
+        return { icon: "⭐", label: "STRONG FINISH", color: isDark ? "#fbbf24" : "#d97706", bg: isDark ? "rgba(251, 191, 36, 0.12)" : "#fef3c7" };
       case "STREAM_ENDED":
-        return { icon: "🏁", label: "STREAM ENDED", color: "#94a3b8", bg: "rgba(148, 163, 184, 0.12)" };
+        return { icon: "🏁", label: "STREAM ENDED", color: isDark ? "#94a3b8" : "#64748b", bg: isDark ? "rgba(148, 163, 184, 0.12)" : "#f1f5f9" };
       default:
-        return { icon: "⏱️", label: "MOMENT", color: "#60a5fa", bg: "rgba(96, 165, 240, 0.12)" };
+        return { icon: "⏱️", label: "MOMENT", color: isDark ? "#60a5fa" : "#2563eb", bg: isDark ? "rgba(96, 165, 240, 0.12)" : "#dbeafe" };
     }
   };
 
@@ -84,8 +94,9 @@ export const CompletedTimeline: React.FC<CompletedTimelineProps> = ({
         style={{
           padding: "20px 24px",
           borderRadius: "16px",
-          background: "rgba(13, 16, 27, 0.85)",
-          border: "1px solid rgba(255, 255, 255, 0.08)",
+          background: cardBg,
+          border: cardBorder,
+          boxShadow: cardShadow,
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
@@ -98,7 +109,7 @@ export const CompletedTimeline: React.FC<CompletedTimelineProps> = ({
               style={{
                 fontSize: "11px",
                 fontWeight: "800",
-                color: "#60a5fa",
+                color: isDark ? "#60a5fa" : "#2563eb",
                 textTransform: "uppercase",
                 letterSpacing: "0.08em",
               }}
@@ -110,20 +121,20 @@ export const CompletedTimeline: React.FC<CompletedTimelineProps> = ({
                 fontSize: "10px",
                 padding: "2px 8px",
                 borderRadius: "6px",
-                background: "rgba(52, 211, 153, 0.1)",
-                color: "#34d399",
+                background: isDark ? "rgba(52, 211, 153, 0.1)" : "#d1fae5",
+                color: isDark ? "#34d399" : "#059669",
                 fontWeight: "700",
               }}
             >
               Creator Moments Only
             </span>
           </div>
-          <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "800", color: "#f8fafc" }}>
+          <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "800", color: textTitle }}>
             Stream Chronology & Peak Moments
           </h2>
         </div>
 
-        <div style={{ fontSize: "12px", color: "#64748b", fontFamily: "monospace" }}>
+        <div style={{ fontSize: "12px", color: textMuted, fontFamily: "monospace" }}>
           {canonicalEvents.length} Broadcast Milestones
         </div>
       </div>
@@ -133,8 +144,9 @@ export const CompletedTimeline: React.FC<CompletedTimelineProps> = ({
         style={{
           padding: "24px",
           borderRadius: "16px",
-          background: "rgba(13, 16, 27, 0.85)",
-          border: "1px solid rgba(255, 255, 255, 0.08)",
+          background: cardBg,
+          border: cardBorder,
+          boxShadow: cardShadow,
           display: "flex",
           flexDirection: "column",
           gap: "14px",
@@ -143,14 +155,19 @@ export const CompletedTimeline: React.FC<CompletedTimelineProps> = ({
       >
         {canonicalEvents.map((evt) => {
           const badge = getEventBadge(evt.eventType);
+
           return (
             <div
               key={evt.eventId}
               style={{
+                padding: "16px",
+                borderRadius: "12px",
+                background: isDark ? "rgba(255, 255, 255, 0.02)" : "#f8fafc",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid #e2e8f0",
                 display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
                 gap: "16px",
-                alignItems: "flex-start",
-                position: "relative",
               }}
             >
               <div
